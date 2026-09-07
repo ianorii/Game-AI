@@ -48,69 +48,50 @@ DIRECTIONS_4 = [(-1, 0), (0, 1), (1, 0), (0, -1)]
 DIRECTIONS_8 = [(-1, 0), (-1, 1), (0, 1), (1, 1),
                 (1, 0), (1, -1), (0, -1), (-1, -1)]
 
-
 def astar(grid, start, goal, heuristic_name="manhattan", allow_diagonal=False):
-    """
-    A* pathfinding.
-
-    Args:
-        grid: 2D list, 0 = walkable, 1 = obstacle
-        start: tuple (row, col) posisi awal NPC
-        goal: tuple (row, col) posisi player
-        heuristic_name: nama heuristic ("manhattan", "euclidean", "chebyshev", "octile", "ucs")
-        allow_diagonal: True jika boleh bergerak diagonal
-
-    Returns:
-        dict dengan keys:
-            "path": list of (row, col) dari start ke goal (tanpa start), atau [] jika tidak ada
-            "visited": list of (row, col) semua node yang di-expand (urutan expand)
-            "total_expanded": int jumlah node yang di-expand
-            "found": bool apakah path ditemukan
-    """
     rows = len(grid)
     cols = len(grid[0])
 
-    # Validasi start & goal
+    # validasi start dan goal ada di dalam grid
     if not (0 <= start[0] < rows and 0 <= start[1] < cols):
-        return {"path": [], "visited": [], "total_expanded": 0, "found": False}
+        return {"path": [], "visited": [], "total_expanded": 0, "found":False}
     if not (0 <= goal[0] < rows and 0 <= goal[1] < cols):
-        return {"path": [], "visited": [], "total_expanded": 0, "found": False}
-    if grid[start[0]][start[1]] == OBSTACLE or grid[goal[0]][goal[1]] == OBSTACLE:
-        return {"path": [], "visited": [], "total_expanded": 0, "found": False}
+        return {"path": [], "visited": [], "total_expanded": 0, "found":False}
+    if (grid[start[0]][start[1]] == OBSTACLE or grid[goal[0]][goal[1]] == OBSTACLE):
+        return {"path": [], "visited": [], "total_expanded": 0, "found":False}
 
     heuristic = HEURISTICS[heuristic_name]
     directions = DIRECTIONS_8 if allow_diagonal else DIRECTIONS_4
 
-    # Priority queue: (f_score, counter, row, col)
-    # counter untuk tie-breaking agar node yang di-expand sesuai urutan insert
+    # priority queue : (f_score, counter, row, col)
     counter = 0
     open_set = []
     heapq.heappush(open_set, (0, counter, start[0], start[1]))
 
-    # g_score[row][col] = cost terbaik dari start ke (row, col)
+    # g_score[row][col] = cost terbaik dari start
     g_score = [[float('inf')] * cols for _ in range(rows)]
-    g_score[start[0]][start[1]] = 0
+    g_score[start[0]][start[1]] = 0;
 
     # came_from[row][col] = predecessor (row, col)
     came_from = [[None] * cols for _ in range(rows)]
 
-    # Untuk debug: urutan node yang di-expand
+    # untuk node yang sudah di-expand
     visited_order = []
 
-    # Set untuk cek apakah sudah di-expand
+    # set untuk cek apakah sudah di-expand
     closed = set()
 
     while open_set:
         _, _, r, c = heapq.heappop(open_set)
 
-        # Skip jika sudah di-expand (bisa ada duplikat di open_set)
-        if (r, c) in closed:
+        # skip jika sudah di-expand
+        if(r, c) in closed:
             continue
         closed.add((r, c))
         visited_order.append((r, c))
 
-        # Goal reached
-        if (r, c) == goal:
+        # goal reached
+        if(r, c) == goal:
             path = _reconstruct_path(came_from, start, goal)
             return {
                 "path": path,
@@ -119,22 +100,18 @@ def astar(grid, start, goal, heuristic_name="manhattan", allow_diagonal=False):
                 "found": True,
             }
 
-        # Expand neighbors
+        # expand neighbors
         for dr, dc in directions:
-            nr, nc = r + dr, c + dc
+            nr, nc = r+dr, c+dc
 
-            # Validasi bounds
+            # validasi bounds
             if not (0 <= nr < rows and 0 <= nc < cols):
                 continue
-            # Skip obstacle
             if grid[nr][nc] == OBSTACLE:
                 continue
-            # Skip jika sudah di-expand
-            if (nr, nc) in closed:
-                continue
 
-            # Cost dari start ke neighbor
-            # Diagonal = sqrt(2) ~ 1.414, orthogonal = 1
+            # cost dari start ke neighbor
+            # diagnola = sqrt(2) ~ 1.414
             move_cost = math.sqrt(2) if (dr != 0 and dc != 0) else 1
             tentative_g = g_score[r][c] + move_cost
 
@@ -145,7 +122,7 @@ def astar(grid, start, goal, heuristic_name="manhattan", allow_diagonal=False):
                 counter += 1
                 heapq.heappush(open_set, (f_score, counter, nr, nc))
 
-    # Tidak ada path
+    # tidak ada path
     return {
         "path": [],
         "visited": visited_order,
@@ -170,10 +147,6 @@ def _reconstruct_path(came_from, start, goal):
 # --- UCS (Uniform Cost Search) ---
 # UCS = A* dengan h=0, jadi cukup panggil astar dengan heuristic="ucs"
 def ucs(grid, start, goal, allow_diagonal=False):
-    """
-    Uniform Cost Search.
-    Wrapper untuk astar dengan heuristic = 0.
-    """
     return astar(grid, start, goal, heuristic_name="ucs", allow_diagonal=allow_diagonal)
 
 
