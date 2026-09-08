@@ -18,14 +18,14 @@ import sys
 from map import GameMap, CELL_SIZE, ROWS, COLS
 from npc import NPC
 from debug_overlay import DebugOverlay
+from player import Player
 
 SCREEN_WIDTH = COLS * CELL_SIZE
 SCREEN_HEIGHT = ROWS * CELL_SIZE
 
-FPS = 30
+FPS = 120
 
 HEURISTICS = ["manhattan", "euclidean", "chebyshev", "octile", "ucs"]
-
 
 async def main():
     pygame.init()
@@ -37,6 +37,8 @@ async def main():
     game_map = GameMap()
     npc = NPC(0, 0, heuristic="manhattan")
     overlay = DebugOverlay()
+
+    player = Player(5, 5)
 
     heuristic_index = 0
 
@@ -76,15 +78,24 @@ async def main():
                 if game_map.is_walkable(row, col):
                     npc.set_target(row, col)
 
+        keys = pygame.key.get_pressed()
+        player.handle_input(keys, game_map)
+
+        player_pos = player.get_pos()
+        if player_pos != npc.target:
+            npc.target = player_pos
+            npc.path = []
+
         # Update
         npc.update(game_map)
 
         # Draw
-        screen.fill((30, 30, 30))
+        # screen.fill((30, 30, 30))
         game_map.draw(screen)
         overlay.draw(screen, npc, font)
         npc.draw_target(screen)
         npc.draw(screen)
+        player.draw(screen)
 
         pygame.display.flip()
         await asyncio.sleep(0)
