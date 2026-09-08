@@ -8,25 +8,30 @@ FULL_MAP_PATH = os.path.join(IMAGE_DIR, "full map.png")
 
 MAP_WIDTH = 1536
 MAP_HEIGHT = 1024
-CELL_SIZE = 32
-COLS = MAP_WIDTH // CELL_SIZE          # 72
-ROWS = (MAP_HEIGHT + CELL_SIZE - 1) // CELL_SIZE  # 58
+CELL_SIZE = 8
+COLS = MAP_WIDTH // CELL_SIZE          # 192
+ROWS = (MAP_HEIGHT + CELL_SIZE - 1) // CELL_SIZE  # 128
 
 BRIDGE_RECT = pygame.Rect(1290, 770, 270, 185)
 RIVER_BRIDGE_RECT = pygame.Rect(864, 448, 160, 64)
 BRIDGE_RECTS = (BRIDGE_RECT, RIVER_BRIDGE_RECT)
 GARDEN_RECT = pygame.Rect(80, 1360, 330, 280)
+GRID_OVERRIDE_PATH = os.path.join(BASE_DIR, "grid_override.txt")
 
 
 def _is_obstacle(r, g, b):
     mx, mn = max(r, g, b), min(r, g, b)
-    water = b > 145 and b > r * 1.55 and b > g * 1.18 and r < 100
-    gray = (mx - mn < 55) and 65 < r < 190 and 55 < g < 190
-    roofs = r > 105 and r > g * 1.30 and r > b * 1.18 and g < 170
-    trees = g > r * 1.15 and g > b * 1.05 and g < 145 and r < 82 and b < 105
-    brown = r > 48 and r > g * 1.12 and g > b * 1.08 and r < 190 and g < 155 and b < 115
-    buildings = r > 125 and g > 105 and g < 205 and b < 150 and (r - b) > 25 and (g - b) > 15
-    return water or gray or roofs or trees or brown or buildings
+    sat = mx - mn
+    bri = (r + g + b) / 3.0
+    water = b > 130 and b > r * 1.2 and b > g * 0.98 and r < 120
+    cyan = b > 105 and b >= g and g >= r * 1.0 and r < 110 and bri < 175
+    roof = r > 165 and r >= g + 60 and sat > 80 and b < 150
+    stone = sat < 25 and 95 < bri < 235
+    fence = sat < 20 and bri > 155
+    dark = bri < 30
+    slate = sat < 22 and 50 < bri < 115 and b >= g and b > r
+    canopy = g > r * 1.8 and g >= b and g < 150 and r < 45
+    return water or cyan or roof or stone or fence or dark or slate or canopy
 
 
 def _is_road(r, g, b):
@@ -36,8 +41,24 @@ def _is_road(r, g, b):
     return bright or shaded
 
 
+def _is_dirtish(r, g, b):
+    """Tan/dirt/wooden-deck colours used to keep paths walkable (not slate/water/roof)."""
+    if r <= g or g <= b:
+        return False
+    if (r - b) < 25:
+        return False
+    if g <= r * 0.5:
+        return False
+    bri = (r + g + b) / 3.0
+    return 45 < bri < 195 and (r - g) < 145
+
+
 def _is_water(r, g, b):
-    return b > 145 and b > r * 1.55 and b > g * 1.18 and r < 100
+    return b > 130 and b > r * 1.2 and b > g * 0.98 and r < 120
+
+
+def _is_water_shallow(r, g, b):
+    return b > 105 and b >= g and g >= r * 1.0 and r < 110 and (r + g + b) / 3 < 175
 
 
 class GameMap:
@@ -48,6 +69,7 @@ class GameMap:
         self.assets = self._load_all_assets()
         self.pixel_obstacles = self._build_pixel_mask()
         self.grid = self._build_collision_grid()
+        self.load_grid_override()
 
     def _build_pixel_mask(self):
         mask = [[False] * MAP_WIDTH for _ in range(MAP_HEIGHT)]
@@ -70,17 +92,98 @@ class GameMap:
     def get_asset(self, name):
         return self.assets.get(name)
 
-    def _cell_hits_obstacle(self, row, col):
+    def _cell_fraction_obstacle(self, row, col):
         x0, y0 = col * CELL_SIZE, row * CELL_SIZE
         x1, y1 = min(x0 + CELL_SIZE, MAP_WIDTH), min(y0 + CELL_SIZE, MAP_HEIGHT)
         if x0 >= MAP_WIDTH or y0 >= MAP_HEIGHT:
-            return True
-        xs = range(x0 + 5, x1, 7)
-        ys = range(y0 + 5, y1, 7)
-        for y in ys:
-            for x in xs:
+            return 1.0
+        obs = 0
+        total = 0
+        for y in range(y0, y1):
+            for x in range(x0, x1):
+                total += 1
                 if self.pixel_obstacles[y][x]:
-                    return True
+                    obs += 1
+        return obs / total if total else 0.0
+
+    def _cell_stats(self, row, col):
+        """Scan one cell once: returns (object_frac, lum_std, road_frac, mean_r, mean_g, mean_b)."""
+        x0, y0 = col * CELL_SIZE, row * CELL_SIZE
+        x1, y1 = min(x0 + CELL_SIZE, MAP_WIDTH), min(y0 + CELL_SIZE, MAP_HEIGHT)
+        if x0 >= MAP_WIDTH or y0 >= MAP_HEIGHT:
+            return 1.0, 99.0, 0.0, 0, 0, 0
+        obs = 0
+        road = 0
+        total = 0
+        sr = sg = sb = 0
+        lums = [0.0] * 64
+        i = 0
+        for y in range(y0, y1):
+            for x in range(x0, x1):
+                r, g, b = self.background.get_at((x, y))[:3]
+                total += 1
+                if self.pixel_obstacles[y][x]:
+                    obs += 1
+                if _is_road(r, g, b):
+                    road += 1
+                sr += r; sg += g; sb += b
+                lums[i] = (r + g + b) / 3.0
+                i += 1
+        lmean = sum(lums) / total
+        lvar = sum((v - lmean) ** 2 for v in lums) / total
+        import math
+        return (obs / total if total else 0.0,
+                math.sqrt(lvar), road / total if total else 0.0,
+                sr // total, sg // total, sb // total)
+
+    def _cell_deck_fraction(self, row, col):
+        """Fraction of wooden-deck / dirt pixels in a cell (for bridges)."""
+        x0, y0 = col * CELL_SIZE, row * CELL_SIZE
+        x1, y1 = min(x0 + CELL_SIZE, MAP_WIDTH), min(y0 + CELL_SIZE, MAP_HEIGHT)
+        if x0 >= MAP_WIDTH or y0 >= MAP_HEIGHT:
+            return 0.0
+        d = 0
+        total = 0
+        for y in range(y0, y1):
+            for x in range(x0, x1):
+                total += 1
+                r, g, b = self.background.get_at((x, y))[:3]
+                if _is_dirtish(r, g, b):
+                    d += 1
+        return d / total if total else 0.0
+
+    def _cell_water_fraction(self, row, col):
+        x0, y0 = col * CELL_SIZE, row * CELL_SIZE
+        x1, y1 = min(x0 + CELL_SIZE, MAP_WIDTH), min(y0 + CELL_SIZE, MAP_HEIGHT)
+        if x0 >= MAP_WIDTH or y0 >= MAP_HEIGHT:
+            return 1.0
+        w = 0
+        total = 0
+        for y in range(y0, y1):
+            for x in range(x0, x1):
+                if not (0 <= x < MAP_WIDTH and 0 <= y < MAP_HEIGHT):
+                    continue
+                total += 1
+                r, g, b = self.background.get_at((x, y))[:3]
+                if _is_water(r, g, b) or _is_water_shallow(r, g, b):
+                    w += 1
+        return w / total if total else 0.0
+
+    def _cell_hits_obstacle(self, row, col):
+        obj, lsd, road_frac, mr, mg, mb = self._cell_stats(row, col)
+        # Open water / roofs / stone / dark objects are solid obstacles.
+        # Lowered threshold from 0.12 to 0.06 to catch more obstacle cells
+        if obj > 0.06:
+            return True
+        # Textured object (tree/rock/fence/building wall/cliff): grass is smooth
+        # (lum std < ~16) with a bright-green cast, objects are textured.
+        bright_green = mg - mr > 25 and mg - mb > 55 and (mr + mg + mb) / 3.0 > 70
+        if lsd > 16 and not bright_green and road_frac < 0.30:
+            return True
+        # Extra: block cells with significant obstacle content even if texture is mixed
+        # This catches cells where obstacles are partially covered by grass
+        if obj > 0.03 and lsd > 8 and not bright_green:
+            return True
         return False
 
     def _build_collision_grid(self):
@@ -95,7 +198,12 @@ class GameMap:
                 cx = c * CELL_SIZE + CELL_SIZE // 2
                 cy = r * CELL_SIZE + CELL_SIZE // 2
                 if any(rect.collidepoint(cx, cy) for rect in BRIDGE_RECTS):
-                    grid[r][c] = 0
+                    # Only wooden deck cells are walkable, not open water, roofs,
+                    # slate cliffs/riverbanks or other solid obstacles.
+                    obj, lsd, road_frac, mr, mg, mb = self._cell_stats(r, c)
+                    if self._cell_deck_fraction(r, c) > 0.30 and obj < 0.10 \
+                       and not (mr > 165 and mr >= mg + 60 and mb < 150):
+                        grid[r][c] = 0
 
         for r in range(ROWS):
             for c in range(COLS):
@@ -138,13 +246,92 @@ class GameMap:
             if len(component) >= 4:
                 for cr, cc in component:
                     grid[cr][cc] = 0
+
+        dirt_cells = set()
+        for r in range(ROWS):
+            for c in range(COLS):
+                count = 0
+                total = 0
+                for py in range(r * CELL_SIZE, min((r + 1) * CELL_SIZE, MAP_HEIGHT)):
+                    for px in range(c * CELL_SIZE, min((c + 1) * CELL_SIZE, MAP_WIDTH)):
+                        cr, cg, cb = self.background.get_at((px, py))[:3]
+                        total += 1
+                        if _is_dirtish(cr, cg, cb):
+                            count += 1
+                if total > 0 and count / total > 0.30:
+                    dirt_cells.add((r, c))
+
+        # Only keep dirt components that are genuine thin corridors (paths),
+        # and only open dirt cells that are NOT solid obstacle textures.
+        from collections import deque
+        seen = set()
+        for r, c in dirt_cells:
+            if (r, c) in seen:
+                continue
+            component = []
+            queue = deque([(r, c)])
+            seen.add((r, c))
+            while queue:
+                cr, cc = queue.popleft()
+                component.append((cr, cc))
+                for dr, dc in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                    nr, nc = cr + dr, cc + dc
+                    if (nr, nc) in dirt_cells and (nr, nc) not in seen:
+                        seen.add((nr, nc))
+                        queue.append((nr, nc))
+            if len(component) < 3:
+                continue
+            min_r = min(p[0] for p in component)
+            max_r = max(p[0] for p in component)
+            min_c = min(p[1] for p in component)
+            max_c = max(p[1] for p in component)
+            bbox = (max_r - min_r + 1) * (max_c - min_c + 1)
+            if bbox > 0 and len(component) / bbox < 0.70:
+                # Thin corridor: only open cells that are not solid obstacles,
+                # so slate cliffs / rock interiors stay blocked.
+                for cr, cc in component:
+                    obj, lsd, road_frac, mr, mg, mb = self._cell_stats(cr, cc)
+                    bright_green = mg - mr > 25 and mg - mb > 55 and (mr + mg + mb) / 3.0 > 70
+                    solid_obstacle = obj > 0.10 or (lsd > 16 and not bright_green and road_frac < 0.30)
+                    if not solid_obstacle:
+                        grid[cr][cc] = 0
+
+        self._ensure_connectivity(grid)
         return grid
+
+    def _ensure_connectivity(self, grid):
+        from collections import deque
+        best = []
+        seen = set()
+        for r in range(ROWS):
+            for c in range(COLS):
+                if grid[r][c] != 0 or (r, c) in seen:
+                    continue
+                comp = []
+                queue = deque([(r, c)])
+                seen.add((r, c))
+                while queue:
+                    cr, cc = queue.popleft()
+                    comp.append((cr, cc))
+                    for dr, dc in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                        nr, nc = cr + dr, cc + dc
+                        if 0 <= nr < ROWS and 0 <= nc < COLS \
+                           and (nr, nc) not in seen and grid[nr][nc] == 0:
+                            seen.add((nr, nc))
+                            queue.append((nr, nc))
+                if len(comp) > len(best):
+                    best = comp
+        keep = set(best)
+        for r in range(ROWS):
+            for c in range(COLS):
+                if grid[r][c] == 0 and (r, c) not in keep:
+                    grid[r][c] = 1
 
     def _is_water_pixel(self, x, y):
         if not (0 <= x < MAP_WIDTH and 0 <= y < MAP_HEIGHT):
             return True
         r, g, b = self.background.get_at((x, y))[:3]
-        return _is_obstacle(r, g, b) and _is_water(r, g, b)
+        return _is_water(r, g, b) or _is_water_shallow(r, g, b)
 
     def is_walkable(self, row, col):
         return 0 <= row < ROWS and 0 <= col < COLS and self.grid[row][col] == 0
@@ -154,6 +341,48 @@ class GameMap:
 
     def get_grid(self):
         return self.grid
+
+    # --- Manual grid override (0 = walkable, 1 = blocked) ---
+
+    def toggle_cell(self, row, col):
+        if not self.is_valid(row, col):
+            return False
+        self.grid[row][col] = 0 if self.grid[row][col] else 1
+        return True
+
+    def set_cell(self, row, col, value):
+        if not self.is_valid(row, col):
+            return False
+        self.grid[row][col] = 1 if value else 0
+        return True
+
+    def get_cell(self, row, col):
+        return self.grid[row][col] if self.is_valid(row, col) else None
+
+    def save_grid_override(self, path=GRID_OVERRIDE_PATH):
+        """Save the whole 0/1 grid as human-editable text: one row per line."""
+        with open(path, "w", encoding="ascii") as f:
+            for r in range(ROWS):
+                f.write("".join("1" if self.grid[r][c] else "0" for c in range(COLS)) + "\n")
+        return True
+
+    def load_grid_override(self, path=GRID_OVERRIDE_PATH):
+        """Load a manual 0/1 grid from text and apply it. Returns True on success."""
+        if not os.path.exists(path):
+            return False
+        try:
+            with open(path, "r", encoding="ascii") as f:
+                lines = [ln.strip() for ln in f if ln.strip()]
+            if not lines:
+                return False
+            if len(lines) > ROWS or any(len(ln) != COLS for ln in lines):
+                return False
+            for r, ln in enumerate(lines):
+                for c, ch in enumerate(ln):
+                    self.grid[r][c] = 1 if ch == "1" else 0
+            return True
+        except Exception:
+            return False
 
     def draw(self, screen, viewport):
         scaled = pygame.transform.scale(self.background, viewport.map_rect.size)

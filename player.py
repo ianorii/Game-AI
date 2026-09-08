@@ -10,8 +10,10 @@ class Player:
         self.sprite = sprite
         self.manual_timer = 0.0
         self.auto_timer = 0.0
-        self.manual_interval = 0.04   # ~25 moves/sec
-        self.auto_interval = 0.08     # ~12 cells/sec
+        self.manual_interval = 0.012  # ~83 moves/sec (smooth & fast on 8px grid)
+        self.auto_interval = 0.02     # ~50 cells/sec at close range
+        self.auto_interval_mid = 0.012  # ~83 cells/sec mid range
+        self.auto_interval_far = 0.006  # ~166 cells/sec on long trips
         self.facing = 1
         self.heuristic = "manhattan"
         self.target = None
@@ -76,13 +78,22 @@ class Player:
                 self.row, self.col = nr, nc
             self.manual_timer = self.manual_interval
 
+    def _auto_interval_for(self, remaining):
+        """Speed up when the target is far, slow down for precision near arrival."""
+        if remaining >= 30:
+            return self.auto_interval_far
+        if remaining >= 8:
+            return self.auto_interval_mid
+        return self.auto_interval
+
     def update(self, game_map, dt):
         if self.target is None or not self.path:
             return
         self.auto_timer -= dt
         if self.auto_timer > 0:
             return
-        self.auto_timer = self.auto_interval
+        remaining = len(self.path) - self.path_index
+        self.auto_timer = self._auto_interval_for(remaining)
         if self.path_index >= len(self.path):
             self.target = None; return
         nr, nc = self.path[self.path_index]

@@ -12,8 +12,8 @@ class DebugOverlay:
         elif key == pygame.K_2: self.show_path = not self.show_path
         elif key == pygame.K_3: self.show_info = not self.show_info
 
-    def draw_scaled(self, screen, player, font, viewport):
-        if self.show_visited:
+    def draw_scaled(self, screen, player, font, viewport, hide_visited=False):
+        if self.show_visited and not hide_visited:
             for r,c in player.debug_visited:
                 if (r,c) not in player.debug_path and (r,c)!=(player.row,player.col):
                     x,y=game_pos(r,c,viewport); size=max(3,int(9*viewport.scale))

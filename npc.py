@@ -22,8 +22,10 @@ class NPC:
         self.sprite = sprite; self.name = name; self.facing = -1
         self.follow = True
         self.heuristic = "ucs"
-        self.move_interval = 0.08      # ~12 cells/sec
-        self.recompute_interval = 0.20 # re-plan path to the player
+        self.move_interval = 0.02      # ~50 cells/sec at close range
+        self.move_interval_mid = 0.012 # ~83 cells/sec mid range
+        self.move_interval_far = 0.008 # ~125 cells/sec when chasing far
+        self.recompute_interval = 0.10 # re-plan path to the player frequently
         self.path = []
         self.path_index = 0
         self.timer = 0.0
@@ -40,6 +42,26 @@ class NPC:
 
     def set_heuristic(self, heuristic):
         self.heuristic = heuristic
+
+    def snap_to_walkable(self, game_map):
+        if game_map.is_walkable(self.row, self.col):
+            self.start_pos = (self.row, self.col)
+            return
+        from collections import deque
+        start = (self.row, self.col)
+        seen = {start}
+        queue = deque([start])
+        while queue:
+            r, c = queue.popleft()
+            for dr, dc in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                nr, nc = r + dr, c + dc
+                if not game_map.is_valid(nr, nc) or (nr, nc) in seen:
+                    continue
+                seen.add((nr, nc))
+                if game_map.is_walkable(nr, nc):
+                    self.row, self.col = self.start_pos = (nr, nc)
+                    return
+                queue.append((nr, nc))
 
     def get_pos(self): return self.row, self.col
     def is_near(self, player): return abs(self.row - player.row) + abs(self.col - player.col) <= 1
@@ -66,7 +88,13 @@ class NPC:
         self.timer -= dt
         if self.timer > 0 or not self.path or self.path_index >= len(self.path):
             return
-        self.timer = self.move_interval
+        remaining = len(self.path) - self.path_index
+        if remaining >= 30:
+            self.timer = self.move_interval_far
+        elif remaining >= 8:
+            self.timer = self.move_interval_mid
+        else:
+            self.timer = self.move_interval
         nr, nc = self.path[self.path_index]
         if game_map.is_walkable(nr, nc):
             if nc != self.col: self.facing = 1 if nc > self.col else -1
