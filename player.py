@@ -11,8 +11,15 @@ class Player:
         self.row = row
         self.col = col
         self.color = (0, 200, 0)
+        self.move_timer = 0
+        self.move_delay = 5
 
     def handle_input(self, keys, game_map):
+        self.move_timer += 1
+        if self.move_timer < self.move_delay:
+            return
+        self.move_timer  = 0
+        
         new_row, new_col = self.row, self.col
 
         if keys[pygame.K_w] or keys[pygame.K_UP]:
