@@ -57,7 +57,7 @@ def astar(grid, start, goal, heuristic_name="manhattan", allow_diagonal=False):
         return {"path": [], "visited": [], "total_expanded": 0, "found":False}
     if not (0 <= goal[0] < rows and 0 <= goal[1] < cols):
         return {"path": [], "visited": [], "total_expanded": 0, "found":False}
-    if (grid[start[0]][start[1]] == OBSTACLE or grid[goal[0]][goal[1]] == OBSTACLE):
+    if (grid[start[0]][start[1]] != WALKABLE or grid[goal[0]][goal[1]] != WALKABLE):
         return {"path": [], "visited": [], "total_expanded": 0, "found":False}
 
     heuristic = HEURISTICS[heuristic_name]
@@ -107,7 +107,8 @@ def astar(grid, start, goal, heuristic_name="manhattan", allow_diagonal=False):
             # validasi bounds
             if not (0 <= nr < rows and 0 <= nc < cols):
                 continue
-            if grid[nr][nc] == OBSTACLE:
+            
+            if grid[nr][nc] != WALKABLE:
                 continue
 
             # cost dari start ke neighbor
