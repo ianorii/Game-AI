@@ -10,8 +10,8 @@ class Player:
         self.sprite = sprite
         self.manual_timer = 0.0
         self.auto_timer = 0.0
-        self.manual_interval = 0.16   # ~6 moves/sec
-        self.auto_interval = 0.20     # ~5 cells/sec, intentionally slower
+        self.manual_interval = 0.04   # ~25 moves/sec
+        self.auto_interval = 0.08     # ~12 cells/sec
         self.facing = 1
         self.heuristic = "manhattan"
         self.target = None

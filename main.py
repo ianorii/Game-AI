@@ -5,7 +5,7 @@ from npc import NPC
 from player import Player
 from debug_overlay import DebugOverlay
 
-FPS=60
+FPS=120
 HEURISTICS=["manhattan","euclidean","chebyshev","octile","ucs"]
 
 def make_window(fullscreen=True):
@@ -21,6 +21,7 @@ async def main():
     game_map=GameMap(); viewport=Viewport(screen.get_size())
     player_sprite=game_map.get_asset("08_karakter/karakter_pemain")
     npc_sprite=game_map.get_asset("08_karakter/karakter_npc")
+
     # Valid walkable starting cells on the visible path.
     player=Player(16,9,player_sprite); player.snap_to_walkable(game_map)
     npc=NPC(20,5,npc_sprite,"Niko")

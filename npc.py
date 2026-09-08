@@ -22,8 +22,8 @@ class NPC:
         self.sprite = sprite; self.name = name; self.facing = -1
         self.follow = True
         self.heuristic = "ucs"
-        self.move_interval = 0.18      # ~5.5 cells/sec
-        self.recompute_interval = 0.35 # re-plan path to the player
+        self.move_interval = 0.08      # ~12 cells/sec
+        self.recompute_interval = 0.20 # re-plan path to the player
         self.path = []
         self.path_index = 0
         self.timer = 0.0

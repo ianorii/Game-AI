@@ -1,4 +1,4 @@
-"""Map, viewport and pixel-based collision for the 2D RPG map."""
+"""Map, viewport and pixel-based collision for the 2D RPG map (no numpy)."""
 import os
 import pygame
 
@@ -6,67 +6,38 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 IMAGE_DIR = os.path.join(BASE_DIR, "assets", "images")
 FULL_MAP_PATH = os.path.join(IMAGE_DIR, "full map.png")
 
-# The supplied map is 
 MAP_WIDTH = 1536
 MAP_HEIGHT = 1024
 CELL_SIZE = 32
 COLS = MAP_WIDTH // CELL_SIZE          # 72
 ROWS = (MAP_HEIGHT + CELL_SIZE - 1) // CELL_SIZE  # 58
 
-# Wooden bridge deck inside the big lake (lower-right).
 BRIDGE_RECT = pygame.Rect(1290, 770, 270, 185)
-# Wooden bridge carrying the painted road across the river (rows 14-15).
 RIVER_BRIDGE_RECT = pygame.Rect(864, 448, 160, 64)
 BRIDGE_RECTS = (BRIDGE_RECT, RIVER_BRIDGE_RECT)
-# The crop/garden at the lower-left is intentionally walkable.
 GARDEN_RECT = pygame.Rect(80, 1360, 330, 280)
 
 
-def _rgb_masks(surface):
-    """Build a conservative obstacle mask from the actual map pixels."""
-    import numpy as np
-    a = pygame.surfarray.array3d(surface).astype(np.int16)
-    # pygame array is [x,y,channel]; convert to [y,x,channel]
-    a = np.transpose(a, (1, 0, 2))
-    r, g, b = a[:, :, 0], a[:, :, 1], a[:, :, 2]
-
-    # River/lake: strong blue/cyan.
-    water = (b > 145) & (b > r * 1.55) & (b > g * 1.18) & (r < 100)
-
-    # Mountains/rocks: relatively low saturation and mid/high brightness.
-    mx, mn = a.max(axis=2), a.min(axis=2)
-    gray = (mx - mn < 55) & (r > 65) & (r < 190) & (g > 55) & (g < 190)
-
-    # Red/orange roofs.
-    roofs = (r > 105) & (r > g * 1.30) & (r > b * 1.18) & (g < 170)
-
-    # Dark tree crowns and trunks. Grass is much brighter, so this threshold
-    # avoids turning the entire grass field into an obstacle.
-    trees = (g > r * 1.15) & (g > b * 1.05) & (g < 145) & (r < 82) & (b < 105)
-
-    # Dark brown cliffs, fences, bridge sides, rocks and object outlines.
-    brown = (r > 48) & (r > g * 1.12) & (g > b * 1.08) & (r < 190) & (g < 155) & (b < 115)
-
-    # Light building walls are blocked too, but exclude the beige road.
-    buildings = (r > 125) & (g > 105) & (g < 205) & (b < 150) & ((r - b) > 25) & ((g - b) > 15)
-
-    obstacle = water | gray | roofs | trees | brown | buildings
-    return obstacle
+def _is_obstacle(r, g, b):
+    mx, mn = max(r, g, b), min(r, g, b)
+    water = b > 145 and b > r * 1.55 and b > g * 1.18 and r < 100
+    gray = (mx - mn < 55) and 65 < r < 190 and 55 < g < 190
+    roofs = r > 105 and r > g * 1.30 and r > b * 1.18 and g < 170
+    trees = g > r * 1.15 and g > b * 1.05 and g < 145 and r < 82 and b < 105
+    brown = r > 48 and r > g * 1.12 and g > b * 1.08 and r < 190 and g < 155 and b < 115
+    buildings = r > 125 and g > 105 and g < 205 and b < 150 and (r - b) > 25 and (g - b) > 15
+    return water or gray or roofs or trees or brown or buildings
 
 
-def _road_mask(surface):
-    """Detect the beige/yellow paved road painted on the map.
+def _is_road(r, g, b):
+    bright = r > 215 and g > 160 and g < 200 and b > 90 and b < 135 and (r - b) > 90
+    shaded = (190 <= r < 215) and 168 < g < 205 and 75 < b < 115 \
+             and g > r * 0.93 and (g - b) > 60
+    return bright or shaded
 
-    The road shares its colour with the light building walls, so it is
-    otherwise picked up by the ``buildings`` mask and becomes un-walkable.
-    """
-    import numpy as np
-    a = np.transpose(pygame.surfarray.array3d(surface), (1, 0, 2)).astype(np.int16)
-    r, g, b = a[:, :, 0], a[:, :, 1], a[:, :, 2]
-    bright = (r > 215) & (g > 160) & (g < 200) & (b > 90) & (b < 135) & ((r - b) > 90)
-    shaded = (r >= 190) & (r < 215) & (g > 168) & (g < 205) & (b > 75) & (b < 115) \
-             & (g > r * 0.93) & ((g - b) > 60)
-    return bright | shaded
+
+def _is_water(r, g, b):
+    return b > 145 and b > r * 1.55 and b > g * 1.18 and r < 100
 
 
 class GameMap:
@@ -75,8 +46,16 @@ class GameMap:
         if self.background.get_size() != (MAP_WIDTH, MAP_HEIGHT):
             self.background = pygame.transform.scale(self.background, (MAP_WIDTH, MAP_HEIGHT))
         self.assets = self._load_all_assets()
-        self.pixel_obstacles = _rgb_masks(self.background)
+        self.pixel_obstacles = self._build_pixel_mask()
         self.grid = self._build_collision_grid()
+
+    def _build_pixel_mask(self):
+        mask = [[False] * MAP_WIDTH for _ in range(MAP_HEIGHT)]
+        for y in range(MAP_HEIGHT):
+            for x in range(MAP_WIDTH):
+                r, g, b = self.background.get_at((x, y))[:3]
+                mask[y][x] = _is_obstacle(r, g, b)
+        return mask
 
     def _load_all_assets(self):
         assets = {}
@@ -96,14 +75,11 @@ class GameMap:
         x1, y1 = min(x0 + CELL_SIZE, MAP_WIDTH), min(y0 + CELL_SIZE, MAP_HEIGHT)
         if x0 >= MAP_WIDTH or y0 >= MAP_HEIGHT:
             return True
-
-        # Use several samples instead of only the cell center. This prevents
-        # the character from standing partly inside a tree/house/mountain.
         xs = range(x0 + 5, x1, 7)
         ys = range(y0 + 5, y1, 7)
         for y in ys:
             for x in xs:
-                if self.pixel_obstacles[y, x]:
+                if self.pixel_obstacles[y][x]:
                     return True
         return False
 
@@ -114,7 +90,6 @@ class GameMap:
                 if self._cell_hits_obstacle(r, c):
                     grid[r][c] = 1
 
-        # The bridge decks are explicitly walkable. Their river banks remain blocked.
         for r in range(ROWS):
             for c in range(COLS):
                 cx = c * CELL_SIZE + CELL_SIZE // 2
@@ -122,26 +97,28 @@ class GameMap:
                 if any(rect.collidepoint(cx, cy) for rect in BRIDGE_RECTS):
                     grid[r][c] = 0
 
-        # Garden/crop area is walkable; individual crop sprites are decoration.
         for r in range(ROWS):
             for c in range(COLS):
                 cx = c * CELL_SIZE + CELL_SIZE // 2
                 cy = r * CELL_SIZE + CELL_SIZE // 2
                 if GARDEN_RECT.collidepoint(cx, cy):
-                    # Keep the surrounding cliff/water protected.
                     if not self._is_water_pixel(cx, cy):
                         grid[r][c] = 0
 
-        # The painted road is walkable. Keep only the real road corridors and
-        # drop stray roof/wall fragments caught by the same colour band.
-        road = _road_mask(self.background)
-        road_cells = []
+        road_cells = set()
         for r in range(ROWS):
             for c in range(COLS):
-                cell = road[r * CELL_SIZE:(r + 1) * CELL_SIZE,
-                            c * CELL_SIZE:(c + 1) * CELL_SIZE]
-                if cell.mean() > 0.30:
-                    road_cells.append((r, c))
+                count = 0
+                total = 0
+                for py in range(r * CELL_SIZE, min((r + 1) * CELL_SIZE, MAP_HEIGHT)):
+                    for px in range(c * CELL_SIZE, min((c + 1) * CELL_SIZE, MAP_WIDTH)):
+                        cr, cg, cb = self.background.get_at((px, py))[:3]
+                        total += 1
+                        if _is_road(cr, cg, cb):
+                            count += 1
+                if total > 0 and count / total > 0.30:
+                    road_cells.add((r, c))
+
         from collections import deque
         seen = set()
         for r, c in road_cells:
@@ -166,12 +143,8 @@ class GameMap:
     def _is_water_pixel(self, x, y):
         if not (0 <= x < MAP_WIDTH and 0 <= y < MAP_HEIGHT):
             return True
-        return bool(self.pixel_obstacles[y, x]) and self._water_like(x, y)
-
-    def _water_like(self, x, y):
-        # Re-read pixel for a reliable bridge/garden override.
         r, g, b = self.background.get_at((x, y))[:3]
-        return b > 145 and b > r * 1.55 and b > g * 1.18 and r < 100
+        return _is_obstacle(r, g, b) and _is_water(r, g, b)
 
     def is_walkable(self, row, col):
         return 0 <= row < ROWS and 0 <= col < COLS and self.grid[row][col] == 0
