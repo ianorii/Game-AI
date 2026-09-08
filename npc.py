@@ -1,99 +1,85 @@
-"""
-NPC - Bergerak ke target (posisi klik) menggunakan A*
-"""
-
+"""NPC rendering, interaction and pursuit of the player with A*/UCS."""
 import pygame
-from pathfinding import astar
 from map import CELL_SIZE
+from pathfinding import astar
 
+def game_pos(row, col, viewport):
+    return (viewport.map_rect.x + int((col + 0.5) * CELL_SIZE * viewport.scale),
+            viewport.map_rect.y + int((row + 0.5) * CELL_SIZE * viewport.scale))
+
+def draw_sprite(screen, sprite, row, col, viewport, facing=1):
+    if sprite is None: return
+    width = max(28, int(sprite.get_width() * viewport.scale))
+    height = max(42, int(sprite.get_height() * viewport.scale))
+    scaled = pygame.transform.scale(sprite, (width, height))
+    if facing < 0: scaled = pygame.transform.flip(scaled, True, False)
+    x, y = game_pos(row, col, viewport)
+    screen.blit(scaled, (x - width // 2, y - height + max(2, int(4 * viewport.scale))))
 
 class NPC:
-    def __init__(self, row, col, heuristic="manhattan", color=(200, 50, 50)):
-        self.row = row
-        self.col = col
-        self.color = color
-        self.heuristic = heuristic
+    def __init__(self, row, col, sprite=None, name="Niko"):
+        self.start_pos = (row, col); self.row, self.col = row, col
+        self.sprite = sprite; self.name = name; self.facing = -1
+        self.follow = True
+        self.heuristic = "ucs"
+        self.move_interval = 0.18      # ~5.5 cells/sec
+        self.recompute_interval = 0.35 # re-plan path to the player
         self.path = []
         self.path_index = 0
-        self.move_timer = 0
-        self.move_delay = 8  # frame delay antar langkah
-
-        # Target
-        self.target = None
-
-        # Debug info
+        self.timer = 0.0
+        self.recompute_timer = 0.0
         self.debug_visited = []
         self.debug_path = []
         self.total_expanded = 0
 
-    def set_target(self, row, col):
-        """Set target baru. Pathfinding akan diulang."""
-        if (row, col) == (self.row, self.col):
-            return
-        self.target = (row, col)
-        self.path = []
-        self.path_index = 0
+    def reset(self):
+        self.row, self.col = self.start_pos; self.facing = -1
+        self.path = []; self.path_index = 0
+        self.timer = 0.0; self.recompute_timer = 0.0
+        self.debug_visited = []; self.debug_path = []; self.total_expanded = 0
 
-    def update(self, game_map):
-        if self.target is None:
-            return
+    def set_heuristic(self, heuristic):
+        self.heuristic = heuristic
 
-        self.move_timer += 1
-        if self.move_timer < self.move_delay:
-            return
-        self.move_timer = 0
+    def get_pos(self): return self.row, self.col
+    def is_near(self, player): return abs(self.row - player.row) + abs(self.col - player.col) <= 1
 
-        # Sudah sampai di target
-        if (self.row, self.col) == self.target:
+    def update(self, game_map, player, dt):
+        if not self.follow:
             return
-
-        # Re-pathfinding jika path habis
-        if not self.path or self.path_index >= len(self.path):
-            grid = game_map.get_grid()
-            result = astar(
-                grid,
-                (self.row, self.col),
-                self.target,
-                heuristic_name=self.heuristic,
-            )
+        # Re-plan whenever the target/path may be stale.
+        self.recompute_timer -= dt
+        if self.recompute_timer <= 0:
+            self.recompute_timer = self.recompute_interval
+            result = astar(game_map.get_grid(), (self.row, self.col),
+                           (player.row, player.col), heuristic_name=self.heuristic,
+                           allow_diagonal=False)
             self.debug_visited = result["visited"]
             self.debug_path = result["path"]
             self.total_expanded = result["total_expanded"]
-
             if result["found"]:
-                self.path = result["path"]
-                self.path_index = 0
+                # Stop one cell short so the NPC never overlaps the player.
+                self.path = result["path"][:-1]
             else:
                 self.path = []
-                return
-
-        # Bergerak ke node berikutnya
-        next_row, next_col = self.path[self.path_index]
-        self.row = next_row
-        self.col = next_col
+            self.path_index = 0
+        self.timer -= dt
+        if self.timer > 0 or not self.path or self.path_index >= len(self.path):
+            return
+        self.timer = self.move_interval
+        nr, nc = self.path[self.path_index]
+        if game_map.is_walkable(nr, nc):
+            if nc != self.col: self.facing = 1 if nc > self.col else -1
+            self.row, self.col = nr, nc
         self.path_index += 1
 
-    def get_pos(self):
-        return (self.row, self.col)
-
-    def draw(self, screen):
-        rect = pygame.Rect(
-            self.col * CELL_SIZE + 4,
-            self.row * CELL_SIZE + 4,
-            CELL_SIZE - 8,
-            CELL_SIZE - 8,
-        )
-        pygame.draw.rect(screen, self.color, rect, border_radius=4)
-
-    def draw_target(self, screen):
-        """Gambar marker target."""
-        if self.target is None:
-            return
-        r, c = self.target
-        rect = pygame.Rect(
-            c * CELL_SIZE + 6,
-            r * CELL_SIZE + 6,
-            CELL_SIZE - 12,
-            CELL_SIZE - 12,
-        )
-        pygame.draw.rect(screen, (255, 255, 0), rect, 3, border_radius=4)
+    def draw(self, screen, viewport):
+        draw_sprite(screen, self.sprite, self.row, self.col, viewport, self.facing)
+    def draw_dialogue(self, screen, viewport, font, player):
+        if not self.is_near(player): return
+        x, y = game_pos(self.row, self.col, viewport)
+        text = f"{self.name}: Halo!"
+        surf = font.render(text, True, (255,255,255))
+        box = surf.get_rect(midbottom=(x, y-int(62*viewport.scale)))
+        panel = pygame.Surface((box.width+18, box.height+12), pygame.SRCALPHA)
+        panel.fill((15,20,30,225)); screen.blit(panel,(box.x-9,box.y-6)); screen.blit(surf,box)
