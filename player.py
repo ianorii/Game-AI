@@ -1,7 +1,7 @@
 """Player movement with deliberately slower keyboard and A* movement."""
 import pygame
 from pathfinding import astar
-from npc import draw_sprite, game_pos
+from npc import draw_sprite, game_pos, draw_circle_debug
 
 class Player:
     def __init__(self, row, col, sprite=None):
@@ -105,9 +105,21 @@ class Player:
         self.debug_visited = []; self.debug_path = []; self.total_expanded = 0
 
     def get_pos(self): return self.row, self.col
+
     def draw(self, screen, viewport):
         draw_sprite(screen, self.sprite, self.row, self.col, viewport, self.facing)
+
+    def draw_debug(self, screen, cell_size):
+        draw_circle_debug(screen, self.row, self.col, cell_size, (0, 200, 0))
+
     def draw_target(self, screen, viewport):
         if self.target is None: return
         x, y = game_pos(*self.target, viewport)
         pygame.draw.circle(screen, (255,235,70), (x,y), max(5,int(8*viewport.scale)), max(2,int(2*viewport.scale)))
+
+    def draw_target_debug(self, screen, cell_size):
+        if self.target is None: return
+        r, c = self.target
+        cx = c * cell_size + cell_size // 2
+        cy = r * cell_size + cell_size // 2
+        pygame.draw.circle(screen, (255, 235, 70), (cx, cy), cell_size // 3, 3)

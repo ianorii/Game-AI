@@ -16,6 +16,11 @@ def draw_sprite(screen, sprite, row, col, viewport, facing=1):
     x, y = game_pos(row, col, viewport)
     screen.blit(scaled, (x - width // 2, y - height + max(2, int(4 * viewport.scale))))
 
+def draw_circle_debug(screen, row, col, cell_size, color):
+    cx = col * cell_size + cell_size // 2
+    cy = row * cell_size + cell_size // 2
+    pygame.draw.circle(screen, color, (cx, cy), cell_size // 3)
+
 class NPC:
     def __init__(self, row, col, sprite=None, name="Niko"):
         self.start_pos = (row, col); self.row, self.col = row, col
@@ -47,7 +52,6 @@ class NPC:
     def update(self, game_map, player, dt):
         if not self.follow:
             return
-        # Re-plan whenever the target/path may be stale.
         self.recompute_timer -= dt
         if self.recompute_timer <= 0:
             self.recompute_timer = self.recompute_interval
@@ -58,7 +62,6 @@ class NPC:
             self.debug_path = result["path"]
             self.total_expanded = result["total_expanded"]
             if result["found"]:
-                # Stop one cell short so the NPC never overlaps the player.
                 self.path = result["path"][:-1]
             else:
                 self.path = []
@@ -75,6 +78,10 @@ class NPC:
 
     def draw(self, screen, viewport):
         draw_sprite(screen, self.sprite, self.row, self.col, viewport, self.facing)
+
+    def draw_debug(self, screen, cell_size):
+        draw_circle_debug(screen, self.row, self.col, cell_size, (200, 50, 50))
+
     def draw_dialogue(self, screen, viewport, font, player):
         if not self.is_near(player): return
         x, y = game_pos(self.row, self.col, viewport)

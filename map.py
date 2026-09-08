@@ -1,10 +1,11 @@
 """Map, viewport and pixel-based collision for the 2D RPG map (no numpy)."""
-import os
+import os, json
 import pygame
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 IMAGE_DIR = os.path.join(BASE_DIR, "assets", "images")
 FULL_MAP_PATH = os.path.join(IMAGE_DIR, "full map.png")
+MATRIX_FILE = os.path.join(BASE_DIR, "map_matrix.json")
 
 MAP_WIDTH = 1536
 MAP_HEIGHT = 1024
@@ -16,6 +17,10 @@ BRIDGE_RECT = pygame.Rect(1290, 770, 270, 185)
 RIVER_BRIDGE_RECT = pygame.Rect(864, 448, 160, 64)
 BRIDGE_RECTS = (BRIDGE_RECT, RIVER_BRIDGE_RECT)
 GARDEN_RECT = pygame.Rect(80, 1360, 330, 280)
+
+COLOR_WALKABLE = (230, 230, 230)
+COLOR_OBSTACLE = (30, 30, 30)
+COLOR_GRID = (180, 180, 180)
 
 
 def _is_obstacle(r, g, b):
@@ -46,16 +51,7 @@ class GameMap:
         if self.background.get_size() != (MAP_WIDTH, MAP_HEIGHT):
             self.background = pygame.transform.scale(self.background, (MAP_WIDTH, MAP_HEIGHT))
         self.assets = self._load_all_assets()
-        self.pixel_obstacles = self._build_pixel_mask()
         self.grid = self._build_collision_grid()
-
-    def _build_pixel_mask(self):
-        mask = [[False] * MAP_WIDTH for _ in range(MAP_HEIGHT)]
-        for y in range(MAP_HEIGHT):
-            for x in range(MAP_WIDTH):
-                r, g, b = self.background.get_at((x, y))[:3]
-                mask[y][x] = _is_obstacle(r, g, b)
-        return mask
 
     def _load_all_assets(self):
         assets = {}
@@ -79,7 +75,8 @@ class GameMap:
         ys = range(y0 + 5, y1, 7)
         for y in ys:
             for x in xs:
-                if self.pixel_obstacles[y][x]:
+                r, g, b = self.background.get_at((x, y))[:3]
+                if _is_obstacle(r, g, b):
                     return True
         return False
 
@@ -102,7 +99,8 @@ class GameMap:
                 cx = c * CELL_SIZE + CELL_SIZE // 2
                 cy = r * CELL_SIZE + CELL_SIZE // 2
                 if GARDEN_RECT.collidepoint(cx, cy):
-                    if not self._is_water_pixel(cx, cy):
+                    cr, cg, cb = self.background.get_at((cx, cy))[:3]
+                    if not (_is_obstacle(cr, cg, cb) and _is_water(cr, cg, cb)):
                         grid[r][c] = 0
 
         road_cells = set()
@@ -140,12 +138,6 @@ class GameMap:
                     grid[cr][cc] = 0
         return grid
 
-    def _is_water_pixel(self, x, y):
-        if not (0 <= x < MAP_WIDTH and 0 <= y < MAP_HEIGHT):
-            return True
-        r, g, b = self.background.get_at((x, y))[:3]
-        return _is_obstacle(r, g, b) and _is_water(r, g, b)
-
     def is_walkable(self, row, col):
         return 0 <= row < ROWS and 0 <= col < COLS and self.grid[row][col] == 0
 
@@ -155,9 +147,32 @@ class GameMap:
     def get_grid(self):
         return self.grid
 
+    def toggle_cell(self, row, col):
+        if self.is_valid(row, col):
+            self.grid[row][col] = 1 - self.grid[row][col]
+
+    def save_matrix(self):
+        with open(MATRIX_FILE, "w") as f:
+            json.dump(self.grid, f)
+
+    def load_matrix(self):
+        if not os.path.exists(MATRIX_FILE):
+            return False
+        with open(MATRIX_FILE, "r") as f:
+            self.grid = json.load(f)
+        return True
+
     def draw(self, screen, viewport):
         scaled = pygame.transform.scale(self.background, viewport.map_rect.size)
         screen.blit(scaled, viewport.map_rect.topleft)
+
+    def draw_debug(self, screen, cell_size):
+        for r in range(ROWS):
+            for c in range(COLS):
+                rect = pygame.Rect(c * cell_size, r * cell_size, cell_size, cell_size)
+                color = COLOR_WALKABLE if self.grid[r][c] == 0 else COLOR_OBSTACLE
+                pygame.draw.rect(screen, color, rect)
+                pygame.draw.rect(screen, COLOR_GRID, rect, 1)
 
     def screen_to_grid(self, pos, viewport):
         if not viewport.map_rect.collidepoint(pos):
@@ -167,6 +182,11 @@ class GameMap:
         col = int(world_x // CELL_SIZE)
         row = int(world_y // CELL_SIZE)
         return (row, col) if self.is_valid(row, col) else None
+
+    def screen_to_grid_debug(self, pos, cell_size):
+        c = pos[0] // cell_size
+        r = pos[1] // cell_size
+        return (r, c) if self.is_valid(r, c) else None
 
 
 class Viewport:
