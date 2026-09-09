@@ -59,11 +59,10 @@ class DebugOverlay:
                 x, y = game_pos(r, c, viewport)
                 pygame.draw.rect(screen, (255, 70, 90), (x - 3, y - 3, 6, 6))
 
-        # Draw info text
-        if self.show_info:
-            info = font.render(
-                f"Expanded: {player.total_expanded} | Heuristic: {player.heuristic}",
-                True,
-                (255, 255, 255),
-            )
-            screen.blit(info, (18, 42))
+        # Draw info text (always visible, top-center)
+        info = font.render(
+            f"Expanded: {player.total_expanded} | Heuristic: {player.heuristic}",
+            True,
+            (255, 255, 255),
+        )
+        screen.blit(info, ((screen.get_width() - info.get_width()) // 2, 12))
