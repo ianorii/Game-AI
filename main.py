@@ -16,6 +16,7 @@ from debug_overlay import DebugOverlay
 from map import CELL_SIZE, COLS, ROWS, GameMap, Viewport
 from npc import NPC
 from player import Player
+from settings_menu import SettingsMenu
 
 
 # ---------------------------------------------------------------------------
@@ -93,9 +94,33 @@ def handle_events(game_map, viewport, player, npc, overlay, state):
     Returns:
         False if the game should quit, True otherwise.
     """
+    settings_menu = state.get("settings_menu")
+
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             return False
+
+        # Settings menu gets priority when visible
+        if settings_menu and settings_menu.visible:
+            action = settings_menu.handle_event(event)
+            if action == "reset":
+                player.reset()
+                npc.reset()
+                state["status"] = "Player dan NPC di-reset."
+            elif action == "save_grid":
+                game_map.save_grid_override()
+                state["status"] = "Grid disimpan ke grid_override.txt"
+            elif action == "load_grid":
+                ok = game_map.load_grid_override()
+                if state["edit_mode"]:
+                    state["edit_surface"] = build_edit_surface(game_map, state["viewport"])
+                state["status"] = "Grid dimuat dari grid_override.txt" if ok else "Gagal memuat grid_override.txt"
+            elif action == "fullscreen":
+                toggle_fullscreen(game_map, state)
+            elif action == "quit":
+                return False
+            _apply_settings(settings_menu, player, npc, overlay, state)
+            continue
 
         elif event.type == pygame.VIDEORESIZE and not state["fullscreen"]:
             handle_resize(event, game_map, state)
@@ -128,7 +153,8 @@ def handle_key_event(event, game_map, player, npc, overlay, state):
     key = event.key
 
     if key == pygame.K_ESCAPE:
-        return False
+        state["settings_menu"].toggle()
+        return None
 
     elif key == pygame.K_F11:
         toggle_fullscreen(game_map, state)
@@ -220,6 +246,18 @@ def handle_mouse_click(event, game_map, viewport, player, state):
             state["status"] = "Target tidak bisa dilewati atau tidak ada jalur."
 
 
+def _apply_settings(settings_menu, player, npc, overlay, state):
+    """Apply current settings values from the menu to game objects."""
+    vals = settings_menu.get_values()
+    state["show_hud"] = vals.get("show_hud", True)
+    debug_on = vals.get("debug_overlay", True)
+    overlay.show_visited = debug_on
+    overlay.show_path = debug_on
+    npc.follow = vals.get("npc_follow", True)
+    player.heuristic = vals.get("player_heuristic", "manhattan")
+    npc.set_heuristic(vals.get("npc_heuristic", "ucs"))
+
+
 # ---------------------------------------------------------------------------
 # Grid editor input
 # ---------------------------------------------------------------------------
@@ -275,6 +313,8 @@ def draw_edit_mode_info(screen, game_map, viewport, font):
 
 def draw_hud(screen, player, npc, overlay, font, state):
     """Draw the heads-up display with controls and status info."""
+    if not state.get("show_hud", True):
+        return
     if not overlay.show_info:
         return
 
@@ -348,13 +388,27 @@ async def main():
     game_map = GameMap()
     viewport = Viewport(screen.get_size())
 
-    player_sprite = game_map.get_asset("08_karakter/karakter_pemain")
-    npc_sprite = game_map.get_asset("08_karakter/karakter_npc")
+    player_sprite = game_map.get_asset("08_karakter/amba")
+    npc_sprite = game_map.get_asset("08_karakter/polisi")
+
+    TARGET_H = 60  # match current sprite height (karakter 61x89)
+    if player_sprite:
+        pw, ph = player_sprite.get_size()
+        scale_p = TARGET_H / ph
+        player_sprite = pygame.transform.smoothscale(
+            player_sprite, (int(pw * scale_p), TARGET_H)
+        )
+    if npc_sprite:
+        nw, nh = npc_sprite.get_size()
+        scale_n = TARGET_H / nh
+        npc_sprite = pygame.transform.smoothscale(
+            npc_sprite, (int(nw * scale_n), TARGET_H)
+        )
 
     player = Player(*PLAYER_START, player_sprite)
     player.snap_to_walkable(game_map)
 
-    npc = NPC(*NPC_START, npc_sprite, "Niko")
+    npc = NPC(*NPC_START, npc_sprite, "polisi")
     npc.snap_to_walkable(game_map)
 
     overlay = DebugOverlay()
@@ -368,7 +422,9 @@ async def main():
         "edit_surface": None,
         "cellw": CELL_SIZE * viewport.scale,
         "hi": 0,
-        "status": "WASD/Arrow = Player | Klik map = Player A*",
+        "status": "WASD/Arrow = Player | Klik map = Player A* | ESC = Settings",
+        "show_hud": True,
+        "settings_menu": SettingsMenu(),
     }
 
     # ---- Main loop ----
@@ -393,6 +449,12 @@ async def main():
         player.update(game_map, dt)
         npc.update(game_map, player, dt)
 
+        # Apply settings from menu (only while visible so hotkeys keep working)
+        if state["settings_menu"].visible:
+            _apply_settings(state["settings_menu"], player, npc, overlay, state)
+        else:
+            state["settings_menu"].sync_from_game(player, npc, overlay, state)
+
         # ---- Rendering ----
         screen.fill((12, 14, 18))
         game_map.draw(screen, viewport)
@@ -416,6 +478,9 @@ async def main():
 
         # HUD
         draw_hud(screen, player, npc, overlay, small, state)
+
+        # Settings menu on top
+        state["settings_menu"].draw(screen, small)
 
         # Flip and tick
         pygame.display.flip()
