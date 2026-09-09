@@ -116,30 +116,29 @@ class NPC:
         if not self.path or self.path_index >= len(self.path):
             return
 
-        # Smooth interpolation towards current grid position
-        dr = self.row - self.smooth_r
-        dc = self.col - self.smooth_c
-        pixel_dist = math.sqrt(dr * dr + dc * dc) * CELL_SIZE
-        max_move = self.move_speed * dt
+        budget = self.move_speed * dt
 
-        if pixel_dist <= max_move:
-            # Snap to current grid position
-            self.smooth_r = float(self.row)
-            self.smooth_c = float(self.col)
-        else:
-            # Interpolate towards current position
-            ratio = max_move / pixel_dist
-            self.smooth_r += dr * ratio
-            self.smooth_c += dc * ratio
-            return
+        while budget > 0 and self.path_index < len(self.path):
+            dr = self.row - self.smooth_r
+            dc = self.col - self.smooth_c
+            pixel_dist = math.sqrt(dr * dr + dc * dc) * CELL_SIZE
 
-        # Move to next path node
-        nr, nc = self.path[self.path_index]
-        if game_map.is_walkable(nr, nc):
-            if nc != self.col:
-                self.facing = 1 if nc > self.col else -1
-            self.row, self.col = nr, nc
-        self.path_index += 1
+            if pixel_dist > budget:
+                ratio = budget / pixel_dist
+                self.smooth_r += dr * ratio
+                self.smooth_c += dc * ratio
+                budget = 0
+            else:
+                self.smooth_r = float(self.row)
+                self.smooth_c = float(self.col)
+                budget -= pixel_dist
+
+                nr, nc = self.path[self.path_index]
+                if game_map.is_walkable(nr, nc):
+                    if nc != self.col:
+                        self.facing = 1 if nc > self.col else -1
+                    self.row, self.col = nr, nc
+                self.path_index += 1
 
     def draw(self, screen, viewport):
         """Draw the NPC sprite at its current smooth position."""

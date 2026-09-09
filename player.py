@@ -127,44 +127,42 @@ class Player:
             self.target = None
             return
 
-        # Smooth interpolation towards current grid position
-        dr = self.row - self.smooth_r
-        dc = self.col - self.smooth_c
-        pixel_dist = math.sqrt(dr * dr + dc * dc) * CELL_SIZE
-        max_move = self.move_speed * dt
+        budget = self.move_speed * dt
 
-        if pixel_dist <= max_move:
-            # Snap to current grid position
-            self.smooth_r = float(self.row)
-            self.smooth_c = float(self.col)
-        else:
-            # Interpolate towards current position
-            ratio = max_move / pixel_dist
-            self.smooth_r += dr * ratio
-            self.smooth_c += dc * ratio
-            return
+        while budget > 0 and self.path_index < len(self.path):
+            dr = self.row - self.smooth_r
+            dc = self.col - self.smooth_c
+            pixel_dist = math.sqrt(dr * dr + dc * dc) * CELL_SIZE
 
-        # Move to next path node
-        nr, nc = self.path[self.path_index]
-        if not game_map.is_walkable(nr, nc):
-            # Path blocked, try to recompute
-            old_target = self.target
-            self.target = None
-            self.path = []
-            self.path_index = 0
-            self.set_target(*old_target, game_map)
-            return
+            if pixel_dist > budget:
+                ratio = budget / pixel_dist
+                self.smooth_r += dr * ratio
+                self.smooth_c += dc * ratio
+                budget = 0
+            else:
+                self.smooth_r = float(self.row)
+                self.smooth_c = float(self.col)
+                budget -= pixel_dist
 
-        if nc != self.col:
-            self.facing = 1 if nc > self.col else -1
-        self.row, self.col = nr, nc
-        self.path_index += 1
+                nr, nc = self.path[self.path_index]
+                if not game_map.is_walkable(nr, nc):
+                    old_target = self.target
+                    self.target = None
+                    self.path = []
+                    self.path_index = 0
+                    self.set_target(*old_target, game_map)
+                    return
 
-        # Check if reached target
-        if (self.row, self.col) == self.target:
-            self.target = None
-            self.path = []
-            self.path_index = 0
+                if nc != self.col:
+                    self.facing = 1 if nc > self.col else -1
+                self.row, self.col = nr, nc
+                self.path_index += 1
+
+                if (self.row, self.col) == self.target:
+                    self.target = None
+                    self.path = []
+                    self.path_index = 0
+                    break
 
     def reset(self):
         """Reset player to starting position and clear all state."""
