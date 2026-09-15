@@ -388,8 +388,8 @@ async def main():
     game_map = GameMap()
     viewport = Viewport(screen.get_size())
 
-    player_sprite = game_map.get_asset("08_karakter/amba")
-    npc_sprite = game_map.get_asset("08_karakter/polisi")
+    player_sprite = game_map.get_asset("08_karakter/karakter_pemain")
+    npc_sprite = game_map.get_asset("08_karakter/karakter_npc")
 
     TARGET_H = 60  # match current sprite height (karakter 61x89)
     if player_sprite:
@@ -408,7 +408,7 @@ async def main():
     player = Player(*PLAYER_START, player_sprite)
     player.snap_to_walkable(game_map)
 
-    npc = NPC(*NPC_START, npc_sprite, "polisi")
+    npc = NPC(*NPC_START, npc_sprite, "jaka")
     npc.snap_to_walkable(game_map)
 
     overlay = DebugOverlay()

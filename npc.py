@@ -157,9 +157,9 @@ class NPC:
             return
 
         x, y = game_pos(self.row, self.col, viewport)
-        text = f"{self.name}: amba kamu ditangkap"
+        text = f"{self.name}: ketangkep kamu"
         surf = font.render(text, True, (255, 255, 255))
-        box = surf.get_rect(midbottom=(x, y - int(62 * viewport.scale)))
+        box = surf.get_rect(midtop=(x, y + int(8 * viewport.scale)))
 
         # Draw dialogue panel background
         panel = pygame.Surface(
