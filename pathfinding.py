@@ -57,13 +57,15 @@ HEURISTICS = {
 
 WALKABLE = 0
 DIRECTIONS_4 = [(-1, 0), (0, 1), (1, 0), (0, -1)]  # up, right, down, left
+DIRECTIONS_8 = DIRECTIONS_4 + [(-1, -1), (-1, 1), (1, -1), (1, 1)]  # + diagonals
+SQRT2 = math.sqrt(2)
 
 
 # ---------------------------------------------------------------------------
 # A* algorithm
 # ---------------------------------------------------------------------------
 
-def astar(grid, start, goal, heuristic_name="manhattan", allow_diagonal=False):
+def astar(grid, start, goal, heuristic_name="manhattan", allow_diagonal=True):
     """Find the shortest path from start to goal using A* algorithm.
 
     Args:
@@ -71,7 +73,7 @@ def astar(grid, start, goal, heuristic_name="manhattan", allow_diagonal=False):
         start: (row, col) tuple for starting position
         goal: (row, col) tuple for goal position
         heuristic_name: name of heuristic function to use
-        allow_diagonal: reserved for future 8-directional movement
+        allow_diagonal: if True, allow 8-directional movement (cost √2 for diagonals)
 
     Returns:
         dict with keys:
@@ -94,6 +96,7 @@ def astar(grid, start, goal, heuristic_name="manhattan", allow_diagonal=False):
     heuristic = HEURISTICS[heuristic_name]
     sr, sc = start
     gr, gc = goal
+    directions = DIRECTIONS_8 if allow_diagonal else DIRECTIONS_4
 
     # Initialize data structures
     INF = float('inf')
@@ -134,7 +137,7 @@ def astar(grid, start, goal, heuristic_name="manhattan", allow_diagonal=False):
 
         # Explore neighbors
         g_cur = g_score[idx]
-        for dr, dc in DIRECTIONS_4:
+        for dr, dc in directions:
             nr, nc = r + dr, c + dc
             if not (0 <= nr < rows and 0 <= nc < cols):
                 continue
@@ -144,8 +147,9 @@ def astar(grid, start, goal, heuristic_name="manhattan", allow_diagonal=False):
             if closed[nidx]:
                 continue
 
-            # Calculate new g-score (all moves cost 1)
-            tg = g_cur + 1
+            # Calculate new g-score: √2 for diagonal, 1 for cardinal
+            move_cost = SQRT2 if (dr != 0 and dc != 0) else 1
+            tg = g_cur + move_cost
             if tg < g_score[nidx]:
                 g_score[nidx] = tg
                 came_from[nidx] = idx
