@@ -558,15 +558,16 @@ async def main():
     """
     pygame.init()
 
-    # Buat window
-    fullscreen = True
+    # Buat window (default windowed untuk web compatibility)
+    fullscreen = False
     screen = make_window(fullscreen)
     pygame.display.set_caption("Game AI - Player A* + NPC")
     clock = pygame.time.Clock()
 
-    # Load font untuk HUD dan dialogue
-    small = pygame.font.SysFont("consolas", max(14, screen.get_width() // 115))
-    dialogue = pygame.font.SysFont("consolas", max(13, screen.get_width() // 125))
+    # Load font untuk HUD dan dialogue (fallback ke default jika consolas tidak ada)
+    font_name = "consolas" if pygame.font.match_font("consolas") else None
+    small = pygame.font.SysFont(font_name, max(14, screen.get_width() // 115))
+    dialogue = pygame.font.SysFont(font_name, max(13, screen.get_width() // 125))
 
     # Inisialisasi game objects
     game_map = GameMap()
