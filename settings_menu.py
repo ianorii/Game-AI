@@ -1,29 +1,60 @@
 """
-Settings menu with pixel-art brown theme.
-Opens with the ESC key and provides a clean in-game settings overlay.
+Settings menu module - Menu pengaturan dengan pixel-art brown theme.
+
+Modul ini menghandle:
+1. Settings overlay dengan pixel-art brown theme
+2. Toggle settings (HUD, NPC follow, debug overlay)
+3. Selector settings (heuristic player, algoritma NPC)
+4. Action buttons (reset, save/load grid, fullscreen, quit)
+5. Keyboard dan mouse navigation
+
+Theme:
+- Warna coklat/kayu untuk pixel-art aesthetic
+- Border ganda untuk efek pixel-art
+- Checkbox untuk toggle settings
+- Arrow selector untuk options
 """
 import pygame
 
 # ---------------------------------------------------------------------------
-# Color palette (brown pixel theme)
+# Color Palette (Brown Pixel Theme)
 # ---------------------------------------------------------------------------
-BG_DARK = (40, 26, 13)
-BG_MID = (62, 40, 20)
-BG_LIGHT = (85, 55, 28)
-BORDER_OUTER = (30, 18, 8)
-BORDER_INNER = (110, 72, 36)
-TEXT_NORMAL = (220, 195, 160)
-TEXT_DIM = (150, 120, 85)
-TEXT_HIGHLIGHT = (255, 230, 170)
-ACCENT = (180, 100, 30)
-ACCENT_HOVER = (210, 130, 50)
-TOGGLE_ON = (120, 180, 70)
-TOGGLE_OFF = (160, 60, 40)
+
+# Background colors
+BG_DARK = (40, 26, 13)      # Background gelap
+BG_MID = (62, 40, 20)       # Background tengah
+BG_LIGHT = (85, 55, 28)     # Background terang
+
+# Border colors
+BORDER_OUTER = (30, 18, 8)  # Border luar (gelap)
+BORDER_INNER = (110, 72, 36) # Border dalam (terang)
+
+# Text colors
+TEXT_NORMAL = (220, 195, 160)   # Teks normal
+TEXT_DIM = (150, 120, 85)       # Teks redup
+TEXT_HIGHLIGHT = (255, 230, 170) # Teks highlight
+
+# Accent colors
+ACCENT = (180, 100, 30)       # Accent normal
+ACCENT_HOVER = (210, 130, 50) # Accent saat hover
+
+# Toggle colors
+TOGGLE_ON = (120, 180, 70)    # Toggle ON (hijau)
+TOGGLE_OFF = (160, 60, 40)    # Toggle OFF (merah)
+
+# Divider color
 DIVIDER = (90, 58, 30)
 
 
 def _draw_pixel_border(surface, rect):
-    """Draw a pixel-art style double border."""
+    """Gambar pixel-art style double border.
+
+    Membuat efek border ganda untuk aesthetic pixel-art.
+
+    Args:
+        surface: Surface untuk drawing
+        rect: Rect area border
+    """
     outer = rect.inflate(6, 6)
     pygame.draw.rect(surface, BORDER_OUTER, outer, border_radius=2)
     pygame.draw.rect(surface, BORDER_INNER, rect, border_radius=2)
@@ -32,12 +63,24 @@ def _draw_pixel_border(surface, rect):
 
 
 def _draw_checkbox(surface, x, y, checked, size=14):
-    """Draw a pixel-art checkbox."""
+    """Gambar pixel-art checkbox.
+
+    Checkbox memiliki efek 3D dengan border gelap dan inner berwarna.
+    Jika checked, ada tanda centang putih.
+
+    Args:
+        surface: Surface untuk drawing
+        x: Posisi x
+        y: Posisi y
+        checked: Status checkbox (True/False)
+        size: Ukuran checkbox (default 14)
+    """
     box = pygame.Rect(x, y, size, size)
     pygame.draw.rect(surface, BORDER_OUTER, box, border_radius=1)
     inner = box.inflate(-4, -4)
     color = TOGGLE_ON if checked else BG_LIGHT
     pygame.draw.rect(surface, color, inner, border_radius=1)
+    # Gambar tanda centang
     if checked:
         pygame.draw.line(
             surface, (255, 255, 255),
@@ -52,12 +95,21 @@ def _draw_checkbox(surface, x, y, checked, size=14):
 
 
 class SettingsMenu:
-    """A pixel-art brown themed settings overlay."""
+    """Settings overlay dengan pixel-art brown theme.
+
+    Attributes:
+        visible: Apakah menu visible
+        selected: Index item yang dipilih
+        hover_row: Index item yang di-hover
+        items: List of menu items dengan type, label, key, dll.
+    """
 
     def __init__(self):
+        """Inisialisasi settings menu."""
         self.visible = False
         self.selected = 0
         self.hover_row = -1
+        # Definisi menu items
         self.items = [
             {"type": "toggle", "label": "Tampilkan HUD", "key": "show_hud", "default": True},
             {"type": "toggle", "label": "NPC Ikuti Player", "key": "npc_follow", "default": True},
@@ -74,11 +126,15 @@ class SettingsMenu:
         ]
 
     def toggle(self):
-        """Show or hide the menu."""
+        """Toggle visibility menu."""
         self.visible = not self.visible
 
     def get_values(self):
-        """Return current setting values as a dict."""
+        """Return nilai settings saat ini sebagai dict.
+
+        Returns:
+            Dict dengan key = item key, value = nilai saat ini
+        """
         out = {}
         for item in self.items:
             if item["type"] == "toggle":
@@ -88,7 +144,16 @@ class SettingsMenu:
         return out
 
     def sync_from_game(self, player, npc, overlay, state):
-        """Update menu item values from the current game state."""
+        """Update nilai menu dari game state saat ini.
+
+        Digunakan agar hotkeys tetap berfungsi meski menu tidak visible.
+
+        Args:
+            player: Objek Player
+            npc: Objek NPC
+            overlay: Objek DebugOverlay
+            state: Dict game state
+        """
         for item in self.items:
             key = item["key"]
             if item["type"] == "toggle":
@@ -105,7 +170,26 @@ class SettingsMenu:
                     item["index"] = item["options"].index(npc.heuristic)
 
     def handle_event(self, event):
-        """Handle input events. Returns True if an action was triggered."""
+        """Handle input events.
+
+        Keyboard:
+        - ESC: Tutup menu
+        - W/Up: Pilih item sebelumnya
+        - S/Down: Pilih item sesudahnya
+        - A/Left: Decrement value
+        - D/Right: Increment value
+        - Enter/Space: Toggle/Execute item
+
+        Mouse:
+        - Click: Toggle/Select item
+        - Hover: Highlight item
+
+        Args:
+            event: pygame event
+
+        Returns:
+            True jika action triggered, False jika tidak
+        """
         if not self.visible:
             return False
 
@@ -138,30 +222,58 @@ class SettingsMenu:
         return False
 
     def _increment(self, item):
+        """Increment value item (untuk selector atau toggle).
+
+        Args:
+            item: Dict item yang akan di-increment
+        """
         if item["type"] == "selector":
             item["index"] = (item["index"] + 1) % len(item["options"])
         elif item["type"] == "toggle":
             item["value"] = not item.get("value", item["default"])
 
     def _decrement(self, item):
+        """Decrement value item (untuk selector atau toggle).
+
+        Args:
+            item: Dict item yang akan di-decrement
+        """
         if item["type"] == "selector":
             item["index"] = (item["index"] - 1) % len(item["options"])
         elif item["type"] == "toggle":
             item["value"] = not item.get("value", item["default"])
 
     def _menu_rect(self):
+        """Hitung rect untuk menu panel.
+
+        Returns:
+            pygame.Rect posisi dan ukuran menu
+        """
         sw, sh = pygame.display.get_surface().get_size()
         menu_w = min(420, sw - 80)
         menu_h = min(520, sh - 80)
         return pygame.Rect((sw - menu_w) // 2, (sh - menu_h) // 2, menu_w, menu_h)
 
     def _row_rect(self, i):
+        """Hitung rect untuk baris menu ke-i.
+
+        Args:
+            i: Index baris
+
+        Returns:
+            pygame.Rect posisi baris
+        """
         menu = self._menu_rect()
         item_h = 42
         start_y = menu.y + 65
         return pygame.Rect(menu.x + 20, start_y + i * item_h, menu.width - 40, item_h)
 
     def _handle_mouse_hover(self, event):
+        """Handle mouse hover untuk highlight baris.
+
+        Args:
+            event: pygame.MOUSEMOTION event
+        """
         self.hover_row = -1
         for i in range(len(self.items)):
             if self._row_rect(i).collidepoint(event.pos):
@@ -169,12 +281,22 @@ class SettingsMenu:
                 break
 
     def _handle_mouse_click(self, event):
+        """Handle mouse click untuk toggle/select item.
+
+        Args:
+            event: pygame.MOUSEBUTTONDOWN event
+
+        Returns:
+            True jika action triggered
+        """
         menu = self._menu_rect()
+        # Cek tombol close
         close_rect = pygame.Rect(menu.right - 36, menu.y + 10, 26, 26)
         if close_rect.collidepoint(event.pos):
             self.visible = False
             return False
 
+        # Cek click pada menu items
         for i, item in enumerate(self.items):
             if not self._row_rect(i).collidepoint(event.pos):
                 continue
@@ -192,7 +314,15 @@ class SettingsMenu:
         return True
 
     def _selector_click(self, pos, item):
-        """Determine which arrow of a selector was clicked."""
+        """Tentukan panah mana yang di-click pada selector.
+
+        Args:
+            pos: Tuple (x, y) posisi click
+            item: Dict item selector
+
+        Returns:
+            -1 untuk kiri, 1 untuk kanan, 0 jika tidak ada
+        """
         menu = self._menu_rect()
         font = pygame.font.SysFont("consolas", 16)
         lbl = font.render(item["label"], True, TEXT_NORMAL)
@@ -207,7 +337,12 @@ class SettingsMenu:
         return 0
 
     def draw(self, screen, font):
-        """Draw the settings menu overlay."""
+        """Gambar settings menu overlay.
+
+        Args:
+            screen: Surface utama
+            font: pygame Font untuk rendering teks
+        """
         if not self.visible:
             return
 
@@ -219,7 +354,7 @@ class SettingsMenu:
         dim.fill((0, 0, 0, 160))
         screen.blit(dim, (0, 0))
 
-        # Main panel
+        # Main panel dengan pixel border
         _draw_pixel_border(screen, menu)
 
         # Header
@@ -228,14 +363,14 @@ class SettingsMenu:
         title = font.render("PENGATURAN", True, TEXT_HIGHLIGHT)
         screen.blit(title, (menu.centerx - title.get_width() // 2, menu.y + 16))
 
-        # Close button
+        # Tombol close
         close_rect = pygame.Rect(menu.right - 36, menu.y + 10, 26, 26)
         pygame.draw.rect(screen, TOGGLE_OFF, close_rect, border_radius=3)
         cx, cy = close_rect.center
         pygame.draw.line(screen, (255, 255, 255), (cx - 6, cy - 6), (cx + 6, cy + 6), 2)
         pygame.draw.line(screen, (255, 255, 255), (cx + 6, cy - 6), (cx - 6, cy + 6), 2)
 
-        # Divider under header
+        # Divider di bawah header
         pygame.draw.line(screen, DIVIDER, (menu.x + 15, menu.y + 55), (menu.right - 15, menu.y + 55), 1)
 
         # Menu items
@@ -247,29 +382,34 @@ class SettingsMenu:
             is_sel = i == self.selected
             is_hover = i == self.hover_row
 
+            # Highlight item yang dipilih
             if is_sel:
                 sel_bg = pygame.Rect(menu.x + 10, iy - 2, menu.width - 20, item_h)
                 pygame.draw.rect(screen, (80, 52, 26, 190), sel_bg, border_radius=3)
                 pygame.draw.rect(screen, ACCENT, (menu.x + 12, iy + 8, 4, item_h - 16), border_radius=1)
 
+            # Label
             lbl_x = menu.x + 30
             lbl_color = TEXT_HIGHLIGHT if is_sel else (TEXT_NORMAL if not is_hover else TEXT_HIGHLIGHT)
             lbl = font.render(item["label"], True, lbl_color)
 
+            # Action/Danger button (full row)
             if item["type"] in ("action", "danger"):
-                # Full-row button
                 btn = pygame.Rect(lbl_x - 12, iy + 6, menu.width - 36, item_h - 12)
                 color = TOGGLE_OFF if item["type"] == "danger" else (ACCENT_HOVER if is_sel else ACCENT)
                 pygame.draw.rect(screen, color, btn, border_radius=3)
                 screen.blit(lbl, (btn.centerx - lbl.get_width() // 2, btn.centery - lbl.get_height() // 2))
                 continue
 
+            # Label untuk toggle/selector
             screen.blit(lbl, (lbl_x, iy + 12))
 
+            # Checkbox untuk toggle
             if item["type"] == "toggle":
                 checked = item.get("value", item["default"])
                 _draw_checkbox(screen, lbl_x + lbl.get_width() + 20, iy + 13, checked, 16)
 
+            # Arrow selector
             elif item["type"] == "selector":
                 val = item["options"][item["index"]]
                 sel_x = lbl_x + lbl.get_width() + 30
@@ -280,7 +420,7 @@ class SettingsMenu:
                 screen.blit(vt, (sel_x + al.get_width() + 8, iy + 12))
                 screen.blit(ar, (sel_x + al.get_width() + 8 + vt.get_width() + 8, iy + 12))
 
-        # Footer
+        # Footer hint
         hint_y = start_y + len(self.items) * item_h + 8
         pygame.draw.line(screen, DIVIDER, (menu.x + 15, hint_y), (menu.right - 15, hint_y), 1)
         hint = font.render("W/S pilih | A/D ubah | ENTER ok | ESC tutup", True, TEXT_DIM)

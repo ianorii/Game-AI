@@ -1,11 +1,25 @@
 """
-Map, viewport and pixel-based collision for the 2D RPG map.
+Map module - Map, viewport, dan pixel-based collision untuk 2D RPG map.
 
-This module handles:
-- Loading and scaling the background map image
-- Pixel-level obstacle detection using color analysis
-- Grid-based collision system for pathfinding
-- Viewport calculations for camera/scrolling
+Modul ini menghandle:
+1. Loading dan scaling background map image
+2. Pixel-level obstacle detection menggunakan color analysis
+3. Grid-based collision system untuk pathfinding
+4. Viewport calculations untuk camera/scrolling
+5. Grid save/load ke file
+
+Pixel-level Color Detection:
+- Menggunakan RGB color analysis untuk mendeteksi obstacle
+- Water: biru (b > 130, b > r * 1.2)
+- Roof: merah (r > 165, r >= g + 60)
+- Stone/fence: abu-abu (sat < 25)
+- Vegetasi gelap: hijau gelap (g > r * 1.8)
+
+Grid Collision System:
+- Cell size: 8x8 pixels
+- Grid size: 192x128 cells
+- Value 0 = walkable, 1 = obstacle
+- Menggunakan connected components untuk memastikan connectivity
 """
 import math
 import os
@@ -17,34 +31,52 @@ import pygame
 # Constants
 # ---------------------------------------------------------------------------
 
+# Path direktori
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 IMAGE_DIR = os.path.join(BASE_DIR, "assets", "images")
 FULL_MAP_PATH = os.path.join(IMAGE_DIR, "full map.png")
 GRID_OVERRIDE_PATH = os.path.join(BASE_DIR, "grid_override.txt")
 
-MAP_WIDTH = 1536
-MAP_HEIGHT = 1024
-CELL_SIZE = 8
-COLS = MAP_WIDTH // CELL_SIZE
-ROWS = (MAP_HEIGHT + CELL_SIZE - 1) // CELL_SIZE
+# Ukuran map dan cell
+MAP_WIDTH = 1536  # pixel
+MAP_HEIGHT = 1024  # pixel
+CELL_SIZE = 8  # pixel per cell
+COLS = MAP_WIDTH // CELL_SIZE  # 192 columns
+ROWS = (MAP_HEIGHT + CELL_SIZE - 1) // CELL_SIZE  # 128 rows
 
-# Special regions that need special collision handling
-BRIDGE_RECT = pygame.Rect(1290, 770, 270, 185)
-RIVER_BRIDGE_RECT = pygame.Rect(864, 448, 160, 64)
+# Area spesial yang membutuhkan collision handling khusus
+BRIDGE_RECT = pygame.Rect(1290, 770, 270, 185)  # Jembatan utama
+RIVER_BRIDGE_RECT = pygame.Rect(864, 448, 160, 64)  # Jembatan sungai
 BRIDGE_RECTS = (BRIDGE_RECT, RIVER_BRIDGE_RECT)
-GARDEN_RECT = pygame.Rect(80, 1360, 330, 280)
+GARDEN_RECT = pygame.Rect(80, 1360, 330, 280)  # Area taman
 
 
 # ---------------------------------------------------------------------------
-# Pixel-level color detection functions
+# Pixel-level Color Detection Functions
 # ---------------------------------------------------------------------------
 
 def _is_obstacle(r, g, b):
-    """Detect if a pixel color represents an obstacle (water, roof, stone, etc.)."""
-    mx, mn = max(r, g, b), min(r, g, b)
-    sat = mx - mn
-    bri = (r + g + b) / 3.0
+    """Deteksi apakah pixel merupakan obstacle berdasarkan warna RGB.
 
+    Menggunakan beberapa heuristic warna untuk mendeteksi:
+    - Air (biru)
+    - Atap (merah)
+    - Stone/fence (abu-abu)
+    - Vegetasi gelap
+
+    Args:
+        r: Red value (0-255)
+        g: Green value (0-255)
+        b: Blue value (0-255)
+
+    Returns:
+        True jika pixel merupakan obstacle
+    """
+    mx, mn = max(r, g, b), min(r, g, b)
+    sat = mx - mn  # Saturasi
+    bri = (r + g + b) / 3.0  # Brightness
+
+    # Deteksi berbagai jenis obstacle
     water = b > 130 and b > r * 1.2 and b > g * 0.98 and r < 120
     cyan = b > 105 and b >= g and g >= r * 1.0 and r < 110 and bri < 175
     roof = r > 165 and r >= g + 60 and sat > 80 and b < 150
@@ -58,7 +90,16 @@ def _is_obstacle(r, g, b):
 
 
 def _is_road(r, g, b):
-    """Detect if a pixel color represents a road surface."""
+    """Deteksi apakah pixel merupakan jalan.
+
+    Args:
+        r: Red value (0-255)
+        g: Green value (0-255)
+        b: Blue value (0-255)
+
+    Returns:
+        True jika pixel merupakan jalan
+    """
     bright = r > 215 and g > 160 and g < 200 and b > 90 and b < 135 and (r - b) > 90
     shaded = (
         (190 <= r < 215)
@@ -71,7 +112,16 @@ def _is_road(r, g, b):
 
 
 def _is_dirtish(r, g, b):
-    """Detect if a pixel color represents dirt/ground."""
+    """Deteksi apakah pixel merupakan tanah/dirt.
+
+    Args:
+        r: Red value (0-255)
+        g: Green value (0-255)
+        b: Blue value (0-255)
+
+    Returns:
+        True jika pixel merupakan tanah
+    """
     if r <= g or g <= b:
         return False
     if (r - b) < 25:
@@ -83,47 +133,90 @@ def _is_dirtish(r, g, b):
 
 
 def _is_water(r, g, b):
-    """Detect deep water pixels."""
+    """Deteksi pixel air dalam.
+
+    Args:
+        r: Red value (0-255)
+        g: Green value (0-255)
+        b: Blue value (0-255)
+
+    Returns:
+        True jika pixel merupakan air dalam
+    """
     return b > 130 and b > r * 1.2 and b > g * 0.98 and r < 120
 
 
 def _is_water_shallow(r, g, b):
-    """Detect shallow water pixels."""
+    """Deteksi pixel air dangkal.
+
+    Args:
+        r: Red value (0-255)
+        g: Green value (0-255)
+        b: Blue value (0-255)
+
+    Returns:
+        True jika pixel merupakan air dangkal
+    """
     return b > 105 and b >= g and g >= r * 1.0 and r < 110 and (r + g + b) / 3 < 175
 
 
 # ---------------------------------------------------------------------------
-# GameMap class
+# GameMap Class
 # ---------------------------------------------------------------------------
 
 class GameMap:
-    """Main map class handling background, assets, and collision grid."""
+    """Kelas utama untuk map, assets, dan collision grid.
+
+    Attributes:
+        background: pygame.Surface background map
+        assets: Dict berisi semua assets yang diload
+        pixel_obstacles: 2D boolean mask untuk pixel obstacles
+        grid: 2D list collision grid (0 = walkable, 1 = obstacle)
+    """
 
     def __init__(self):
-        """Load the map image, assets, and build the collision grid."""
+        """Inisialisasi GameMap: load image, assets, dan build collision grid."""
+        # Load background map
         self.background = pygame.image.load(FULL_MAP_PATH).convert()
         if self.background.get_size() != (MAP_WIDTH, MAP_HEIGHT):
             self.background = pygame.transform.scale(
                 self.background, (MAP_WIDTH, MAP_HEIGHT)
             )
+
+        # Load semua assets
         self.assets = self._load_all_assets()
+
+        # Build pixel obstacle mask
         self.pixel_obstacles = self._build_pixel_mask()
+
+        # Build collision grid
         self.grid = self._build_collision_grid()
+
+        # Load grid override jika ada
         self.load_grid_override()
 
     # -----------------------------------------------------------------------
-    # Asset loading
+    # Asset Loading
     # -----------------------------------------------------------------------
 
     def _load_all_assets(self):
-        """Walk the assets directory and load all images into a dict."""
+        """Walk direktori assets dan load semua image ke dict.
+
+        Key: relative path tanpa extension (contoh: "08_karakter/karakter_pemain")
+        Value: pygame.Surface
+
+        Returns:
+            Dict berisi semua assets
+        """
         assets = {}
         for root, _, files in os.walk(IMAGE_DIR):
             for filename in files:
                 if filename.lower().endswith((".png", ".jpg", ".jpeg")):
+                    # Skip background map
                     if filename == "full map.png":
                         continue
                     path = os.path.join(root, filename)
+                    # Buat key dari relative path
                     key = os.path.splitext(
                         os.path.relpath(path, IMAGE_DIR)
                     )[0].replace("\\", "/")
@@ -131,15 +224,31 @@ class GameMap:
         return assets
 
     def get_asset(self, name):
-        """Return a loaded asset by its relative path name."""
+        """Return asset berdasarkan nama.
+
+        Args:
+            name: Nama asset (contoh: "08_karakter/karakter_pemain")
+
+        Returns:
+            pygame.Surface atau None jika tidak ditemukan
+        """
         return self.assets.get(name)
 
     # -----------------------------------------------------------------------
-    # Pixel obstacle mask
+    # Pixel Obstacle Mask
     # -----------------------------------------------------------------------
 
     def _build_pixel_mask(self):
-        """Build a 2D boolean mask: True if pixel is an obstacle."""
+        """Build 2D boolean mask: True jika pixel merupakan obstacle.
+
+        Proses:
+        1. Iterasi semua pixel di background map
+        2. Cek warna menggunakan _is_obstacle()
+        3. Simpan hasil di 2D list
+
+        Returns:
+            2D list of boolean (True = obstacle)
+        """
         mask = [[False] * MAP_WIDTH for _ in range(MAP_HEIGHT)]
         for y in range(MAP_HEIGHT):
             for x in range(MAP_WIDTH):
@@ -148,11 +257,19 @@ class GameMap:
         return mask
 
     # -----------------------------------------------------------------------
-    # Cell statistics helpers
+    # Cell Statistics Helpers
     # -----------------------------------------------------------------------
 
     def _cell_fraction_obstacle(self, row, col):
-        """Return the fraction of pixels in a cell that are obstacles."""
+        """Hitung fraksi pixel yang merupakan obstacle di cell.
+
+        Args:
+            row: Baris cell
+            col: Kolom cell
+
+        Returns:
+            Float 0.0 - 1.0 (fraksi obstacle)
+        """
         x0, y0 = col * CELL_SIZE, row * CELL_SIZE
         x1 = min(x0 + CELL_SIZE, MAP_WIDTH)
         y1 = min(y0 + CELL_SIZE, MAP_HEIGHT)
@@ -171,7 +288,15 @@ class GameMap:
         return obs / total if total else 0.0
 
     def _cell_stats(self, row, col):
-        """Return (obstacle_frac, lum_stddev, road_frac, avg_r, avg_g, avg_b) for a cell."""
+        """Hitung statistik cell: obstacle fraction, luminance stddev, road fraction, avg RGB.
+
+        Args:
+            row: Baris cell
+            col: Kolom cell
+
+        Returns:
+            Tuple (obstacle_frac, lum_stddev, road_frac, avg_r, avg_g, avg_b)
+        """
         x0, y0 = col * CELL_SIZE, row * CELL_SIZE
         x1 = min(x0 + CELL_SIZE, MAP_WIDTH)
         y1 = min(y0 + CELL_SIZE, MAP_HEIGHT)
@@ -213,7 +338,15 @@ class GameMap:
         )
 
     def _cell_deck_fraction(self, row, col):
-        """Return the fraction of dirt-like pixels in a cell."""
+        """Hitung fraksi pixel yang merupakan dirt/deck di cell.
+
+        Args:
+            row: Baris cell
+            col: Kolom cell
+
+        Returns:
+            Float 0.0 - 1.0 (fraksi dirt)
+        """
         x0, y0 = col * CELL_SIZE, row * CELL_SIZE
         x1 = min(x0 + CELL_SIZE, MAP_WIDTH)
         y1 = min(y0 + CELL_SIZE, MAP_HEIGHT)
@@ -233,7 +366,15 @@ class GameMap:
         return d / total if total else 0.0
 
     def _cell_water_fraction(self, row, col):
-        """Return the fraction of water pixels in a cell."""
+        """Hitung fraksi pixel yang merupakan air di cell.
+
+        Args:
+            row: Baris cell
+            col: Kolom cell
+
+        Returns:
+            Float 0.0 - 1.0 (fraksi air)
+        """
         x0, y0 = col * CELL_SIZE, row * CELL_SIZE
         x1 = min(x0 + CELL_SIZE, MAP_WIDTH)
         y1 = min(y0 + CELL_SIZE, MAP_HEIGHT)
@@ -255,18 +396,39 @@ class GameMap:
         return w / total if total else 0.0
 
     def _is_water_pixel(self, x, y):
-        """Check if a single pixel is water."""
+        """Cek apakah pixel merupakan air.
+
+        Args:
+            x: Koordinat x pixel
+            y: Koordinat y pixel
+
+        Returns:
+            True jika pixel merupakan air
+        """
         if not (0 <= x < MAP_WIDTH and 0 <= y < MAP_HEIGHT):
             return True
         r, g, b = self.background.get_at((x, y))[:3]
         return _is_water(r, g, b) or _is_water_shallow(r, g, b)
 
     # -----------------------------------------------------------------------
-    # Collision grid building
+    # Collision Grid Building
     # -----------------------------------------------------------------------
 
     def _cell_hits_obstacle(self, row, col):
-        """Determine if a cell should be marked as blocked based on pixel stats."""
+        """Tentukan apakah cell harus diblokir berdasarkan pixel stats.
+
+        Kriteria cell diblokir:
+        - Fraksi obstacle > 6%
+        - Luminance stddev > 16 (tidak uniform) dan bukan bright green
+        - Fraksi obstacle > 3% dan stddev > 8
+
+        Args:
+            row: Baris cell
+            col: Kolom cell
+
+        Returns:
+            True jika cell harus diblokir
+        """
         obj, lsd, road_frac, mr, mg, mb = self._cell_stats(row, col)
 
         if obj > 0.06:
@@ -281,25 +443,28 @@ class GameMap:
         return False
 
     def _build_collision_grid(self):
-        """Build the full collision grid from pixel analysis.
+        """Build full collision grid dari pixel analysis.
 
-        Steps:
-        1. Mark cells as obstacles based on pixel statistics
-        2. Clear cells that are on bridges
-        3. Clear cells in the garden area (except water)
-        4. Clear road cells that form connected components
-        5. Clear dirt cells that form sparse connected components
-        6. Ensure connectivity by keeping only the largest walkable component
+        Langkah:
+        1. Tandai cell sebagai obstacle berdasarkan pixel stats
+        2. Bersihkan cell di jembatan
+        3. Bersihkan cell di area taman (kecuali air)
+        4. Bersihkan road cells yang membentuk connected components
+        5. Bersihkan dirt cells yang membentuk sparse components
+        6. Pastikan connectivity dengan hanya menyimpan largest component
+
+        Returns:
+            2D list of int (0 = walkable, 1 = obstacle)
         """
         grid = [[0 for _ in range(COLS)] for _ in range(ROWS)]
 
-        # Step 1: Mark obstacle cells
+        # Langkah 1: Tandai cell obstacle
         for r in range(ROWS):
             for c in range(COLS):
                 if self._cell_hits_obstacle(r, c):
                     grid[r][c] = 1
 
-        # Step 2: Clear bridge cells
+        # Langkah 2: Bersihkan cell jembatan
         for r in range(ROWS):
             for c in range(COLS):
                 cx = c * CELL_SIZE + CELL_SIZE // 2
@@ -313,7 +478,7 @@ class GameMap:
                     ):
                         grid[r][c] = 0
 
-        # Step 3: Clear garden cells
+        # Langkah 3: Bersihkan cell taman
         for r in range(ROWS):
             for c in range(COLS):
                 cx = c * CELL_SIZE + CELL_SIZE // 2
@@ -322,21 +487,29 @@ class GameMap:
                     if not self._is_water_pixel(cx, cy):
                         grid[r][c] = 0
 
-        # Step 4: Clear road cells that form connected components >= 4 cells
+        # Langkah 4: Bersihkan road cells (connected components >= 4)
         road_cells = self._find_cells_by_type(_is_road, threshold=0.30)
         self._clear_connected_components(grid, road_cells, min_size=4)
 
-        # Step 5: Clear dirt cells that form sparse connected components
+        # Langkah 5: Bersihkan dirt cells (sparse components)
         dirt_cells = self._find_cells_by_type(_is_dirtish, threshold=0.30)
         self._clear_sparse_components(grid, dirt_cells)
 
-        # Step 6: Ensure single connected component
+        # Langkah 6: Pastikan single connected component
         self._ensure_connectivity(grid)
 
         return grid
 
     def _find_cells_by_type(self, color_func, threshold=0.30):
-        """Find cells where more than threshold fraction of pixels match color_func."""
+        """Cari cells yang lebih dari threshold fraksinya sesuai color_func.
+
+        Args:
+            color_func: Fungsi deteksi warna (r, g, b) -> bool
+            threshold: Threshold fraksi (default 0.30)
+
+        Returns:
+            Set of (row, col) cells yang memenuhi kriteria
+        """
         cells = set()
         for r in range(ROWS):
             for c in range(COLS):
@@ -353,7 +526,15 @@ class GameMap:
         return cells
 
     def _clear_connected_components(self, grid, cells, min_size=4):
-        """Set grid=0 for all cells in connected components with size >= min_size."""
+        """Bersihkan cells (grid=0) yang merupakan connected components >= min_size.
+
+        Menggunakan BFS untuk mencari connected components.
+
+        Args:
+            grid: 2D collision grid (di-modify in-place)
+            cells: Set of (row, col) cells yang akan dicek
+            min_size: Ukuran minimum component untuk dibersihkan
+        """
         seen = set()
         for r, c in cells:
             if (r, c) in seen:
@@ -374,7 +555,12 @@ class GameMap:
                     grid[cr][cc] = 0
 
     def _clear_sparse_components(self, grid, cells):
-        """Clear dirt components that are sparse (low fill ratio in bounding box)."""
+        """Bersihkan dirt components yang sparse (low fill ratio di bounding box).
+
+        Args:
+            grid: 2D collision grid (di-modify in-place)
+            cells: Set of (row, col) dirt cells
+        """
         seen = set()
         for r, c in cells:
             if (r, c) in seen:
@@ -394,7 +580,7 @@ class GameMap:
             if len(component) < 3:
                 continue
 
-            # Calculate bounding box fill ratio
+            # Hitung bounding box fill ratio
             min_r = min(p[0] for p in component)
             max_r = max(p[0] for p in component)
             min_c = min(p[1] for p in component)
@@ -414,7 +600,11 @@ class GameMap:
                         grid[cr][cc] = 0
 
     def _ensure_connectivity(self, grid):
-        """Keep only the largest connected component, block all others."""
+        """Pastikan hanya ada satu connected component dengan memblokir lainnya.
+
+        Args:
+            grid: 2D collision grid (di-modify in-place)
+        """
         best = []
         seen = set()
         for r in range(ROWS):
@@ -447,45 +637,99 @@ class GameMap:
                     grid[r][c] = 1
 
     # -----------------------------------------------------------------------
-    # Public grid helpers
+    # Public Grid Helpers
     # -----------------------------------------------------------------------
 
     def is_walkable(self, row, col):
-        """Return True if the cell is within bounds and walkable."""
+        """Cek apakah cell bisa dilewati (walkable dan dalam bounds).
+
+        Args:
+            row: Baris cell
+            col: Kolom cell
+
+        Returns:
+            True jika cell walkable
+        """
         return 0 <= row < ROWS and 0 <= col < COLS and self.grid[row][col] == 0
 
     def is_valid(self, row, col):
-        """Return True if the cell coordinates are within bounds."""
+        """Cek apakah koordinat cell valid (dalam bounds).
+
+        Args:
+            row: Baris cell
+            col: Kolom cell
+
+        Returns:
+            True jika valid
+        """
         return 0 <= row < ROWS and 0 <= col < COLS
 
     def get_grid(self):
-        """Return the collision grid (list of lists of 0/1)."""
+        """Return collision grid.
+
+        Returns:
+            2D list of int (0 = walkable, 1 = obstacle)
+        """
         return self.grid
 
     def toggle_cell(self, row, col):
-        """Toggle a cell between walkable (0) and blocked (1)."""
+        """Toggle cell antara walkable (0) dan blocked (1).
+
+        Args:
+            row: Baris cell
+            col: Kolom cell
+
+        Returns:
+            True jika berhasil
+        """
         if not self.is_valid(row, col):
             return False
         self.grid[row][col] = 0 if self.grid[row][col] else 1
         return True
 
     def set_cell(self, row, col, value):
-        """Set a cell to blocked (1) or walkable (0)."""
+        """Set cell ke blocked (1) atau walkable (0).
+
+        Args:
+            row: Baris cell
+            col: Kolom cell
+            value: 1 untuk blocked, 0 untuk walkable
+
+        Returns:
+            True jika berhasil
+        """
         if not self.is_valid(row, col):
             return False
         self.grid[row][col] = 1 if value else 0
         return True
 
     def get_cell(self, row, col):
-        """Return the grid value (0 or 1) for a cell, or None if invalid."""
+        """Return nilai cell (0 atau 1), atau None jika invalid.
+
+        Args:
+            row: Baris cell
+            col: Kolom cell
+
+        Returns:
+            0, 1, atau None
+        """
         return self.grid[row][col] if self.is_valid(row, col) else None
 
     # -----------------------------------------------------------------------
-    # Grid save/load
+    # Grid Save/Load
     # -----------------------------------------------------------------------
 
     def save_grid_override(self, path=GRID_OVERRIDE_PATH):
-        """Save the current collision grid to a text file."""
+        """Simpan collision grid ke text file.
+
+        Format: 192 karakter per baris (0 atau 1), 128 baris.
+
+        Args:
+            path: Path file output
+
+        Returns:
+            True jika berhasil
+        """
         with open(path, "w", encoding="ascii") as f:
             for r in range(ROWS):
                 line = "".join("1" if self.grid[r][c] else "0" for c in range(COLS))
@@ -493,7 +737,14 @@ class GameMap:
         return True
 
     def load_grid_override(self, path=GRID_OVERRIDE_PATH):
-        """Load collision grid from a text file. Returns True on success."""
+        """Muat collision grid dari text file.
+
+        Args:
+            path: Path file input
+
+        Returns:
+            True jika berhasil, False jika gagal
+        """
         if not os.path.exists(path):
             return False
         try:
@@ -511,16 +762,29 @@ class GameMap:
             return False
 
     # -----------------------------------------------------------------------
-    # Drawing and coordinate conversion
+    # Drawing and Coordinate Conversion
     # -----------------------------------------------------------------------
 
     def draw(self, screen, viewport):
-        """Draw the scaled background map onto the screen."""
+        """Gambar background map yang sudah di-scale ke layar.
+
+        Args:
+            screen: Surface utama
+            viewport: Objek Viewport
+        """
         scaled = pygame.transform.scale(self.background, viewport.map_rect.size)
         screen.blit(scaled, viewport.map_rect.topleft)
 
     def screen_to_grid(self, pos, viewport):
-        """Convert a screen pixel position to grid (row, col), or None if out of bounds."""
+        """Konversi posisi screen pixel ke grid (row, col).
+
+        Args:
+            pos: Tuple (x, y) koordinat screen
+            viewport: Objek Viewport
+
+        Returns:
+            Tuple (row, col) atau None jika di luar bounds
+        """
         if not viewport.map_rect.collidepoint(pos):
             return None
         world_x = (pos[0] - viewport.map_rect.x) / viewport.scale
@@ -531,19 +795,33 @@ class GameMap:
 
 
 # ---------------------------------------------------------------------------
-# Viewport class
+# Viewport Class
 # ---------------------------------------------------------------------------
 
 class Viewport:
-    """Handles screen-to-world mapping and scaling for the map."""
+    """Handles screen-to-world mapping dan scaling untuk map.
+
+    Attributes:
+        screen_size: Ukuran layar (width, height)
+        scale: Factor scaling dari world ke screen
+        map_rect: Rect posisi map di layar (centered)
+    """
 
     def __init__(self, screen_size):
-        """Calculate scale and position to fit the map on screen."""
+        """Inisialisasi viewport: hitung scale dan posisi map.
+
+        Map di-center di layar dengan aspect ratio yang dipertahankan.
+
+        Args:
+            screen_size: Tuple (width, height) ukuran layar
+        """
         self.screen_size = screen_size
         sw, sh = screen_size
+        # Hitung scale untuk fit map di layar
         self.scale = min(sw / MAP_WIDTH, sh / MAP_HEIGHT)
         width = int(MAP_WIDTH * self.scale)
         height = int(MAP_HEIGHT * self.scale)
+        # Center map di layar
         self.map_rect = pygame.Rect(
             (sw - width) // 2, (sh - height) // 2, width, height
         )

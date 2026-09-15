@@ -1,8 +1,18 @@
 """
-NPC rendering, interaction and pursuit of the player.
+NPC module - Pergerakan NPC untuk mengejar player menggunakan A* pathfinding.
 
-The NPC uses A* pathfinding to follow the player with smooth interpolation.
-Dialogue is shown when the NPC is near the player.
+Modul ini menghandle:
+1. NPC follow behavior - mengejar player menggunakan A* pathfinding
+2. Periodic path recomputation - menghitung ulang jalur setiap 0.1 detik
+3. Smooth interpolation untuk animasi gerak
+4. Dialogue bubble saat NPC dekat dengan player
+5. Debug info untuk visualisasi
+
+NPC Follow Behavior:
+- NPC secara periodik menghitung ulang jalur ke player (recompute)
+- Ini diperlukan karena posisi player berubah-ubah
+- NPC bergerak lebih lambat dari player (600 px/s vs 750 px/s)
+- NPC berhenti jika sudah dekat dengan player (Manhattan distance <= 1)
 """
 import math
 
@@ -18,41 +28,68 @@ from utils import (
 
 
 class NPC:
-    """Non-player character that can follow the player using pathfinding."""
+    """Karakter NPC yang bisa mengikuti player menggunakan pathfinding.
+
+    Attributes:
+        start_pos: Posisi awal (row, col) untuk reset
+        row, col: Posisi grid saat ini
+        sprite: Gambar karakter NPC
+        name: Nama NPC untuk dialogue
+        facing: Arah menghadap (-1 = kiri, 1 = kanan)
+        follow: Mode follow (True = ikuti player, False = diam)
+        heuristic: Nama heuristic untuk A* (default: "ucs")
+        move_speed: Kecepatan gerak (600 px/s, lebih lambat dari player)
+        recompute_interval: Interval recompute path (0.1 detik)
+        path: Jalur A* yang ditemukan
+        path_index: Index saat ini di path
+        timer: Timer untuk recomputation
+        recompute_timer: Timer untuk periodic recomputation
+        debug_visited: Node-node yang diekspansi (untuk visualisasi)
+        debug_path: Jalur yang ditemukan (untuk visualisasi)
+        total_expanded: Jumlah total node yang diekspansi
+        smooth_r, smooth_c: Posisi floating-point untuk interpolasi
+    """
 
     def __init__(self, row, col, sprite=None, name="Niko"):
-        """Initialize NPC at grid position (row, col) with a sprite and name."""
+        """Inisialisasi NPC di posisi grid (row, col).
+
+        Args:
+            row: Baris awal di grid
+            col: Kolom awal di grid
+            sprite: pygame.Surface gambar karakter (opsional)
+            name: Nama NPC untuk dialogue
+        """
         self.start_pos = (row, col)
         self.row, self.col = row, col
         self.sprite = sprite
         self.name = name
-        self.facing = -1  # -1 = left, 1 = right
+        self.facing = -1  # -1 = kiri, 1 = kanan
 
-        # Follow mode
+        # Follow mode - NPC mengikuti player
         self.follow = True
-        self.heuristic = "ucs"
+        self.heuristic = "ucs"  # Default: UCS (uniform exploration)
 
-        # Movement
-        self.move_speed = 600.0  # pixels per second (slower than player)
-        self.recompute_interval = 0.10  # seconds between path recalculations
+        # Movement - lebih lambat dari player
+        self.move_speed = 600.0  # pixels per second (player: 750)
+        self.recompute_interval = 0.10  # seconds between path recomputations
 
         # Pathfinding state
-        self.path = []
-        self.path_index = 0
-        self.timer = 0.0
-        self.recompute_timer = 0.0
+        self.path = []  # Jalur A* yang ditemukan
+        self.path_index = 0  # Index saat ini di path
+        self.timer = 0.0  # Timer umum
+        self.recompute_timer = 0.0  # Timer untuk recompute path
 
-        # Debug info
-        self.debug_visited = []
-        self.debug_path = []
-        self.total_expanded = 0
+        # Debug info untuk visualisasi
+        self.debug_visited = []  # Node-node yang diekspansi
+        self.debug_path = []  # Jalur yang ditemukan
+        self.total_expanded = 0  # Jumlah node expanded
 
         # Smooth movement interpolation
         self.smooth_r = float(row)
         self.smooth_c = float(col)
 
     def reset(self):
-        """Reset NPC to its starting position and clear all state."""
+        """Reset NPC ke posisi awal dan bersihkan semua state."""
         self.row, self.col = self.start_pos
         self.facing = -1
         self.smooth_r, self.smooth_c = float(self.row), float(self.col)
@@ -65,94 +102,157 @@ class NPC:
         self.total_expanded = 0
 
     def set_heuristic(self, heuristic):
-        """Set the heuristic function for pathfinding."""
+        """Set heuristic function untuk pathfinding.
+
+        Args:
+            heuristic: Nama heuristic ("ucs", "manhattan", "euclidean")
+        """
         self.heuristic = heuristic
 
     def snap_to_walkable(self, game_map):
-        """Find the nearest walkable cell if current position is blocked."""
+        """Cari cell walkable terdekat jika posisi saat ini terblokir.
+
+        Args:
+            game_map: Objek GameMap untuk cek walkability
+        """
         snap_to_walkable(self, game_map)
 
     def get_pos(self):
-        """Return the current grid position as (row, col)."""
+        """Return posisi grid saat ini sebagai (row, col)."""
         return self.row, self.col
 
     def is_near(self, player):
-        """Check if the NPC is adjacent to the player (Manhattan distance <= 1)."""
+        """Cek apakah NPC dekat dengan player (Manhattan distance <= 1).
+
+        Digunakan untuk menampilkan dialogue bubble.
+
+        Args:
+            player: Objek Player
+
+        Returns:
+            True jika NPC bersebelahan dengan player
+        """
         return abs(self.row - player.row) + abs(self.col - player.col) <= 1
 
     def update(self, game_map, player, dt):
-        """Update NPC movement towards the player.
+        """Update pergerakan NPC mengejar player.
 
-        Periodically recomputes the path using A* and moves along it
-        with smooth interpolation.
+        Alur:
+        1. Jika follow mode OFF, return langsung
+        2. Periodic recomputation path (setiap 0.1 detik)
+        3. Jalankan A* dari posisi NPC ke posisi player
+        4. Simpan path (exclude posisi player agar NPC berhenti di dekat player)
+        5. Bergerak mengikuti path dengan smooth interpolation
+
+        Args:
+            game_map: Objek GameMap
+            player: Objek Player (target NPC)
+            dt: Delta time dalam detik
         """
+        # Jika follow mode mati, tidak bergerak
         if not self.follow:
             return
 
-        # Recompute path periodically
+        # Periodic recomputation path
         self.recompute_timer -= dt
         if self.recompute_timer <= 0:
             self.recompute_timer = self.recompute_interval
+
+            # Jalankan A* dari NPC ke player
             result = astar(
                 game_map.get_grid(),
                 (self.row, self.col),
                 (player.row, player.col),
                 heuristic_name=self.heuristic,
-                allow_diagonal=False,
+                allow_diagonal=False,  # NPC bergerak 4 arah
             )
+
+            # Simpan debug info
             self.debug_visited = result["visited"]
             self.debug_path = result["path"]
             self.total_expanded = result["total_expanded"]
 
             if result["found"]:
-                self.path = result["path"][:-1]  # exclude goal (player position)
+                # Exclude goal (posisi player) agar NPC berhenti di dekat player
+                self.path = result["path"][:-1]
             else:
                 self.path = []
             self.path_index = 0
+            # Reset smooth position
             self.smooth_r = float(self.row)
             self.smooth_c = float(self.col)
 
-        # Move along the path
+        # Bergerak mengikuti path
         if not self.path or self.path_index >= len(self.path):
             return
 
+        # Budget = jarak yang bisa ditempuh dalam dt
         budget = self.move_speed * dt
 
+        # Bergerak sepanjang path hingga budget habis
         while budget > 0 and self.path_index < len(self.path):
+            # Hitung jarak pixel dari smooth position ke posisi grid
             dr = self.row - self.smooth_r
             dc = self.col - self.smooth_c
             pixel_dist = math.sqrt(dr * dr + dc * dc) * CELL_SIZE
 
             if pixel_dist > budget:
+                # Masih ada sisa budget, interpolasi partial
                 ratio = budget / pixel_dist
                 self.smooth_r += dr * ratio
                 self.smooth_c += dc * ratio
                 budget = 0
             else:
+                # Budget cukup untuk sampai ke cell berikutnya
                 self.smooth_r = float(self.row)
                 self.smooth_c = float(self.col)
                 budget -= pixel_dist
 
+                # Ambil cell berikutnya dari path
                 nr, nc = self.path[self.path_index]
+
+                # Cek walkability sebelum bergerak
                 if game_map.is_walkable(nr, nc):
+                    # Update facing direction
                     if nc != self.col:
                         self.facing = 1 if nc > self.col else -1
+                    # Update posisi
                     self.row, self.col = nr, nc
                 self.path_index += 1
 
     def draw(self, screen, viewport):
-        """Draw the NPC sprite at its current smooth position."""
+        """Gambar sprite NPC di posisi smooth saat ini.
+
+        Args:
+            screen: Surface utama untuk drawing
+            viewport: Objek Viewport untuk koordinat
+        """
         draw_sprite_smooth(
             screen, self.sprite, self.smooth_r, self.smooth_c, viewport, self.facing
         )
 
     def draw_debug(self, screen, cell_size):
-        """Draw a debug circle at the NPC's grid position."""
+        """Gambar debug circle di posisi grid NPC.
+
+        Args:
+            screen: Surface utama
+            cell_size: Ukuran cell dalam pixel
+        """
         from utils import draw_circle_debug
         draw_circle_debug(screen, self.row, self.col, cell_size, (200, 50, 50))
 
     def draw_dialogue(self, screen, viewport, font, player):
-        """Show a dialogue bubble when the NPC is near the player."""
+        """Tampilkan dialogue bubble saat NPC dekat dengan player.
+
+        Dialogue ditampilkan di atas NPC dengan panel gelap transparan.
+
+        Args:
+            screen: Surface utama
+            viewport: Objek Viewport
+            font: pygame Font untuk rendering teks
+            player: Objek Player
+        """
+        # Hanya tampilkan jika dekat dengan player
         if not self.is_near(player):
             return
 
@@ -161,10 +261,10 @@ class NPC:
         surf = font.render(text, True, (255, 255, 255))
         box = surf.get_rect(midtop=(x, y + int(8 * viewport.scale)))
 
-        # Draw dialogue panel background
+        # Gambar panel background dialogue
         panel = pygame.Surface(
             (box.width + 18, box.height + 12), pygame.SRCALPHA
         )
-        panel.fill((15, 20, 30, 225))
+        panel.fill((15, 20, 30, 225))  # Gelap transparan
         screen.blit(panel, (box.x - 9, box.y - 6))
         screen.blit(surf, box)
