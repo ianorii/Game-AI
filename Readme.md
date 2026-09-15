@@ -190,7 +190,3 @@ Deteksi obstacle menggunakan **pixel-level color analysis** untuk mengidentifika
 
 - Russell, S. & Norvig, P. (2020). *Artificial Intelligence: A Modern Approach*. 4th Edition. Chapter 3: Solving Problems by Searching.
 - Hart, P.E., Nilsson, N.J., & Raphael, B. (1968). A Formal Basis for the Heuristic Determination of Minimum Cost Paths. *IEEE Transactions on Systems Science and Cybernetics*.
-
-## Author
-
-**Ian Octori** - [GitHub](https://github.com/ianorii)
