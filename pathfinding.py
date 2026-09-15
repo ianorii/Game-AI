@@ -2,7 +2,7 @@
 A* Pathfinding Algorithm with multiple heuristic support.
 
 This module provides:
-- A* search with configurable heuristics (Manhattan, Euclidean, Chebyshev, Octile)
+- A* search with configurable heuristics (Manhattan, Euclidean)
 - UCS (Uniform Cost Search) as a special case of A* with zero heuristic
 - Returns path, visited nodes, and expansion count for debugging/visualization
 """
@@ -24,18 +24,6 @@ def heuristic_euclidean(a, b):
     return math.sqrt((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2)
 
 
-def heuristic_chebyshev(a, b):
-    """Chebyshev distance: max(|dx|, |dy|). For 8-directional grids."""
-    return max(abs(a[0] - b[0]), abs(a[1] - b[1]))
-
-
-def heuristic_octile(a, b):
-    """Octile distance: optimized for 8-directional grids with diagonal movement."""
-    dx = abs(a[0] - b[0])
-    dy = abs(a[1] - b[1])
-    return max(dx, dy) + (math.sqrt(2) - 1) * min(dx, dy)
-
-
 def heuristic_ucs(a, b):
     """UCS heuristic: always returns 0 (no heuristic guidance)."""
     return 0
@@ -45,8 +33,6 @@ def heuristic_ucs(a, b):
 HEURISTICS = {
     "manhattan": heuristic_manhattan,
     "euclidean": heuristic_euclidean,
-    "chebyshev": heuristic_chebyshev,
-    "octile": heuristic_octile,
     "ucs": heuristic_ucs,
 }
 
@@ -256,7 +242,7 @@ if __name__ == "__main__":
         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     ]
 
-    for h_name in ["ucs", "manhattan", "euclidean", "chebyshev", "octile"]:
+    for h_name in ["ucs", "manhattan", "euclidean"]:
         result = astar(grid, (0, 0), (9, 9), heuristic_name=h_name)
         print(
             f"{h_name}: path_len={len(result['path'])} "

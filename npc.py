@@ -33,7 +33,7 @@ class NPC:
         self.heuristic = "ucs"
 
         # Movement
-        self.move_speed = 1000.0  # pixels per second
+        self.move_speed = 600.0  # pixels per second (slower than player)
         self.recompute_interval = 0.10  # seconds between path recalculations
 
         # Pathfinding state
