@@ -220,6 +220,8 @@ def handle_resize(event, game_map, state):
     state["screen"] = pygame.display.set_mode(event.size, pygame.RESIZABLE)
     state["viewport"] = Viewport(state["screen"].get_size())
     state["cellw"] = CELL_SIZE * state["viewport"].scale
+    state["_hud_left"] = None
+    state["_hud_panel"] = None
     if state["edit_mode"]:
         state["edit_surface"] = build_edit_surface(game_map, state["viewport"])
 
@@ -312,6 +314,8 @@ def toggle_fullscreen(game_map, state):
     state["screen"] = make_window(state["fullscreen"])
     state["viewport"] = Viewport(state["screen"].get_size())
     state["cellw"] = CELL_SIZE * state["viewport"].scale
+    state["_hud_left"] = None
+    state["_hud_panel"] = None
     if state["edit_mode"]:
         state["edit_surface"] = build_edit_surface(game_map, state["viewport"])
 
@@ -497,7 +501,11 @@ def draw_hud(screen, player, npc, overlay, font, state):
 
     # Panel kiri: Kontrol dan status
     left_width = min(570, screen_width // 2)
-    left = pygame.Surface((left_width, 160), pygame.SRCALPHA)
+    left_size = (left_width, 160)
+    if state["_hud_left"] is None or state["_hud_left_size"] != left_size:
+        state["_hud_left"] = pygame.Surface((*left_size,), pygame.SRCALPHA)
+        state["_hud_left_size"] = left_size
+    left = state["_hud_left"]
     left.fill((10, 20, 20, 185))
     screen.blit(left, (12, 12))
 
@@ -533,7 +541,11 @@ def draw_hud(screen, player, npc, overlay, font, state):
     # Gambar panel kanan
     panel_width = 275
     panel_height = 145
-    panel = pygame.Surface((panel_width, panel_height), pygame.SRCALPHA)
+    panel_size = (panel_width, panel_height)
+    if state["_hud_panel"] is None or state["_hud_panel_size"] != panel_size:
+        state["_hud_panel"] = pygame.Surface((*panel_size,), pygame.SRCALPHA)
+        state["_hud_panel_size"] = panel_size
+    panel = state["_hud_panel"]
     panel.fill((10, 20, 20, 185))
     x = screen_width - panel_width - 12
     screen.blit(panel, (x, 12))
@@ -558,8 +570,8 @@ async def main():
     """
     pygame.init()
 
-    # Buat window (default windowed untuk web compatibility)
-    fullscreen = False
+    # Buat window (fullscreen)
+    fullscreen = True
     screen = make_window(fullscreen)
     pygame.display.set_caption("Game AI - Player A* + NPC")
     clock = pygame.time.Clock()
@@ -614,6 +626,10 @@ async def main():
         "status": "WASD/Arrow = Player | Klik map = Player A* | ESC = Settings",
         "show_hud": True,         # Apakah HUD ditampilkan
         "settings_menu": SettingsMenu(),
+        "_hud_left": None,        # Cached HUD left panel surface
+        "_hud_left_size": (0, 0),
+        "_hud_panel": None,       # Cached HUD right panel surface
+        "_hud_panel_size": (0, 0),
     }
 
     # ---- Game Loop Utama ----

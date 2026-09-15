@@ -31,6 +31,8 @@ class DebugOverlay:
         self.show_visited = True
         self.show_path = True
         self.show_info = True
+        self._vis_buf = None
+        self._vis_buf_size = 0
 
     def toggle(self, key):
         """Toggle layer debug berdasarkan tombol yang ditekan.
@@ -68,15 +70,16 @@ class DebugOverlay:
         # ---- Visited Nodes (kotak biru) ----
         # Node-node yang diekspansi oleh A* tapi bukan bagian dari path
         if self.show_visited and not hide_visited:
+            size = max(3, int(9 * viewport.scale))
+            if self._vis_buf is None or self._vis_buf_size != size:
+                self._vis_buf = pygame.Surface((size, size), pygame.SRCALPHA)
+                self._vis_buf.fill((70, 140, 255, 120))
+                self._vis_buf_size = size
             for r, c in player.debug_visited:
                 # Skip jika bagian dari path atau posisi player
                 if (r, c) not in player.debug_path and (r, c) != (player.row, player.col):
                     x, y = game_pos(r, c, viewport)
-                    size = max(3, int(9 * viewport.scale))
-                    # Buat surface transparan untuk visited
-                    s = pygame.Surface((size, size), pygame.SRCALPHA)
-                    s.fill((70, 140, 255, 120))  # Biru transparan
-                    screen.blit(s, (x - size // 2, y - size // 2))
+                    screen.blit(self._vis_buf, (x - size // 2, y - size // 2))
 
         # ---- Path Nodes (kotak merah) ----
         # Jalur terpendek yang ditemukan oleh A*

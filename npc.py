@@ -88,6 +88,10 @@ class NPC:
         self.smooth_r = float(row)
         self.smooth_c = float(col)
 
+        # Cached dialogue panel
+        self._dlg_panel = None
+        self._dlg_size = (0, 0)
+
     def reset(self):
         """Reset NPC ke posisi awal dan bersihkan semua state."""
         self.row, self.col = self.start_pos
@@ -262,9 +266,10 @@ class NPC:
         box = surf.get_rect(midtop=(x, y + int(8 * viewport.scale)))
 
         # Gambar panel background dialogue
-        panel = pygame.Surface(
-            (box.width + 18, box.height + 12), pygame.SRCALPHA
-        )
-        panel.fill((15, 20, 30, 225))  # Gelap transparan
-        screen.blit(panel, (box.x - 9, box.y - 6))
+        panel_size = (box.width + 18, box.height + 12)
+        if self._dlg_panel is None or self._dlg_size != panel_size:
+            self._dlg_panel = pygame.Surface(panel_size, pygame.SRCALPHA)
+            self._dlg_panel.fill((15, 20, 30, 225))
+            self._dlg_size = panel_size
+        screen.blit(self._dlg_panel, (box.x - 9, box.y - 6))
         screen.blit(surf, box)
