@@ -40,7 +40,7 @@ class Player:
         self.total_expanded = 0
 
         # Movement
-        self.move_speed = 1000.0  # pixels per second
+        self.move_speed = 750.0  # pixels per second
         self.manual_interval = 0.012  # seconds between manual moves
         self.manual_timer = 0.0
 

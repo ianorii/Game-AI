@@ -24,7 +24,7 @@ from settings_menu import SettingsMenu
 # ---------------------------------------------------------------------------
 
 FPS = 120
-HEURISTICS = ["manhattan", "euclidean", "chebyshev", "octile", "ucs"]
+HEURISTICS = ["manhattan", "euclidean", "ucs"]
 
 # Default positions
 PLAYER_START = (16, 9)
