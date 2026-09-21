@@ -248,7 +248,7 @@ class NPC:
             screen: Surface utama
             cell_size: Ukuran cell dalam pixel
         """
-        from utils import draw_circle_debug
+        from game.map.utils import draw_circle_debug
         draw_circle_debug(screen, self.row, self.col, cell_size, (200, 50, 50))
 
     def draw_dialogue(self, screen, viewport, font, player):

@@ -453,7 +453,7 @@ def draw_edit_mode_info(screen, game_map, viewport, font):
     # Highlight cell yang di-hover (kuning)
     cell_size = max(2, int(CELL_SIZE * viewport.scale))
     hs = pygame.Rect(0, 0, cell_size, cell_size)
-    from utils import game_pos
+    from game.map.utils import game_pos
     hs.center = game_pos(r, c, viewport)
     pygame.draw.rect(screen, (255, 235, 90), hs, 2)
 
