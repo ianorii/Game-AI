@@ -136,6 +136,7 @@ def astar(grid, start, goal, heuristic_name="manhattan", allow_diagonal=True):
             - visited: List of (row, col) urutan ekspansi node
             - total_expanded: Jumlah node yang diekspansi
             - found: True jika jalur ditemukan
+            - node_data: Dict {(row,col): {"g": float, "h": float, "f": float}}
     """
     rows = len(grid)
     cols = len(grid[0])
@@ -176,6 +177,11 @@ def astar(grid, start, goal, heuristic_name="manhattan", allow_diagonal=True):
 
     # List untuk menyimpan urutan visited nodes (untuk debug overlay)
     visited_order = []
+    # Dict untuk menyimpan data g, h, f per node (untuk debug label)
+    node_data = {}
+
+    # Simpan data start node
+    node_data[(sr, sc)] = {"g": 0, "h": h0, "f": h0}
 
     # ---- Main A* Loop ----
     while open_set:
@@ -197,6 +203,7 @@ def astar(grid, start, goal, heuristic_name="manhattan", allow_diagonal=True):
                 "visited": visited_order,
                 "total_expanded": len(visited_order),
                 "found": True,
+                "node_data": node_data,
             }
 
         # Eksplorasi neighbor
@@ -229,7 +236,9 @@ def astar(grid, start, goal, heuristic_name="manhattan", allow_diagonal=True):
                 came_from[nidx] = idx
                 counter += 1
                 # f_score = g_score + heuristic
-                f_score = tg + heuristic((nr, nc), goal)
+                h_val = heuristic((nr, nc), goal)
+                f_score = tg + h_val
+                node_data[(nr, nc)] = {"g": tg, "h": h_val, "f": f_score}
                 heapq.heappush(open_set, (f_score, counter, nr, nc))
 
     # Tidak ada jalur ditemukan
@@ -238,12 +247,13 @@ def astar(grid, start, goal, heuristic_name="manhattan", allow_diagonal=True):
         "visited": visited_order,
         "total_expanded": len(visited_order),
         "found": False,
+        "node_data": node_data,
     }
 
 
 def _empty_result():
     """Return hasil kosong untuk input tidak valid."""
-    return {"path": [], "visited": [], "total_expanded": 0, "found": False}
+    return {"path": [], "visited": [], "total_expanded": 0, "found": False, "node_data": {}}
 
 
 def _reconstruct_path(came_from, current_idx, start_r, start_c, cols):

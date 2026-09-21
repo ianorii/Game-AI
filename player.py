@@ -70,6 +70,8 @@ class Player:
         self.debug_visited = []  # Node-node yang diekspansi
         self.debug_path = []  # Jalur yang ditemukan
         self.total_expanded = 0  # Jumlah node expanded
+        self.debug_node_data = {}  # Data g, h, f per node
+        self.debug_found = False  # Apakah jalur ditemukan
 
         # Movement
         self.move_speed = 750.0  # pixels per second
@@ -128,6 +130,8 @@ class Player:
         self.debug_visited = result["visited"]
         self.debug_path = result["path"]
         self.total_expanded = result["total_expanded"]
+        self.debug_node_data = result["node_data"]
+        self.debug_found = result["found"]
 
         # Jika tidak ada jalur ditemukan
         if not result["found"]:
@@ -271,6 +275,8 @@ class Player:
         self.debug_visited = []
         self.debug_path = []
         self.total_expanded = 0
+        self.debug_node_data = {}
+        self.debug_found = False
 
     def get_pos(self):
         """Return posisi grid saat ini sebagai (row, col)."""

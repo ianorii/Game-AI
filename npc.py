@@ -83,6 +83,8 @@ class NPC:
         self.debug_visited = []  # Node-node yang diekspansi
         self.debug_path = []  # Jalur yang ditemukan
         self.total_expanded = 0  # Jumlah node expanded
+        self.debug_node_data = {}  # Data g, h, f per node
+        self.debug_found = False  # Apakah jalur ditemukan
 
         # Smooth movement interpolation
         self.smooth_r = float(row)
@@ -104,6 +106,8 @@ class NPC:
         self.debug_visited = []
         self.debug_path = []
         self.total_expanded = 0
+        self.debug_node_data = {}
+        self.debug_found = False
 
     def set_heuristic(self, heuristic):
         """Set heuristic function untuk pathfinding.
@@ -175,6 +179,8 @@ class NPC:
             self.debug_visited = result["visited"]
             self.debug_path = result["path"]
             self.total_expanded = result["total_expanded"]
+            self.debug_node_data = result["node_data"]
+            self.debug_found = result["found"]
 
             if result["found"]:
                 # Exclude goal (posisi player) agar NPC berhenti di dekat player

@@ -220,8 +220,6 @@ def handle_resize(event, game_map, state):
     state["screen"] = pygame.display.set_mode(event.size, pygame.RESIZABLE)
     state["viewport"] = Viewport(state["screen"].get_size())
     state["cellw"] = CELL_SIZE * state["viewport"].scale
-    state["_hud_left"] = None
-    state["_hud_panel"] = None
     if state["edit_mode"]:
         state["edit_surface"] = build_edit_surface(game_map, state["viewport"])
 
@@ -276,7 +274,7 @@ def handle_key_event(event, game_map, player, npc, overlay, state):
             "Grid dimuat dari grid_override.txt" if ok else "Gagal memuat grid_override.txt"
         )
 
-    elif key in (pygame.K_1, pygame.K_2, pygame.K_3):
+    elif key in (pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4):
         overlay.toggle(key)
 
     elif key == pygame.K_q:
@@ -314,8 +312,6 @@ def toggle_fullscreen(game_map, state):
     state["screen"] = make_window(state["fullscreen"])
     state["viewport"] = Viewport(state["screen"].get_size())
     state["cellw"] = CELL_SIZE * state["viewport"].scale
-    state["_hud_left"] = None
-    state["_hud_panel"] = None
     if state["edit_mode"]:
         state["edit_surface"] = build_edit_surface(game_map, state["viewport"])
 
@@ -479,10 +475,10 @@ def draw_edit_mode_info(screen, game_map, viewport, font):
 
 
 def draw_hud(screen, player, npc, overlay, font, state):
-    """Menggambar heads-up display (HUD) dengan kontrol dan info.
+    """Menggambar heads-up display (HUD) dengan info player/NPC.
 
-    Panel kiri: Daftar kontrol dan status
     Panel kanan: Info player, NPC, dan path
+    (Info panel utama dihandle oleh DebugOverlay)
 
     Args:
         screen: Surface utama
@@ -499,31 +495,6 @@ def draw_hud(screen, player, npc, overlay, font, state):
 
     screen_width = screen.get_width()
 
-    # Panel kiri: Kontrol dan status
-    left_width = min(570, screen_width // 2)
-    left_size = (left_width, 160)
-    if state["_hud_left"] is None or state["_hud_left_size"] != left_size:
-        state["_hud_left"] = pygame.Surface((*left_size,), pygame.SRCALPHA)
-        state["_hud_left_size"] = left_size
-    left = state["_hud_left"]
-    left.fill((10, 20, 20, 185))
-    screen.blit(left, (12, 12))
-
-    # Daftar kontrol
-    lines = [
-        "Klik map : Player menuju target dengan A*",
-        "WASD / Arrow : Gerak Player",
-        "Q / E : Ganti heuristic Player",
-        "T / G : Ganti algoritma NPC (UCS/A*)",
-        "F : NPC ikuti player ON/OFF",
-        "M : Edit Grid    P : Simpan Grid    L : Muat Grid",
-        "R : Reset    F11 : Fullscreen    ESC : Keluar",
-        state["status"],
-    ]
-    for i, text in enumerate(lines):
-        rendered = font.render(text, True, (240, 240, 240))
-        screen.blit(rendered, (22, 20 + i * 22))
-
     # Panel kanan: Info player dan NPC
     p = player.get_pos()
     n = npc.get_pos()
@@ -534,7 +505,7 @@ def draw_hud(screen, player, npc, overlay, font, state):
         f"NPC    : ({n[1]}, {n[0]})",
         f"Target : ({t[1]}, {t[0]})",
         f"Path   : {len(player.path)} node",
-        f"Heuristic Player: {player.heuristic}",
+        f"Heuristic: {player.heuristic}",
         f"NPC {npc.heuristic.upper()} | {'ikut' if npc.follow else 'diam'} | path {len(npc.path)}",
     ]
 
@@ -626,8 +597,6 @@ async def main():
         "status": "WASD/Arrow = Player | Klik map = Player A* | ESC = Settings",
         "show_hud": True,         # Apakah HUD ditampilkan
         "settings_menu": SettingsMenu(),
-        "_hud_left": None,        # Cached HUD left panel surface
-        "_hud_left_size": (0, 0),
         "_hud_panel": None,       # Cached HUD right panel surface
         "_hud_panel_size": (0, 0),
     }
@@ -674,7 +643,11 @@ async def main():
             screen.blit(state["edit_surface"], viewport.map_rect.topleft)
 
         # Gambar debug overlay (visited nodes, path, info)
-        overlay.draw_scaled(screen, player, small, viewport, hide_visited=state["edit_mode"])
+        overlay.draw_scaled(
+            screen, player, small, viewport,
+            hide_visited=state["edit_mode"],
+            status=state.get("status", ""),
+        )
 
         # Gambar target indicator untuk player
         player.draw_target(screen, viewport)
