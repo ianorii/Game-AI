@@ -308,7 +308,7 @@ class GameMap:
         road = 0
         total = 0
         sr = sg = sb = 0
-        lums = [0.0] * 64
+        lums = [0.0] * (CELL_SIZE * CELL_SIZE)
         i = 0
 
         for y in range(y0, y1):
