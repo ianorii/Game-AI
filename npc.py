@@ -64,6 +64,7 @@ class NPC:
         self.sprite = sprite
         self.name = name
         self.facing = -1  # -1 = kiri, 1 = kanan
+        self.visible = True  # Sembunyikan NPC dari game
 
         # Follow mode - NPC mengikuti player
         self.follow = True
@@ -89,6 +90,14 @@ class NPC:
         # Smooth movement interpolation
         self.smooth_r = float(row)
         self.smooth_c = float(col)
+
+        # Battle stats (adversarial search)
+        self.battle_hp = 100
+        self.battle_max_hp = 100
+        self.battle_atk = 10
+        self.battle_def = 5
+        self.battle_potions = 3
+        self.battle_heal = 30
 
         # Cached dialogue panel
         self._dlg_panel = None
@@ -237,6 +246,8 @@ class NPC:
             screen: Surface utama untuk drawing
             viewport: Objek Viewport untuk koordinat
         """
+        if not self.visible:
+            return
         draw_sprite_smooth(
             screen, self.sprite, self.smooth_r, self.smooth_c, viewport, self.facing
         )
@@ -262,6 +273,8 @@ class NPC:
             font: pygame Font untuk rendering teks
             player: Objek Player
         """
+        if not self.visible:
+            return
         # Hanya tampilkan jika dekat dengan player
         if not self.is_near(player):
             return

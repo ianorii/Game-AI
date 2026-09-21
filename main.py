@@ -23,6 +23,7 @@ import sys
 import pygame
 
 from debug_overlay import DebugOverlay
+from game.adv_search.battle import BattleOverlay
 from game.map import CELL_SIZE, COLS, ROWS, GameMap, Viewport
 from npc import NPC
 from player import Player
@@ -155,11 +156,20 @@ def handle_events(game_map, viewport, player, npc, overlay, state):
         False jika game harus quit, True jika lanjut
     """
     settings_menu = state.get("settings_menu")
+    battle_overlay = state.get("battle_overlay")
 
     for event in pygame.event.get():
         # Event keluar
         if event.type == pygame.QUIT:
             return False
+
+        # Battle mode: handle battle events
+        if state.get("battle_mode") and battle_overlay:
+            result = battle_overlay.handle_event(event)
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_RETURN:
+                if battle_overlay.phase == "result" and battle_overlay.result_timer > 0.5:
+                    _end_battle(player, npc, battle_overlay, state)
+            continue
 
         # Settings menu mendapat prioritas saat visible
         if settings_menu and settings_menu.visible:
@@ -401,6 +411,46 @@ def _apply_settings(settings_menu, player, npc, overlay, state):
 
 
 # ---------------------------------------------------------------------------
+# Battle System
+# ---------------------------------------------------------------------------
+
+def _start_battle(player, npc, battle_overlay, state):
+    """Mulai pertarungan antara player dan NPC.
+
+    Args:
+        player: Objek Player
+        npc: Objek NPC
+        battle_overlay: Objek BattleOverlay
+        state: Dict game state
+    """
+    state["battle_mode"] = True
+    battle_overlay.start_battle(player, npc)
+    state["status"] = f"Battle started vs {npc.name}!"
+
+
+def _end_battle(player, npc, battle_overlay, state):
+    """Selesai battle, apply hasil ke game state.
+
+    Args:
+        player: Objek Player
+        npc: Objek NPC
+        battle_overlay: Objek BattleOverlay
+        state: Dict game state
+    """
+    state["battle_mode"] = False
+    if battle_overlay.winner == "player":
+        # Player menang: reset NPC posisi, player dapat reward
+        npc.reset()
+        player.battle_hp = player.battle_max_hp  # Heal penuh setelah menang
+        state["status"] = f"Victory! {npc.name} defeated!"
+    else:
+        # Player kalah: reset posisi player
+        player.reset()
+        player.battle_hp = player.battle_max_hp  # Heal penuh untuk retry
+        state["status"] = "Defeated! Back to start."
+
+
+# ---------------------------------------------------------------------------
 # Grid Editor Input
 # ---------------------------------------------------------------------------
 
@@ -560,6 +610,8 @@ async def main():
         "hi": 0,                  # Index heuristic saat ini
         "status": "WASD/Arrow = Player | Klik map = Player A* | ESC = Settings",
         "settings_menu": SettingsMenu(),
+        "battle_mode": False,     # Apakah battle aktif
+        "battle_overlay": BattleOverlay(),  # Battle UI overlay
     }
 
     # ---- Game Loop Utama ----
@@ -580,10 +632,23 @@ async def main():
         if state["edit_mode"]:
             handle_edit_input(game_map, viewport, state)
 
-        # Update game objects
-        player.handle_input(pygame.key.get_pressed(), game_map, dt)  # Manual movement
-        player.update(game_map, dt)  # A* pathfinding movement
-        npc.update(game_map, player, dt)  # NPC follow player
+        # ---- Battle Mode Check ----
+        if not state["battle_mode"] and npc.visible:
+            # Cek apakah player cukup dekat dengan NPC untuk trigger battle
+            pr, pc = player.get_pos()
+            nr, nc = npc.get_pos()
+            if abs(pr - nr) + abs(pc - nc) <= 1 and npc.follow:
+                _start_battle(player, npc, state["battle_overlay"], state)
+
+        # Update game objects (skip movement saat battle)
+        if not state["battle_mode"]:
+            player.handle_input(pygame.key.get_pressed(), game_map, dt)
+            player.update(game_map, dt)
+            if npc.visible:
+                npc.update(game_map, player, dt)
+        else:
+            # Update battle overlay
+            state["battle_overlay"].update(dt)
 
         # Apply settings dari menu (hanya saat menu visible)
         if state["settings_menu"].visible:
@@ -629,6 +694,10 @@ async def main():
 
         # Gambar settings menu (di atas semua lainnya)
         state["settings_menu"].draw(screen, small)
+
+        # Gambar battle overlay (di atas semua lainnya)
+        if state["battle_mode"]:
+            state["battle_overlay"].draw(screen, small)
 
         # Update display
         pygame.display.flip()

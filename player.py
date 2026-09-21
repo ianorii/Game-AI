@@ -83,6 +83,14 @@ class Player:
         self.smooth_r = float(row)
         self.smooth_c = float(col)
 
+        # Battle stats (adversarial search)
+        self.battle_hp = 100
+        self.battle_max_hp = 100
+        self.battle_atk = 12
+        self.battle_def = 5
+        self.battle_potions = 3
+        self.battle_heal = 30
+
     def snap_to_walkable(self, game_map):
         """Cari cell walkable terdekat jika posisi saat ini terblokir.
 
