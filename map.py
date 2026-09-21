@@ -17,7 +17,7 @@ Pixel-level Color Detection:
 
 Grid Collision System:
 - Cell size: 8x8 pixels
-- Grid size: 192x128 cells
+- Grid size: 96x64 cells
 - Value 0 = walkable, 1 = obstacle
 - Menggunakan connected components untuk memastikan connectivity
 """
@@ -40,9 +40,9 @@ GRID_OVERRIDE_PATH = os.path.join(BASE_DIR, "grid_override.txt")
 # Ukuran map dan cell
 MAP_WIDTH = 1536  # pixel
 MAP_HEIGHT = 1024  # pixel
-CELL_SIZE = 8  # pixel per cell
-COLS = MAP_WIDTH // CELL_SIZE  # 192 columns
-ROWS = (MAP_HEIGHT + CELL_SIZE - 1) // CELL_SIZE  # 128 rows
+CELL_SIZE = 16  # pixel per cell
+COLS = MAP_WIDTH // CELL_SIZE  # 96 columns
+ROWS = (MAP_HEIGHT + CELL_SIZE - 1) // CELL_SIZE  # 64 rows
 
 # Area spesial yang membutuhkan collision handling khusus
 BRIDGE_RECT = pygame.Rect(1290, 770, 270, 185)  # Jembatan utama
@@ -722,7 +722,7 @@ class GameMap:
     def save_grid_override(self, path=GRID_OVERRIDE_PATH):
         """Simpan collision grid ke text file.
 
-        Format: 192 karakter per baris (0 atau 1), 128 baris.
+        Format: 96 karakter per baris (0 atau 1), 64 baris.
 
         Args:
             path: Path file output

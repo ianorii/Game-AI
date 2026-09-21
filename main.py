@@ -41,8 +41,8 @@ FPS = 120
 HEURISTICS = ["manhattan", "euclidean", "ucs"]
 
 # Posisi awal player dan NPC dalam grid (row, col)
-PLAYER_START = (16, 9)
-NPC_START = (20, 5)
+PLAYER_START = (10, 5)
+NPC_START = (12, 3)
 
 
 # ---------------------------------------------------------------------------
