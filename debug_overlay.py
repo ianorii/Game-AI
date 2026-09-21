@@ -43,6 +43,8 @@ class DebugOverlay:
         self._label_bg_cache = {}
         self._panel_cache = None
         self._panel_size = (0, 0)
+        self._close_btn = None   # Tombol ✕ hide panel (skenario klik)
+        self._show_btn = None    # Tombol ▶ restore panel saat ter-hide
 
     def toggle(self, key):
         """Toggle layer debug berdasarkan tombol yang ditekan.
@@ -64,6 +66,28 @@ class DebugOverlay:
             self.show_info = not self.show_info
         elif key == pygame.K_4:
             self.show_labels = not self.show_labels
+
+    def handle_click(self, pos):
+        """Handle klik mouse pada tombol info panel.
+
+        Klik ✕ pada panel = hide panel info (tombol 3 juga bisa).
+        Klik pill "▶" saat panel ter-hide = restore panel.
+
+        Args:
+            pos: Tuple (x, y) posisi klik
+
+        Returns:
+            True jika klik dikonsumsi (tombol panel), False jika tidak
+        """
+        if self._close_btn is not None and self._close_btn.collidepoint(pos):
+            self.show_info = False
+            self._close_btn = None
+            return True
+        if self._show_btn is not None and self._show_btn.collidepoint(pos):
+            self.show_info = True
+            self._show_btn = None
+            return True
+        return False
 
     def draw_scaled(self, screen, player, font, viewport, hide_visited=False, status=""):
         """Gambar semua layer debug yang aktif ke layar.
@@ -166,8 +190,13 @@ class DebugOverlay:
             )
 
         # ---- Info Panel (kiri atas) ----
+        # Panel info bisa di-hide (tombol ✕ / angka 3) dan di-restore (pill ▶)
         if self.show_info:
+            self._show_btn = None
             self._draw_info_panel(screen, player, font, status)
+        else:
+            self._close_btn = None
+            self._draw_show_pill(screen, font)
 
     def _draw_cell_label(self, screen, r, c, viewport, cellw, font, data, bg_color):
         """Gambar label g/h/f di satu cell.
@@ -223,15 +252,36 @@ class DebugOverlay:
                 (x - rendered.get_width() // 2, start_y + i * line_h),
             )
 
+    def _draw_show_pill(self, screen, font):
+        """Gambar pill kecil "▶ DEBUG" saat info panel ter-hide.
+
+        Args:
+            screen: Surface utama
+            font: pygame Font
+        """
+        label = "▶  DEBUG  [3]"
+        text = font.render(label, True, (210, 225, 245))
+        pad_x, pad_y = 10, 6
+        rect = pygame.Rect(10, 10, text.get_width() + pad_x * 2, text.get_height() + pad_y * 2)
+        self._show_btn = rect
+
+        hovered = rect.collidepoint(pygame.mouse.get_pos())
+        bg = (30, 42, 62, 210) if not hovered else (52, 74, 104, 230)
+
+        pill = pygame.Surface(rect.size, pygame.SRCALPHA)
+        pygame.draw.rect(pill, bg, pill.get_rect(), border_radius=10)
+        pygame.draw.rect(pill, (90, 140, 200, 255), pill.get_rect(), 1, border_radius=10)
+        screen.blit(pill, rect.topleft)
+        screen.blit(text, (rect.x + pad_x, rect.y + pad_y))
+
     def _draw_info_panel(self, screen, player, font, status=""):
-        """Gambar info panel di kiri atas layar.
+        """Gambar info panel rapi di kiri atas layar.
 
         Panel berisi:
-        - Judul "A* DEBUGGER"
-        - Status pencarian
-        - Statistik (expanded, path len, heuristic)
-        - Legend warna
-        - Kontrol
+        - Header "A* DEBUGGER" dengan badge status dan tombol ✕ (hide)
+        - Statistik pencarian (label kiri, nilai kanan)
+        - Legend warna (dengan swatch)
+        - Kontrol (dua kolom)
 
         Args:
             screen: Surface utama
@@ -239,50 +289,96 @@ class DebugOverlay:
             font: pygame Font
             status: Status text dari game state
         """
-        sw, sh = screen.get_size()
-        panel_w = min(260, sw // 4)
-        padding = 10
+        pad = 12
         line_h = 18
+        panel_w = min(300, max(220, screen.get_width() // 4))
+        header_h = 32
+
+        # Status pencarian
+        if player.debug_found:
+            status_text, status_color = "FOUND", (90, 230, 130)
+        elif player.debug_visited:
+            status_text, status_color = "NO PATH", (235, 100, 100)
+        else:
+            status_text, status_color = "IDLE", (150, 150, 155)
+
+        sections = self._get_panel_sections(player, status)
 
         # Hitung tinggi panel
-        sections = self._get_panel_sections(player, status)
-        total_lines = sum(len(s["lines"]) for s in sections) + len(sections) - 1
-        panel_h = padding * 2 + total_lines * line_h + 8
+        body_h = pad
+        for sec in sections:
+            if sec.get("header"):
+                body_h += line_h + 4
+            body_h += len(sec["lines"]) * line_h + 8
+        panel_h = header_h + body_h
 
-        # Background panel
         panel = pygame.Surface((panel_w, panel_h), pygame.SRCALPHA)
-        panel.fill((12, 16, 24, 210))
+        pygame.draw.rect(panel, (13, 17, 27, 218), panel.get_rect(), border_radius=12)
+        pygame.draw.rect(panel, (60, 72, 92, 255), panel.get_rect(), 1, border_radius=12)
 
-        # Border tipis
-        pygame.draw.rect(panel, (60, 70, 90), panel.get_rect(), 1)
+        # Header bar (lebih terang) + garis aksen atas
+        pygame.draw.rect(panel, (22, 30, 45, 235), (0, 0, panel_w, header_h),
+                         border_top_left_radius=12, border_top_right_radius=12)
+        pygame.draw.rect(panel, (90, 150, 220, 255), (0, 0, panel_w, 3),
+                         border_top_left_radius=2, border_top_right_radius=2)
 
-        # Garis pemisah antar section
-        y_cursor = padding
+        title = font.render("A* DEBUGGER", True, (205, 228, 255))
+        panel.blit(title, (pad, (header_h - title.get_height()) // 2 + 1))
 
-        for si, section in enumerate(sections):
-            # Header section
-            if section.get("header"):
-                header_surf = font.render(section["header"], True, section.get("header_color", (180, 190, 210)))
-                panel.blit(header_surf, (padding, y_cursor))
-                y_cursor += line_h
+        # Badge status (di kanan judul)
+        badge = font.render(status_text, True, status_color)
+        badge_rect = pygame.Rect(0, 0, badge.get_width() + 14, badge.get_height() + 6)
+        badge_rect.topleft = (panel_w - badge_rect.width - 34, (header_h - badge_rect.height) // 2)
+        pygame.draw.rect(panel, (10, 14, 22, 200), badge_rect, border_radius=7)
+        pygame.draw.rect(panel, status_color, badge_rect, 1, border_radius=7)
+        panel.blit(badge, (badge_rect.x + 7, badge_rect.y + 3))
 
-            # Isi section
-            for text, color in section["lines"]:
-                text_surf = font.render(text, True, color)
-                panel.blit(text_surf, (padding + 4, y_cursor))
-                y_cursor += line_h
+        # Tombol ✕ (hide) di ujung kanan header
+        x_rect = pygame.Rect(panel_w - 28, (header_h - 20) // 2, 20, 20)
+        hovered = False
+        if self._close_btn is not None:
+            hovered = self._close_btn.collidepoint(pygame.mouse.get_pos())
+        pygame.draw.rect(panel, (70, 34, 40, 230) if hovered else (34, 40, 54, 220),
+                         x_rect, border_radius=6)
+        x_surf = font.render("✕", True, (255, 150, 150) if hovered else (200, 210, 225))
+        panel.blit(x_surf, (x_rect.centerx - x_surf.get_width() // 2,
+                            x_rect.centery - x_surf.get_height() // 2 + 1))
 
-            # Garis pemisah (kecuali section terakhir)
-            if si < len(sections) - 1:
-                y_cursor += 4
-                pygame.draw.line(
-                    panel, (50, 55, 70),
-                    (padding, y_cursor - 2),
-                    (panel_w - padding, y_cursor - 2),
-                )
-                y_cursor += 4
+        # Isi section
+        y = header_h + 4
+        for sec in sections:
+            if sec.get("header"):
+                head = font.render(sec["header"], True, sec.get("header_color", (180, 190, 210)))
+                panel.blit(head, (pad, y))
+                y += line_h + 2
+                pygame.draw.line(panel, (48, 56, 72), (pad, y - 4), (panel_w - pad, y - 4))
 
-        screen.blit(panel, (10, 10))
+            swatches = sec.get("swatches") or []
+            for i, (a_txt, b_txt, color) in enumerate(sec["lines"]):
+                text_x = pad
+                if swatches:
+                    sw_color = swatches[i] if i < len(swatches) else (200, 200, 200)
+                    pygame.draw.rect(panel, sw_color, (pad, y + 3, 11, 11), border_radius=3)
+                    text_x = pad + 18
+
+                a_surf = font.render(a_txt, True, color)
+                panel.blit(a_surf, (text_x, y))
+
+                if b_txt:
+                    b_surf = font.render(b_txt, True, color)
+                    if sec.get("align_right"):
+                        panel.blit(b_surf, (panel_w - pad - b_surf.get_width(), y))
+                    else:
+                        panel.blit(b_surf, (text_x + 78, y))
+                y += line_h
+            y += 8
+
+        panel_x, panel_y = 10, 10
+        screen.blit(panel, (panel_x, panel_y))
+
+        # Rect tombol ✕ dalam koordinat layar (untuk handle_click)
+        self._close_btn = pygame.Rect(panel_x + x_rect.x, panel_y + x_rect.y,
+                                      x_rect.width, x_rect.height)
 
     def _get_panel_sections(self, player, status=""):
         """Bangun data section untuk info panel.
@@ -292,30 +388,26 @@ class DebugOverlay:
             status: Status text dari game state
 
         Returns:
-            List of dicts, tiap dict = {"header": str, "header_color": tuple, "lines": [(text, color)]}
+            List of dicts. Tiap section: {"header", "header_color", "lines": [(a, b, color)]}.
+            Opsi tambahan: "swatches" (list warna), "align_right" (nilai rata kanan).
         """
         sections = []
 
-        # --- Section: Title + Status ---
+        # --- Section: Status ---
         if player.debug_found:
-            status_text = "FOUND"
-            status_color = (80, 220, 120)
+            status_text, status_color = "FOUND", (90, 230, 130)
         elif player.debug_visited:
-            status_text = "NO PATH"
-            status_color = (220, 80, 80)
+            status_text, status_color = "NO PATH", (235, 100, 100)
         else:
-            status_text = "IDLE"
-            status_color = (140, 140, 140)
+            status_text, status_color = "IDLE", (150, 150, 155)
 
-        status_lines = [
-            (f"Status   : {status_text}", status_color),
-        ]
+        status_lines = [("Status", status_text, status_color)]
         if status:
-            status_lines.append((f"Info     : {status[:30]}", (150, 160, 180)))
+            status_lines.append(("Info", status[:26], (150, 160, 180)))
 
         sections.append({
-            "header": "A* DEBUGGER",
-            "header_color": (220, 230, 255),
+            "header": "SEARCH",
+            "header_color": (180, 200, 225),
             "lines": status_lines,
         })
 
@@ -327,36 +419,194 @@ class DebugOverlay:
 
             sections.append({
                 "header": "STATISTICS",
-                "header_color": (180, 190, 210),
+                "header_color": (180, 200, 225),
+                "align_right": True,
                 "lines": [
-                    (f"Expanded : {player.total_expanded}", (200, 210, 230)),
-                    (f"Path len : {len(player.debug_path)}", (200, 210, 230)),
-                    (f"Heuristic: {heuristic_display}", (200, 210, 230)),
+                    ("Expanded", str(player.total_expanded), (200, 210, 230)),
+                    ("Path len", str(len(player.debug_path)), (200, 210, 230)),
+                    ("Heuristic", heuristic_display, (200, 210, 230)),
                 ],
             })
 
         # --- Section: Legend ---
         sections.append({
             "header": "LEGEND",
-            "header_color": (180, 190, 210),
+            "header_color": (180, 200, 225),
+            "swatches": [(70, 140, 255), (40, 220, 90), (0, 200, 255), (255, 220, 50)],
             "lines": [
-                ("[ ] Visited (open set)", (70, 140, 255)),
-                ("[ ] Path (solution)", (40, 220, 90)),
-                ("[ ] Start node", (0, 200, 255)),
-                ("[ ] Goal node", (255, 220, 50)),
+                ("Visited (open set)", "", (200, 210, 230)),
+                ("Path (solution)", "", (200, 210, 230)),
+                ("Start node", "", (200, 210, 230)),
+                ("Goal node", "", (200, 210, 230)),
             ],
         })
 
         # --- Section: Controls ---
         sections.append({
             "header": "CONTROLS",
-            "header_color": (180, 190, 210),
+            "header_color": (180, 200, 225),
             "lines": [
-                ("1/2/3/4  Toggle layers", (150, 160, 180)),
-                ("Q/E      Heuristic", (150, 160, 180)),
-                ("WASD     Move player", (150, 160, 180)),
-                ("Click    A* to target", (150, 160, 180)),
+                ("1-4", "Toggle layers", (150, 165, 190)),
+                ("Q/E", "Heuristic player", (150, 165, 190)),
+                ("T/G", "Heuristic NPC", (150, 165, 190)),
+                ("3 / ✕", "Hide this panel", (150, 165, 190)),
             ],
         })
 
         return sections
+
+
+# ---------------------------------------------------------------------------
+# Battle Debug Overlay - Visualisasi Adversarial Search saat BATTLE_MODE
+# ---------------------------------------------------------------------------
+
+class BattleDebugOverlay:
+    """Panel debug untuk pencarian adversarial pada Turn-Based Battle Duel.
+
+    Menampilkan:
+    1. Skor evaluasi tiap aksi di root (depth 0), contoh:
+       [ATTACK: +18, DEFEND: +15, POTION: -10, SPECIAL: +18]
+    2. Perbandingan jumlah node Minimax murni vs Alpha-Beta Pruning.
+    3. Efisiensi pruning (% node yang dipotong) dan waktu kalkulasi (ms).
+
+    Attributes:
+        visible: Apakah panel ditampilkan (toggle tombol 'D')
+        stats: Dict statistik terakhir dari AdversarialAI.think()
+    """
+
+    ACTION_COLOR = {
+        "ATTACK": (240, 96, 96),
+        "DEFEND": (96, 176, 240),
+        "POTION": (120, 220, 140),
+        "SPECIAL": (208, 150, 250),
+    }
+
+    def __init__(self):
+        self.visible = True
+        self.stats = {}
+
+    def toggle(self):
+        """Sembunyikan/tampilkan panel."""
+        self.visible = not self.visible
+
+    def update(self, stats):
+        """Simpan statistik terbaru dari AI.
+
+        Args:
+            stats: Dict hasil AdversarialAI.think()
+        """
+        if stats:
+            self.stats = stats
+
+    def draw(self, screen, font):
+        """Gambar panel debug di tengah layar.
+
+        Args:
+            screen: Surface utama
+            font: pygame Font monospace untuk isi panel
+        """
+        if not self.visible or not self.stats:
+            return
+
+        sw, sh = screen.get_size()
+        f = font
+        line_h = f.get_height() + 3
+
+        title = "DEBUG ADVERSARIAL SEARCH"
+        hint = "[D] sembunyikan"
+        depth = self.stats.get("depth", "-")
+        algo = "Alpha-Beta Pruning"
+        head = f"{title}   |   depth={depth}   |   {algo}"
+
+        root = self.stats.get("root_scores") or []
+        best = self.stats.get("best_action")
+        mm_nodes = self.stats.get("minimax_nodes", 0)
+        ab_nodes = self.stats.get("alphabeta_nodes", 0)
+        pruned = self.stats.get("pruned_nodes", 0)
+        eff = self.stats.get("prune_efficiency", 0.0)
+        evals = self.stats.get("evaluations", 0)
+        t_ms = self.stats.get("time_ms", 0.0)
+
+        # --- Ukuran panel ---
+        pad = 14
+        width = max(f.size(head)[0] + pad * 2, 430)
+        for action, score in root:
+            width = max(width, f.size(f"{action}: {score:+d}")[0] + 300)
+        width = min(width, sw - 40)
+
+        rows = (len(root) + 6)
+        height = pad * 2 + line_h * (rows + 5)
+
+        x = (sw - width) // 2
+        y = max(70, sh // 2 - height // 2 - 40)
+        rect = pygame.Rect(x, y, width, height)
+        if rect.bottom > sh - 10:
+            rect.y = sh - 10 - rect.height
+
+        panel = pygame.Surface(rect.size, pygame.SRCALPHA)
+        pygame.draw.rect(panel, (12, 16, 26, 236), panel.get_rect(), border_radius=14)
+        pygame.draw.rect(panel, (120, 170, 255, 235), panel.get_rect(), 2, border_radius=14)
+        screen.blit(panel, rect.topleft)
+
+        # --- Header ---
+        cy = rect.y + pad
+        screen.blit(f.render(head, True, (210, 226, 255)), (rect.x + pad, cy))
+        hw = f.size(hint)[0]
+        screen.blit(f.render(hint, True, (150, 165, 190)), (rect.right - pad - hw, cy))
+        cy += line_h
+
+        sep = pygame.Rect(rect.x + pad, cy, rect.width - pad * 2, 1)
+        pygame.draw.rect(screen, (60, 74, 100), sep)
+        cy += 7
+
+        # --- Skor tiap aksi di root ---
+        screen.blit(f.render("Pilihan aksi NPC di root (depth 0):", True, (240, 196, 96)), (rect.x + pad, cy))
+        cy += line_h
+        if not root:
+            screen.blit(f.render("- (tidak ada aksi legal)", True, (170, 180, 200)), (rect.x + pad, cy))
+            cy += line_h
+        else:
+            scores = [s for _, s in root]
+            lo, hi = min(scores), max(scores)
+            span = (hi - lo) or 1
+            bar_x = rect.right - pad - 150
+            bar_w = 150
+            for action, score in root:
+                chosen = action == best
+                col = self.ACTION_COLOR.get(action, (200, 200, 200))
+                label = f"{action:<8}{score:+5d}"
+                screen.blit(f.render(label, True, col if chosen else (200, 210, 230)), (rect.x + pad, cy))
+                # Bar skor relatif (0..1)
+                frac = (score - lo) / span if hi != lo else 0.5
+                pygame.draw.rect(screen, (30, 36, 50), (bar_x, cy + 3, bar_w, line_h - 8), border_radius=4)
+                pygame.draw.rect(screen, col, (bar_x, cy + 3, max(3, int(bar_w * frac)), line_h - 8), border_radius=4)
+                if chosen:
+                    screen.blit(f.render("<= dipilih", True, (140, 240, 170)), (bar_x + bar_w + 6, cy))
+                cy += line_h
+        cy += 5
+
+        # --- Perbandingan algoritma ---
+        def stat_line(label, value, color=(200, 210, 230)):
+            nonlocal cy
+            screen.blit(f.render(label, True, (150, 165, 190)), (rect.x + pad, cy))
+            vw = f.size(value)[0]
+            screen.blit(f.render(value, True, color), (rect.right - pad - vw, cy))
+            cy += line_h
+
+        screen.blit(f.render("Perbandingan algoritma (state sama):", True, (240, 196, 96)), (rect.x + pad, cy))
+        cy += line_h
+        stat_line("Node Minimax (tanpa pruning)", str(mm_nodes), (200, 210, 230))
+        stat_line("Node Alpha-Beta (pruning)", str(ab_nodes), (140, 240, 170))
+        stat_line("Node terpangkas", f"{pruned}  ({eff:.1f}%)", (255, 200, 120))
+        stat_line("Cutoff alpha-beta", str(self.stats.get("cutoffs", 0)), (200, 210, 230))
+        stat_line("Evaluasi daun (leaf)", str(evals), (200, 210, 230))
+        stat_line("Waktu kalkulasi", f"{t_ms:.2f} ms", (120, 210, 255))
+
+        # Bar efisiensi pruning
+        pygame.draw.rect(screen, (30, 36, 50), (rect.x + pad, cy + 3, rect.width - pad * 2, line_h - 6), border_radius=4)
+        pygame.draw.rect(
+            screen, (140, 240, 170),
+            (rect.x + pad, cy + 3, max(3, int((rect.width - pad * 2) * min(1.0, eff / 100.0))), line_h - 6),
+            border_radius=4,
+        )
+
