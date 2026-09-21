@@ -23,7 +23,7 @@ import sys
 import pygame
 
 from debug_overlay import DebugOverlay
-from map import CELL_SIZE, COLS, ROWS, GameMap, Viewport
+from game.map import CELL_SIZE, COLS, ROWS, GameMap, Viewport
 from npc import NPC
 from player import Player
 from settings_menu import SettingsMenu
@@ -392,7 +392,6 @@ def _apply_settings(settings_menu, player, npc, overlay, state):
         state: Dict mutable berisi state game
     """
     vals = settings_menu.get_values()
-    state["show_hud"] = vals.get("show_hud", True)
     debug_on = vals.get("debug_overlay", True)
     overlay.show_visited = debug_on
     overlay.show_path = debug_on
@@ -488,42 +487,7 @@ def draw_hud(screen, player, npc, overlay, font, state):
         font: pygame Font
         state: Dict mutable berisi state game
     """
-    if not state.get("show_hud", True):
-        return
-    if not overlay.show_info:
-        return
-
-    screen_width = screen.get_width()
-
-    # Panel kanan: Info player dan NPC
-    p = player.get_pos()
-    n = npc.get_pos()
-    t = player.target if player.target else ("-", "-")
-
-    info = [
-        f"Player : ({p[1]}, {p[0]})",
-        f"NPC    : ({n[1]}, {n[0]})",
-        f"Target : ({t[1]}, {t[0]})",
-        f"Path   : {len(player.path)} node",
-        f"Heuristic: {player.heuristic}",
-        f"NPC {npc.heuristic.upper()} | {'ikut' if npc.follow else 'diam'} | path {len(npc.path)}",
-    ]
-
-    # Gambar panel kanan
-    panel_width = 275
-    panel_height = 145
-    panel_size = (panel_width, panel_height)
-    if state["_hud_panel"] is None or state["_hud_panel_size"] != panel_size:
-        state["_hud_panel"] = pygame.Surface((*panel_size,), pygame.SRCALPHA)
-        state["_hud_panel_size"] = panel_size
-    panel = state["_hud_panel"]
-    panel.fill((10, 20, 20, 185))
-    x = screen_width - panel_width - 12
-    screen.blit(panel, (x, 12))
-
-    for i, text in enumerate(info):
-        rendered = font.render(text, True, (240, 240, 240))
-        screen.blit(rendered, (x + 10, 20 + i * 21))
+    return
 
 
 # ---------------------------------------------------------------------------
@@ -595,10 +559,7 @@ async def main():
         "cellw": CELL_SIZE * viewport.scale,  # Ukuran cell dalam pixel
         "hi": 0,                  # Index heuristic saat ini
         "status": "WASD/Arrow = Player | Klik map = Player A* | ESC = Settings",
-        "show_hud": True,         # Apakah HUD ditampilkan
         "settings_menu": SettingsMenu(),
-        "_hud_panel": None,       # Cached HUD right panel surface
-        "_hud_panel_size": (0, 0),
     }
 
     # ---- Game Loop Utama ----

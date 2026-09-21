@@ -12,7 +12,7 @@ import math
 import pygame
 
 from collections import deque
-from map import CELL_SIZE
+from game.map import CELL_SIZE
 
 
 def snap_to_walkable(entity, game_map):

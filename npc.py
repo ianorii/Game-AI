@@ -18,9 +18,9 @@ import math
 
 import pygame
 
-from map import CELL_SIZE
-from pathfinding import astar
-from utils import (
+from game.map import CELL_SIZE
+from game.pathfinding import astar
+from game.map.utils import (
     draw_sprite_smooth,
     game_pos,
     snap_to_walkable,

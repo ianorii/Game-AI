@@ -16,8 +16,8 @@ Layer Debug:
 """
 import pygame
 
-from map import CELL_SIZE
-from utils import game_pos
+from game.map import CELL_SIZE
+from game.map.utils import game_pos
 
 
 class DebugOverlay:
@@ -79,17 +79,24 @@ class DebugOverlay:
         cellw = int(CELL_SIZE * viewport.scale)
         show_label_cells = self.show_labels and cellw >= 36
 
-        # ---- Visited Nodes (kotak biru) ----
+        # ---- Visited Nodes (kotak biru dengan border) ----
         if self.show_visited and not hide_visited:
             size = max(3, int(9 * viewport.scale))
             if self._vis_buf is None or self._vis_buf_size != size:
                 self._vis_buf = pygame.Surface((size, size), pygame.SRCALPHA)
-                self._vis_buf.fill((70, 140, 255, 120))
+                self._vis_buf.fill((70, 140, 255, 100))
                 self._vis_buf_size = size
+            cellw = int(CELL_SIZE * viewport.scale)
+            border_w = max(1, int(2 * viewport.scale))
             for r, c in player.debug_visited:
                 if (r, c) not in player.debug_path and (r, c) != (player.row, player.col):
                     x, y = game_pos(r, c, viewport)
-                    screen.blit(self._vis_buf, (x - size // 2, y - size // 2))
+                    half = cellw // 2
+                    rect = pygame.Rect(x - half, y - half, cellw, cellw)
+                    # Isi biru transparan (cached)
+                    screen.blit(self._vis_buf, rect.topleft)
+                    # Border biru terang
+                    pygame.draw.rect(screen, (70, 140, 255), rect, border_w)
 
                     # Label g/h/f pada visited node
                     if show_label_cells and (r, c) in player.debug_node_data:

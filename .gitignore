@@ -1,4 +1,5 @@
 __pycache__/
 venv/
 *.pyc
-build/web-cache/
+*.pyo
+grid_override.txt

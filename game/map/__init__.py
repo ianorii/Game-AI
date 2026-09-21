@@ -31,8 +31,8 @@ import pygame
 # Constants
 # ---------------------------------------------------------------------------
 
-# Path direktori
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+# Path direktori (project root = parent of game/)
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 IMAGE_DIR = os.path.join(BASE_DIR, "assets", "images")
 FULL_MAP_PATH = os.path.join(IMAGE_DIR, "full map.png")
 GRID_OVERRIDE_PATH = os.path.join(BASE_DIR, "grid_override.txt")

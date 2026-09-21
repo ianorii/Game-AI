@@ -17,33 +17,33 @@ Theme:
 import pygame
 
 # ---------------------------------------------------------------------------
-# Color Palette (Brown Pixel Theme)
+# Color Palette (Dark Blue Theme - matches debug overlay)
 # ---------------------------------------------------------------------------
 
 # Background colors
-BG_DARK = (40, 26, 13)      # Background gelap
-BG_MID = (62, 40, 20)       # Background tengah
-BG_LIGHT = (85, 55, 28)     # Background terang
+BG_DARK = (12, 16, 24)       # Background gelap
+BG_MID = (20, 26, 38)        # Background tengah
+BG_LIGHT = (30, 40, 58)      # Background terang
 
 # Border colors
-BORDER_OUTER = (30, 18, 8)  # Border luar (gelap)
-BORDER_INNER = (110, 72, 36) # Border dalam (terang)
+BORDER_OUTER = (50, 55, 70)  # Border luar (gelap)
+BORDER_INNER = (60, 70, 90)  # Border dalam (terang)
 
 # Text colors
-TEXT_NORMAL = (220, 195, 160)   # Teks normal
-TEXT_DIM = (150, 120, 85)       # Teks redup
-TEXT_HIGHLIGHT = (255, 230, 170) # Teks highlight
+TEXT_NORMAL = (200, 210, 230)    # Teks normal
+TEXT_DIM = (150, 160, 180)       # Teks redup
+TEXT_HIGHLIGHT = (220, 230, 255) # Teks highlight
 
 # Accent colors
-ACCENT = (180, 100, 30)       # Accent normal
-ACCENT_HOVER = (210, 130, 50) # Accent saat hover
+ACCENT = (70, 120, 200)       # Accent normal (biru)
+ACCENT_HOVER = (90, 150, 230) # Accent saat hover
 
 # Toggle colors
-TOGGLE_ON = (120, 180, 70)    # Toggle ON (hijau)
-TOGGLE_OFF = (160, 60, 40)    # Toggle OFF (merah)
+TOGGLE_ON = (80, 200, 120)    # Toggle ON (hijau)
+TOGGLE_OFF = (200, 70, 60)    # Toggle OFF (merah)
 
 # Divider color
-DIVIDER = (90, 58, 30)
+DIVIDER = (50, 55, 70)
 
 
 def _draw_pixel_border(surface, rect):
@@ -78,7 +78,7 @@ def _draw_checkbox(surface, x, y, checked, size=14):
     box = pygame.Rect(x, y, size, size)
     pygame.draw.rect(surface, BORDER_OUTER, box, border_radius=1)
     inner = box.inflate(-4, -4)
-    color = TOGGLE_ON if checked else BG_LIGHT
+    color = TOGGLE_ON if checked else (30, 40, 58)
     pygame.draw.rect(surface, color, inner, border_radius=1)
     # Gambar tanda centang
     if checked:
@@ -111,7 +111,6 @@ class SettingsMenu:
         self.hover_row = -1
         # Definisi menu items
         self.items = [
-            {"type": "toggle", "label": "Tampilkan HUD", "key": "show_hud", "default": True},
             {"type": "toggle", "label": "NPC Ikuti Player", "key": "npc_follow", "default": True},
             {"type": "toggle", "label": "Debug Overlay", "key": "debug_overlay", "default": True},
             {"type": "selector", "label": "Heuristic Player", "key": "player_heuristic",
@@ -157,9 +156,7 @@ class SettingsMenu:
         for item in self.items:
             key = item["key"]
             if item["type"] == "toggle":
-                if key == "show_hud":
-                    item["value"] = state.get("show_hud", True)
-                elif key == "npc_follow":
+                if key == "npc_follow":
                     item["value"] = npc.follow
                 elif key == "debug_overlay":
                     item["value"] = overlay.show_visited
@@ -351,7 +348,7 @@ class SettingsMenu:
 
         # Dim background
         dim = pygame.Surface((sw, sh), pygame.SRCALPHA)
-        dim.fill((0, 0, 0, 160))
+        dim.fill((5, 8, 15, 180))
         screen.blit(dim, (0, 0))
 
         # Main panel dengan pixel border
@@ -385,7 +382,7 @@ class SettingsMenu:
             # Highlight item yang dipilih
             if is_sel:
                 sel_bg = pygame.Rect(menu.x + 10, iy - 2, menu.width - 20, item_h)
-                pygame.draw.rect(screen, (80, 52, 26, 190), sel_bg, border_radius=3)
+                pygame.draw.rect(screen, (30, 50, 80, 190), sel_bg, border_radius=3)
                 pygame.draw.rect(screen, ACCENT, (menu.x + 12, iy + 8, 4, item_h - 16), border_radius=1)
 
             # Label
