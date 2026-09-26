@@ -174,6 +174,36 @@ class BattleSystem:
             self._fonts[size] = pygame.font.SysFont(name, size)
         return self._fonts[size]
 
+    def _fit_text(
+        self,
+        font: pygame.font.Font,
+        text: str,
+        color: Tuple[int, int, int],
+        max_w: int,
+    ) -> pygame.Surface:
+        """Render teks dan potong dengan ellipsis bila melebihi ``max_w``.
+
+        Dipakai agar teks panjang (nama panjang, log panjang) tidak pernah
+        menimpa elemen lain di panelnya.
+
+        Args:
+            font: Font untuk merender
+            text: Teks asal
+            color: Warna teks
+            max_w: Lebar maksimum piksel yang boleh dipakai
+
+        Returns:
+            Surface teks yang lebarnya dijamin <= ``max_w``
+        """
+        surf = font.render(text, True, color)
+        if surf.get_width() <= max_w:
+            return surf
+        ell = "..."
+        trimmed = text
+        while trimmed and font.size(trimmed + ell)[0] > max_w:
+            trimmed = trimmed[:-1]
+        return font.render(trimmed + ell if trimmed else ell, True, color)
+
     def _add_log(self, text: str, color: Tuple[int, int, int] = TEXT) -> None:
         """Tambah baris ke battle log (maksimal 7 baris terakhir)."""
         self.log.append((text, color))
@@ -212,6 +242,7 @@ class BattleSystem:
         - Panah/WS  : pindah pilihan
         - Enter/Space: konfirmasi aksi terpilih
         - D         : toggle debug overlay adversarial search
+        - C         : toggle tabel perbandingan 3 algoritma di overlay
         - Tombol lain saat RESULT: lewati layar hasil
         """
         if event.type != pygame.KEYDOWN:
@@ -219,6 +250,10 @@ class BattleSystem:
 
         if event.key == pygame.K_d:
             self.debug.visible = not self.debug.visible
+            return
+
+        if event.key == pygame.K_c:
+            self.debug.toggle_compare()
             return
 
         if self.phase == "RESULT":
@@ -323,7 +358,13 @@ class BattleSystem:
         if self.phase == "NPC_THINK":
             self.timer -= dt
             if self.timer <= 0:
-                self.ai_stats = self.ai.think(self.state, depth=self.depth)
+                if self.debug.compare_mode:
+                    # Menjalankan minimax, alpha-beta, dan early stop pada state
+                    # yang sama supaya overlay bisa menampilkan perbandingannya.
+                    # Tiga kali biaya pencarian, jadi hanya saat diminta.
+                    self.ai_stats = self.ai.compare_all(self.state, depth=self.depth)
+                else:
+                    self.ai_stats = self.ai.think(self.state, depth=self.depth)
                 self.debug.update(self.ai_stats)
                 action = self.ai_stats.get("best_action")
                 if action is None:
@@ -368,8 +409,15 @@ class BattleSystem:
         if self.phase == "RESULT":
             self._draw_result(canvas, w, h)
 
-        # Debug overlay adversarial search (di atas segalanya)
-        self.debug.draw(canvas, font or self._get_font(w // 90))
+        # Debug overlay adversarial search, hanya boleh memakai area bebas
+        # di antara panel status, menu aksi, dan battle log.
+        margin = 12
+        left = 20 + int(w * 0.30) + margin
+        right = w - 20 - int(w * 0.30) - margin
+        top = 20 + int(h * 0.16) + margin
+        bottom = h - 20 - int(h * 0.30) - margin
+        safe = pygame.Rect(left, top, max(0, right - left), max(0, bottom - top))
+        self.debug.draw(canvas, font or self._get_font(w // 90), safe)
 
     def _draw_background(self, screen: pygame.Surface, w: int, h: int) -> None:
         """Gambar latar duel.
@@ -470,7 +518,9 @@ class BattleSystem:
         name_font = self._get_font(w // 62)
         small = self._get_font(w // 84)
 
-        name = name_font.render(self.npc_name if is_npc else self.player_name, True, edge)
+        name = self._fit_text(
+            name_font, self.npc_name if is_npc else self.player_name, edge, pw - 32
+        )
         screen.blit(name, (x + 16, y + 12))
 
         # HP bar
@@ -494,18 +544,32 @@ class BattleSystem:
         cd = self.state.npc_special_cd if is_npc else self.state.player_special_cd
         defending = self.state.npc_defending if is_npc else self.state.player_defending
 
-        potion_txt = small.render(f"Potion: {potions}/{POTION_LIMIT}", True, HEAL_COL if potions else TEXT_DIM)
-        screen.blit(potion_txt, (x + 16, info_y))
-        cd_txt = small.render(
-            "Special: siap" if cd == 0 else f"Special CD: {cd}",
-            True, GOLD if cd == 0 else TEXT_DIM,
-        )
-        screen.blit(cd_txt, (x + 16 + potion_txt.get_width() + 18, info_y))
+        inner_l, inner_r = x + 16, x + pw - 16
+        text_right = inner_r
+
         if defending:
             badge = small.render("DEFEND", True, (10, 16, 24))
-            brect = badge.get_rect()
-            pygame.draw.rect(screen, (96, 190, 240), (x + pw - brect.width - 28, info_y - 2, brect.width + 16, brect.height + 6), border_radius=8)
-            screen.blit(badge, (x + pw - brect.width - 20, info_y + 1))
+            chip_w, chip_h = badge.get_width() + 16, badge.get_height() + 6
+            chip = pygame.Rect(inner_r - chip_w, info_y - 2, chip_w, chip_h)
+            pygame.draw.rect(screen, (96, 190, 240), chip, border_radius=8)
+            screen.blit(badge, (chip.x + 8, info_y + 1))
+            text_right = chip.x - 10
+
+        potion_txt = self._fit_text(
+            small,
+            f"Potion: {potions}/{POTION_LIMIT}",
+            HEAL_COL if potions else TEXT_DIM,
+            max(24, text_right - inner_l),
+        )
+        screen.blit(potion_txt, (inner_l, info_y))
+
+        cd_label = "Special: siap" if cd == 0 else f"Special CD: {cd}"
+        cd_x = inner_l + potion_txt.get_width() + 18
+        if cd_x + 20 < text_right:
+            cd_txt = self._fit_text(
+                small, cd_label, GOLD if cd == 0 else TEXT_DIM, text_right - cd_x
+            )
+            screen.blit(cd_txt, (cd_x, info_y))
 
     def _draw_action_menu(self, screen: pygame.Surface, w: int, h: int) -> None:
         """Kotak menu aksi player di kiri bawah."""
@@ -518,17 +582,26 @@ class BattleSystem:
         pygame.draw.rect(panel, PANEL_EDGE, panel.get_rect(), 1, border_radius=14)
         screen.blit(panel, rect.topleft)
 
-        head = self._get_font(w // 70).render("AKSI  (1-4 / panah + Enter)", True, ACCENT)
-        screen.blit(head, (x + 14, y + 10))
+        pad = 14
+        head_font = self._get_font(w // 70)
+        head = self._fit_text(head_font, "AKSI  (1-4 / panah + Enter)", ACCENT, mw - pad * 2)
+        screen.blit(head, (x + pad, y + 10))
+
+        key_font = self._get_font(w // 82)
+        hint_label = "D: debug overlay   C: banding algoritma"
+        hint = self._fit_text(key_font, hint_label, TEXT_DIM, mw - pad * 2)
 
         legal = set(self.legal_actions())
-        item_h = (mh - 20 - head.get_height() - 8) // len(ACTIONS)
         label_font = self._get_font(w // 66)
-        key_font = self._get_font(w // 82)
+
+        top = y + 10 + head.get_height() + 6
+        hint_y = y + mh - pad - hint.get_height()
+        usable = hint_y - 8 - top
+        item_h = max(22, usable // len(ACTIONS))
 
         for i, action in enumerate(ACTIONS):
-            iy = y + 14 + head.get_height() + i * item_h
-            item = pygame.Rect(x + 12, iy, mw - 24, item_h - 6)
+            iy = top + i * item_h
+            item = pygame.Rect(x + 12, iy, mw - 24, min(item_h - 6, hint_y - 8 - iy))
             ok = action in legal
             selected = (i == self.selected) and self.phase == "PLAYER_INPUT"
 
@@ -546,7 +619,6 @@ class BattleSystem:
             screen.blit(kn, (chip.centerx - kn.get_width() // 2, chip.centery - kn.get_height() // 2))
 
             col = TEXT if ok else TEXT_DIM
-            screen.blit(label_font.render(ACTION_LABEL[action], True, col), (chip.right + 12, item.centery - label_font.get_height() // 2))
 
             # Info jumlah/efek aksi (mis. DMG 15-20, +25 HP, DMG 30)
             info = ACTION_INFO[action]
@@ -556,12 +628,17 @@ class BattleSystem:
                 cd = self.state.player_special_cd
                 info = f"{info}  CD{cd}" if cd > 0 else f"{info}  siap"
             info_col = (120, 220, 140) if ok else (200, 120, 120)
-            iw = key_font.size(info)[0]
-            screen.blit(key_font.render(info, True, info_col), (item.right - iw - 10, item.centery - key_font.get_height() // 2))
 
-        # Kill/skip hint
-        hint = key_font.render("D: debug overlay", True, TEXT_DIM)
-        screen.blit(hint, (x + mw - hint.get_width() - 14, y + mh - hint.get_height() - 8))
+            info = self._fit_text(key_font, info, info_col, max(24, item.width // 2))
+            label = self._fit_text(
+                label_font, ACTION_LABEL[action], col,
+                item.right - 20 - info.get_width() - (chip.right + 12) - 10,
+            )
+            mid = item.centery
+            screen.blit(label, (chip.right + 12, mid - label.get_height() // 2))
+            screen.blit(info, (item.right - info.get_width() - 10, mid - info.get_height() // 2))
+
+        screen.blit(hint, (x + mw - hint.get_width() - pad, hint_y))
 
     def _draw_log(self, screen: pygame.Surface, w: int, h: int) -> None:
         """Panel battle log di kanan bawah."""
@@ -575,12 +652,16 @@ class BattleSystem:
         screen.blit(panel, rect.topleft)
 
         font = self._get_font(w // 78)
-        screen.blit(font.render("BATTLE LOG", True, GOLD), (x + 14, y + 10))
+        head = font.render("BATTLE LOG", True, GOLD)
+        screen.blit(head, (x + 14, y + 10))
 
         line_h = font.get_height() + 4
-        start_y = y + 10 + font.get_height() + 8
-        for i, (text, color) in enumerate(self.log[-6:]):
-            screen.blit(font.render(text, True, color), (x + 14, start_y + i * line_h))
+        start_y = y + 10 + head.get_height() + 8
+        max_w = lw - 28
+        max_lines = max(1, (y + lh - 12 - start_y) // line_h)
+        for i, (text, color) in enumerate(self.log[-max_lines:]):
+            surf = self._fit_text(font, text, color, max_w)
+            screen.blit(surf, (x + 14, start_y + i * line_h))
 
     def _draw_popups(self, screen: pygame.Surface, w: int, h: int) -> None:
         """Gambar damage/heal popup yang memudar naik."""

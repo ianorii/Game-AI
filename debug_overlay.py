@@ -20,6 +20,28 @@ from game.map import CELL_SIZE
 from game.map.utils import game_pos
 
 
+def _fit_text(font, text, color, max_w):
+    """Render ``text`` dan potong dengan ellipsis bila melebihi ``max_w``.
+
+    Args:
+        font: Font untuk merender
+        text: Teks asal
+        color: Warna teks
+        max_w: Lebar maksimum piksel yang boleh dipakai
+
+    Returns:
+        Surface teks dengan lebar dijamin <= ``max_w``
+    """
+    surf = font.render(text, True, color)
+    if surf.get_width() <= max_w:
+        return surf
+    ell = "..."
+    trimmed = text
+    while trimmed and font.size(trimmed + ell)[0] > max_w:
+        trimmed = trimmed[:-1]
+    return font.render(trimmed + ell if trimmed else ell, True, color)
+
+
 class DebugOverlay:
     """Manages debug visualization layers untuk pathfinding.
 
@@ -468,9 +490,13 @@ class BattleDebugOverlay:
        [ATTACK: +18, DEFEND: +15, POTION: -10, SPECIAL: +18]
     2. Perbandingan jumlah node Minimax murni vs Alpha-Beta Pruning.
     3. Efisiensi pruning (% node yang dipotong) dan waktu kalkulasi (ms).
+    4. Opsional (``compare_mode``): tabel perbandingan Minimax vs Alpha-Beta vs
+       Early Stop sekaligus, termasuk aksi yang dipilih masing-masing algoritma
+       sehingga terlihat apakah ketiganya sepakat atau tidak.
 
     Attributes:
         visible: Apakah panel ditampilkan (toggle tombol 'D')
+        compare_mode: Apakah panel menampilkan tabel 3 algoritma (tombol 'C')
         stats: Dict statistik terakhir dari AdversarialAI.think()
     """
 
@@ -481,29 +507,53 @@ class BattleDebugOverlay:
         "SPECIAL": (208, 150, 250),
     }
 
+    COMPARE_LABEL = {
+        "minimax": "Minimax (tanpa pruning)",
+        "alphabeta": "Alpha-Beta Pruning",
+        "early_stop": "Early Stop (decided-state)",
+    }
+
+    COMPARE_SHORT = {
+        "minimax": "Minimax",
+        "alphabeta": "Alpha-Beta",
+        "early_stop": "Early Stop",
+    }
+
     def __init__(self):
         self.visible = True
+        self.compare_mode = False
         self.stats = {}
 
     def toggle(self):
         """Sembunyikan/tampilkan panel."""
         self.visible = not self.visible
 
+    def toggle_compare(self):
+        """Aktifkan/nonaktifkan tabel perbandingan tiga algoritma.
+
+        Mode ini memakai ``AdversarialAI.compare_all()`` yang menjalankan
+        ketiga algoritma pada state yang sama, jadi biayanya sekitar tiga kali
+        pencarian biasa. Karena itu ia dimatikan secara default.
+        """
+        self.compare_mode = not self.compare_mode
+
     def update(self, stats):
         """Simpan statistik terbaru dari AI.
 
         Args:
-            stats: Dict hasil AdversarialAI.think()
+            stats: Dict hasil AdversarialAI.think() atau compare_all()
         """
         if stats:
             self.stats = stats
 
-    def draw(self, screen, font):
+    def draw(self, screen, font, safe_rect=None):
         """Gambar panel debug di tengah layar.
 
         Args:
             screen: Surface utama
             font: pygame Font monospace untuk isi panel
+            safe_rect: Area layar yang boleh dipakai panel. Bila tidak diisi,
+                panel memakai layar penuh dengan tirai gelap (mode modal).
         """
         if not self.visible or not self.stats:
             return
@@ -513,46 +563,105 @@ class BattleDebugOverlay:
         line_h = f.get_height() + 3
 
         title = "DEBUG ADVERSARIAL SEARCH"
-        hint = "[D] sembunyikan"
+        hint = "[D] sembunyikan  [C] banding"
         depth = self.stats.get("depth", "-")
-        algo = "Alpha-Beta Pruning"
+        algo = self.stats.get("algorithm", "alphabeta")
+        if algo == "alphabeta":
+            algo = "Alpha-Beta Pruning"
+        elif algo == "minimax":
+            algo = "Minimax"
+        elif algo == "expectimax":
+            algo = "Expectimax"
+        elif algo == "iterative":
+            algo = "Iterative Deepening"
+        if self.compare_mode:
+            algo += " + perbandingan"
         head = f"{title}   |   depth={depth}   |   {algo}"
 
         root = self.stats.get("root_scores") or []
         best = self.stats.get("best_action")
-        mm_nodes = self.stats.get("minimax_nodes", 0)
-        ab_nodes = self.stats.get("alphabeta_nodes", 0)
+        comparison = self.stats.get("comparison") or {}
+
+        mm_nodes = comparison.get("minimax", {}).get(
+            "nodes", self.stats.get("minimax_nodes", 0)
+        )
+        ab_nodes = comparison.get("alphabeta", {}).get(
+            "nodes", self.stats.get("alphabeta_nodes", 0)
+        )
         pruned = self.stats.get("pruned_nodes", 0)
         eff = self.stats.get("prune_efficiency", 0.0)
         evals = self.stats.get("evaluations", 0)
         t_ms = self.stats.get("time_ms", 0.0)
+        eval_name = self.stats.get("eval_name", "-")
+        order_name = self.stats.get("order_name", "-")
 
         # --- Ukuran panel ---
         pad = 14
+        marker = "<= dipilih"
+        marker_w = f.size(marker)[0] + 8
         width = max(f.size(head)[0] + pad * 2, 430)
+
+        label_max = 0
         for action, score in root:
-            width = max(width, f.size(f"{action}: {score:+d}")[0] + 300)
+            label_max = max(label_max, f.size(f"{action:<8}{score:+5d}")[0])
+        width = max(width, label_max + 12 + 150 + 8 + marker_w + pad * 2)
+
+        n_cmp = len(comparison) if comparison else 0
+        cmp_lab_w = cmp_act_w = cmp_ex_w = 0
+        if comparison:
+            keys = [k for k in ("minimax", "alphabeta", "early_stop") if comparison.get(k)]
+            cmp_lab_w = max(
+                f.size(f"  {self.COMPARE_SHORT.get(k, self.COMPARE_LABEL.get(k, k))}")[0]
+                for k in keys
+            )
+            cmp_act_w = max(
+                f.size(str(comparison[k].get("best_action") or "-"))[0] for k in keys
+            )
+            for k in keys:
+                row = comparison[k]
+                extra = f"{row.get('nodes', 0)} node  {row.get('time_ms', 0.0):.2f} ms"
+                if row.get("early_stop_hits"):
+                    extra += f"  stop={row['early_stop_hits']}"
+                cmp_ex_w = max(cmp_ex_w, f.size(extra)[0])
+            width = max(width, cmp_lab_w + 12 + cmp_act_w + 12 + cmp_ex_w + pad * 2)
+
         width = min(width, sw - 40)
 
-        rows = (len(root) + 6)
-        height = pad * 2 + line_h * (rows + 5)
+        # Bar skor dan marker harus tetap muat setelah lebar diklem.
+        bar_space = width - pad * 2 - label_max - 12 - 8 - marker_w
+        show_marker = bar_space >= 40
+        bar_w = max(24, min(150, bar_space))
+        marker_w = marker_w if show_marker else 0
 
-        x = (sw - width) // 2
-        y = max(70, sh // 2 - height // 2 - 40)
-        rect = pygame.Rect(x, y, width, height)
-        if rect.bottom > sh - 10:
-            rect.y = sh - 10 - rect.height
+        # Tinggi panel dihitung dari baris yang benar-benar digambar:
+        # header, pemisah, judul "Pilihan aksi", baris skor (minimal 1),
+        # judul "Perbandingan", 8 stat_line, bar efisiensi, tabel banding,
+        # dan footer kontrol. `gaps` menjumlahkan jarak non-garis_baris:
+        # pemisah 7px, spasi 5px, spasi 4px, bar 4px, dan footer 4+6px.
+        cmp_extra = 0
+        if comparison:
+            cmp_extra = 1 + n_cmp  # header + satu baris per algoritma
+            if self.stats.get("actions_agree") is not None:
+                cmp_extra += 1  # baris pesan setuju/tidak
+        root_rows = max(1, len(root))
+        gaps = 7 + 5 + 4 + 4 + 4 + 6
+        height = pad * 2 + gaps + line_h * (13 + root_rows + cmp_extra)
 
-        panel = pygame.Surface(rect.size, pygame.SRCALPHA)
-        pygame.draw.rect(panel, (12, 16, 26, 236), panel.get_rect(), border_radius=14)
-        pygame.draw.rect(panel, (120, 170, 255, 235), panel.get_rect(), 2, border_radius=14)
-        screen.blit(panel, rect.topleft)
+        # Panel digambar pada surface sendiri lalu diskalakan ke area aman,
+        # sehingga isinya tidak pernah menimpa panel UI duel lain.
+        target = screen
+        content = pygame.Surface((width, height), pygame.SRCALPHA)
+        pygame.draw.rect(content, (12, 16, 26, 236), content.get_rect(), border_radius=14)
+        pygame.draw.rect(content, (120, 170, 255, 235), content.get_rect(), 2, border_radius=14)
+        screen = content
+        rect = content.get_rect()
 
         # --- Header ---
         cy = rect.y + pad
-        screen.blit(f.render(head, True, (210, 226, 255)), (rect.x + pad, cy))
-        hw = f.size(hint)[0]
-        screen.blit(f.render(hint, True, (150, 165, 190)), (rect.right - pad - hw, cy))
+        screen.blit(
+            _fit_text(f, head, (210, 226, 255), rect.width - pad * 2),
+            (rect.x + pad, cy),
+        )
         cy += line_h
 
         sep = pygame.Rect(rect.x + pad, cy, rect.width - pad * 2, 1)
@@ -569,28 +678,33 @@ class BattleDebugOverlay:
             scores = [s for _, s in root]
             lo, hi = min(scores), max(scores)
             span = (hi - lo) or 1
-            bar_x = rect.right - pad - 150
-            bar_w = 150
+            bar_x = rect.right - pad - marker_w - bar_w
             for action, score in root:
                 chosen = action == best
                 col = self.ACTION_COLOR.get(action, (200, 200, 200))
                 label = f"{action:<8}{score:+5d}"
-                screen.blit(f.render(label, True, col if chosen else (200, 210, 230)), (rect.x + pad, cy))
+                screen.blit(
+                    _fit_text(f, label, col if chosen else (200, 210, 230), bar_x - 12 - (rect.x + pad)),
+                    (rect.x + pad, cy),
+                )
                 # Bar skor relatif (0..1)
                 frac = (score - lo) / span if hi != lo else 0.5
                 pygame.draw.rect(screen, (30, 36, 50), (bar_x, cy + 3, bar_w, line_h - 8), border_radius=4)
                 pygame.draw.rect(screen, col, (bar_x, cy + 3, max(3, int(bar_w * frac)), line_h - 8), border_radius=4)
-                if chosen:
-                    screen.blit(f.render("<= dipilih", True, (140, 240, 170)), (bar_x + bar_w + 6, cy))
+                if chosen and show_marker:
+                    screen.blit(f.render(marker, True, (140, 240, 170)), (bar_x + bar_w + 6, cy))
                 cy += line_h
         cy += 5
 
         # --- Perbandingan algoritma ---
         def stat_line(label, value, color=(200, 210, 230)):
             nonlocal cy
-            screen.blit(f.render(label, True, (150, 165, 190)), (rect.x + pad, cy))
             vw = f.size(value)[0]
-            screen.blit(f.render(value, True, color), (rect.right - pad - vw, cy))
+            screen.blit(
+                _fit_text(f, label, (150, 165, 190), rect.width - pad * 2 - vw - 12),
+                (rect.x + pad, cy),
+            )
+            screen.blit(_fit_text(f, value, color, vw), (rect.right - pad - vw, cy))
             cy += line_h
 
         screen.blit(f.render("Perbandingan algoritma (state sama):", True, (240, 196, 96)), (rect.x + pad, cy))
@@ -601,6 +715,9 @@ class BattleDebugOverlay:
         stat_line("Cutoff alpha-beta", str(self.stats.get("cutoffs", 0)), (200, 210, 230))
         stat_line("Evaluasi daun (leaf)", str(evals), (200, 210, 230))
         stat_line("Waktu kalkulasi", f"{t_ms:.2f} ms", (120, 210, 255))
+        stat_line("Fungsi evaluasi", str(eval_name), (200, 210, 230))
+        stat_line("Urutan aksi", str(order_name), (200, 210, 230))
+        cy += 4
 
         # Bar efisiensi pruning
         pygame.draw.rect(screen, (30, 36, 50), (rect.x + pad, cy + 3, rect.width - pad * 2, line_h - 6), border_radius=4)
@@ -609,4 +726,98 @@ class BattleDebugOverlay:
             (rect.x + pad, cy + 3, max(3, int((rect.width - pad * 2) * min(1.0, eff / 100.0))), line_h - 6),
             border_radius=4,
         )
+        cy += line_h + 4
+
+        # --- Tabel perbandingan tiga algoritma (mode compare) ---
+        if comparison:
+            screen.blit(
+                f.render("Aksi & biaya tiap algoritma:", True, (240, 196, 96)),
+                (rect.x + pad, cy),
+            )
+            cy += line_h
+
+            col_node = rect.right - pad
+            col_lab = rect.x + pad
+            col_act = col_lab + cmp_lab_w + 12
+            for key in ("minimax", "alphabeta", "early_stop"):
+                row = comparison.get(key)
+                if not row:
+                    continue
+                label = self.COMPARE_SHORT.get(key, self.COMPARE_LABEL.get(key, key))
+                col = self.ACTION_COLOR.get(row.get("best_action"), (200, 210, 230))
+                screen.blit(
+                    _fit_text(f, f"  {label}", (170, 180, 200), cmp_lab_w),
+                    (col_lab, cy),
+                )
+
+                acted = f"{row.get('best_action') or '-'}"
+                act_max = col_node - cmp_ex_w - 12 - col_act
+                screen.blit(_fit_text(f, acted, col, act_max), (col_act, cy))
+
+                extra = f"{row.get('nodes', 0)} node  {row.get('time_ms', 0.0):.2f} ms"
+                if row.get("early_stop_hits"):
+                    extra += f"  stop={row['early_stop_hits']}"
+                ew = f.size(extra)[0]
+                screen.blit(
+                    _fit_text(f, extra, (200, 210, 230), ew), (col_node - ew, cy)
+                )
+                cy += line_h
+
+            agree = self.stats.get("actions_agree")
+            if agree is True:
+                msg, mcol = "  Semua algoritma memilih aksi yang sama", (140, 240, 170)
+            elif agree is False:
+                msg, mcol = "  Ada algoritma yang memilih aksi berbeda", (255, 140, 140)
+            else:
+                msg, mcol = "", (200, 210, 230)
+            if msg:
+                screen.blit(
+                    _fit_text(f, msg, mcol, rect.width - pad * 2), (rect.x + pad, cy)
+                )
+                cy += line_h
+
+        # --- Footer: kontrol panel ---
+        cy += 4
+        screen.blit(
+            _fit_text(f, hint, (150, 165, 190), rect.width - pad * 2), (rect.x + pad, cy + 6)
+        )
+
+        min_line = self.MIN_LINE
+        self._place(target, content, safe_rect, (sw, sh), min_line / max(1, line_h))
+
+    MIN_LINE = 15
+
+    def _place(self, screen, content, safe_rect, screen_size, min_scale=1.0):
+        """Tempatkan panel di area aman, atau sebagai modal bila tidak terbaca.
+
+        Args:
+            screen: Surface tujuan
+            content: Surface panel yang sudah selesai digambar
+            safe_rect: Area bebas yang boleh dipakai, atau None
+            screen_size: Ukuran layar (w, h)
+            min_scale: Skala minimum agar teks masih terbaca
+        """
+        sw, sh = screen_size
+        width, height = content.get_size()
+        area = pygame.Rect(0, 0, sw, sh)
+        if safe_rect is not None and safe_rect.width > 0 and safe_rect.height > 0:
+            area = safe_rect.clip(area)
+
+        scale = min(1.0, area.width / width, area.height / height)
+        if scale < min_scale:
+            veil = pygame.Surface((sw, sh), pygame.SRCALPHA)
+            veil.fill((4, 6, 12, 176))
+            screen.blit(veil, (0, 0))
+            area = pygame.Rect(20, 20, sw - 40, sh - 40)
+            scale = min(1.0, area.width / width, area.height / height)
+
+        target_w = max(1, int(width * scale))
+        target_h = max(1, int(height * scale))
+        image = content if scale >= 1.0 else pygame.transform.smoothscale(
+            content, (target_w, target_h)
+        )
+        dest = area.copy()
+        dest.width, dest.height = target_w, target_h
+        dest.center = area.center
+        screen.blit(image, dest.topleft)
 
