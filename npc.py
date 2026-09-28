@@ -26,6 +26,8 @@ from game.map.utils import (
     snap_to_walkable,
 )
 
+# EAAA
+
 
 class NPC:
     """Karakter NPC yang bisa mengikuti player menggunakan pathfinding.
