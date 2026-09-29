@@ -52,6 +52,7 @@ NPC_START = (12, 3)
 # --- Parameter mode Battle Duel ---
 BATTLE_TRIGGER_DIST = 1      # Jarak Manhattan <= 1 ubin memicu duel
 ENEMY_SPAWN_DELAY = 1.4      # Detik sebelum musuh muncul (awalnya hanya player)
+ENEMY_RESPAWN_DELAY = 5.0    # Detik jeda respawn musuh setelah duel selesai
 ENEMY_MIN_SPAWN_DIST = 8     # Jarak minimum spawn musuh dari player (ubin)
 ENEMY_MAX_SPAWN_DIST = 34    # Jarak maksimum agar musuh tetap mudah ditemukan
 
@@ -864,14 +865,20 @@ def start_battle(state, player, npc, game_map):
 
 
 def exit_battle(state, player, npc, game_map):
-    """Kembali dari BATTLE_MODE ke OVERWORLD dan respawn musuh baru.
+    """Kembali dari BATTLE_MODE ke OVERWORLD dan jadwalkan respawn musuh.
+
+    Musuh tidak langsung muncul kembali: respawn ditunda
+    ``ENEMY_RESPAWN_DELAY`` detik. Hitung mundurnya dijalankan oleh
+    ``update_overworld_enemy()`` (sama seperti spawn awal), jadi selama jeda
+    hanya player yang tampil di peta.
 
     Args:
         state: Dict mutable state game
         player: Objek Player
         npc: Objek NPC
-        game_map: Objek GameMap
+        game_map: Objek GameMap (dipertahankan; penjadwalan respawn memakai state)
     """
+    note = f"Musuh baru muncul dalam {int(ENEMY_RESPAWN_DELAY)} detik."
     battle = state.get("battle")
     if battle is not None:
         hp = battle.state.player_hp
@@ -879,22 +886,24 @@ def exit_battle(state, player, npc, game_map):
         if winner == "player":
             state["wins"] = state.get("wins", 0) + 1
             state["player_hp"] = max(1, hp)
-            show_toast(state, "Kamu menang! Musuh mundur.", ok=True)
+            show_toast(state, f"Kamu menang! Musuh mundur. {note}", ok=True, ttl=3.2)
         elif winner == "npc":
             state["losses"] = state.get("losses", 0) + 1
             state["player_hp"] = MAX_HP
-            show_toast(state, "Kamu kalah. HP dipulihkan penuh.", ok=False)
+            show_toast(state, f"Kamu kalah. HP dipulihkan penuh. {note}", ok=False, ttl=3.2)
         else:
             state["player_hp"] = MAX_HP if hp <= 0 else hp
-            show_toast(state, "Duel berakhir seri.", ok=True)
+            show_toast(state, f"Duel berakhir seri. {note}", ok=True, ttl=3.2)
 
     state["battle"] = None
     state["mode"] = "OVERWORLD"
     state["edit_mode"] = False
 
-    # Musuh baru muncul di lokasi acak lain agar permainan berlanjut
-    spawn_enemy(game_map, player, npc, state, announce=False)
-    state["status"] = "Kembali ke overworld. Cari musuh berikutnya."
+    # Tunda respawn musuh: timer dihitung mundur oleh update_overworld_enemy(),
+    # dan musuh disembunyikan dulu (enemy_spawned = False) selama jeda.
+    state["enemy_spawned"] = False
+    state["spawn_timer"] = ENEMY_RESPAWN_DELAY
+    state["status"] = f"Kembali ke overworld. {note}"
 
 
 def update_overworld_enemy(game_map, player, npc, state, dt):

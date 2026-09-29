@@ -29,7 +29,9 @@ Tidak perlu menyetel apa pun untuk melihat AI-nya bekerja; aset dan peta sudah
 termasuk di repository. Musuh muncul di lokasi acak yang cukup jauh, lalu
 langsung mengejar Player (mode follow aktif, bisa dimatikan dengan `F`).
 Duel dimulai otomatis saat jarak Manhattan Player dan NPC <= 1 ubin
-(`BATTLE_TRIGGER_DIST = 1` di `main.py`).
+(`BATTLE_TRIGGER_DIST = 1` di `main.py`). Setelah duel selesai ada jeda
+`ENEMY_RESPAWN_DELAY = 5` detik (di `main.py`) sebelum musuh baru muncul,
+lalu langsung mengejar lagi.
 
 | Tombol (saat duel) | Fungsi |
 |-----|--------|
