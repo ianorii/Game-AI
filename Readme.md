@@ -29,9 +29,14 @@ Tidak perlu menyetel apa pun untuk melihat AI-nya bekerja; aset dan peta sudah
 termasuk di repository. Musuh muncul di lokasi acak yang cukup jauh, lalu
 langsung mengejar Player (mode follow aktif, bisa dimatikan dengan `F`).
 Duel dimulai otomatis saat jarak Manhattan Player dan NPC <= 1 ubin
-(`BATTLE_TRIGGER_DIST = 1` di `main.py`). Setelah duel selesai ada jeda
-`ENEMY_RESPAWN_DELAY = 5` detik (di `main.py`) sebelum musuh baru muncul,
-lalu langsung mengejar lagi.
+(`BATTLE_TRIGGER_DIST = 1` di `main.py`). Game **tidak langsung** masuk menu
+pertarungan saat baru dinyalakan: musuh pertama baru muncul setelah
+`INITIAL_ENEMY_SPAWN_DELAY = 8` detik, jadi ada waktu jalan-jalan dulu. Setelah
+duel selesai ada jeda `ENEMY_RESPAWN_DELAY = 5` detik (di `main.py`) sebelum
+musuh baru muncul, lalu langsung mengejar lagi.
+
+Setiap pertarungan selesai — menang, kalah, seri, maupun keluar paksa dengan
+`ESC` — darah Player selalu di-reset penuh (100 = `MAX_HP`).
 
 Posisi Player selalu dipertahankan: setelah duel selesai — maupun setelah
 tombol `R` / tombol **Reset Duel** di menu ESC — permainan dilanjutkan dari
@@ -45,6 +50,7 @@ peta.
 | `Enter` / `Space` | Konfirmasi aksi |
 | `D` | Tampilkan / sembunyikan debug overlay AI |
 | `C` | Nyalakan tabel perbandingan minimax vs alpha-beta vs early stop |
+| `ESC` | Keluar dari Battle Mode walaupun duel belum selesai |
 
 Overlay menampilkan skor evaluasi tiap aksi yang dipertimbangkan NPC, node
 count, jumlah cutoff, dan (saat `C` aktif) perbandingan ketiga algoritma pada
@@ -141,7 +147,7 @@ kecepatan efektifnya persis sesuai `move_speed`.
 | `M` | Toggle grid editor |
 | `P` / `L` | Simpan / muat grid |
 | `1` `2` `3` `4` | Toggle layer debug pathfinding |
-| `ESC` | Buka / tutup settings menu |
+| `ESC` | Buka / tutup settings menu (saat duel: keluar dari Battle Mode) |
 | `F11` | Toggle fullscreen |
 
 ## Struktur Grid

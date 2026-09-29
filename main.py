@@ -51,7 +51,8 @@ NPC_START = (12, 3)
 
 # --- Parameter mode Battle Duel ---
 BATTLE_TRIGGER_DIST = 1      # Jarak Manhattan <= 1 ubin memicu duel
-ENEMY_SPAWN_DELAY = 1.4      # Detik sebelum musuh muncul (awalnya hanya player)
+ENEMY_SPAWN_DELAY = 1.4      # Detik sebelum musuh muncul (setelah reset manual)
+INITIAL_ENEMY_SPAWN_DELAY = 8.0  # Jeda musuh pertama: game start tidak langsung duel
 ENEMY_RESPAWN_DELAY = 5.0    # Detik jeda respawn musuh setelah duel selesai
 ENEMY_MIN_SPAWN_DIST = 8     # Jarak minimum spawn musuh dari player (ubin)
 ENEMY_MAX_SPAWN_DIST = 34    # Jarak maksimum agar musuh tetap mudah ditemukan
@@ -857,6 +858,10 @@ def exit_battle(state, player, npc, game_map):
     ``update_overworld_enemy()`` (sama seperti spawn awal), jadi selama jeda
     hanya player yang tampil di peta.
 
+    Setiap duel yang selesai — menang, kalah, seri, maupun keluar paksa
+    (``battle.fled``) — selalu mengembalikan darah player ke 100 (MAX_HP).
+    Posisi player tidak diubah.
+
     Args:
         state: Dict mutable state game
         player: Objek Player
@@ -865,20 +870,31 @@ def exit_battle(state, player, npc, game_map):
     """
     note = f"Musuh baru muncul dalam {int(ENEMY_RESPAWN_DELAY)} detik."
     battle = state.get("battle")
+    # Darah selalu reset penuh setiap kali pertarungan selesai/keluar
+    state["player_hp"] = MAX_HP
     if battle is not None:
-        hp = battle.state.player_hp
-        winner = battle.winner
-        if winner == "player":
+        if getattr(battle, "fled", False):
+            show_toast(
+                state, f"Kamu keluar dari duel. Darah dipulihkan 100. {note}",
+                ok=True, ttl=3.2,
+            )
+        elif battle.winner == "player":
             state["wins"] = state.get("wins", 0) + 1
-            state["player_hp"] = max(1, hp)
-            show_toast(state, f"Kamu menang! Musuh mundur. {note}", ok=True, ttl=3.2)
-        elif winner == "npc":
+            show_toast(
+                state, f"Kamu menang! Musuh mundur. Darah dipulihkan 100. {note}",
+                ok=True, ttl=3.2,
+            )
+        elif battle.winner == "npc":
             state["losses"] = state.get("losses", 0) + 1
-            state["player_hp"] = MAX_HP
-            show_toast(state, f"Kamu kalah. HP dipulihkan penuh. {note}", ok=False, ttl=3.2)
+            show_toast(
+                state, f"Kamu kalah. Darah dipulihkan 100. {note}",
+                ok=False, ttl=3.2,
+            )
         else:
-            state["player_hp"] = MAX_HP if hp <= 0 else hp
-            show_toast(state, f"Duel berakhir seri. {note}", ok=True, ttl=3.2)
+            show_toast(
+                state, f"Duel berakhir seri. Darah dipulihkan 100. {note}",
+                ok=True, ttl=3.2,
+            )
 
     state["battle"] = None
     state["mode"] = "OVERWORLD"
@@ -890,7 +906,7 @@ def exit_battle(state, player, npc, game_map):
     state["spawn_timer"] = ENEMY_RESPAWN_DELAY
     # Posisi player TIDAK diubah: setelah duel selesai permainan dilanjutkan
     # dari titik yang sama persis seperti saat war dimulai.
-    state["status"] = f"Kembali ke overworld. {note}"
+    state["status"] = f"Kembali ke overworld. Darah dipulihkan 100. {note}"
 
 
 def reset_duel(state, npc, status=None):
@@ -1030,7 +1046,7 @@ async def main():
         "mode": "OVERWORLD",      # "OVERWORLD" atau "BATTLE"
         "battle": None,           # Instance BattleSystem saat BATTLE_MODE
         "enemy_spawned": False,   # Musuh belum tampil di awal (hanya player)
-        "spawn_timer": ENEMY_SPAWN_DELAY,
+        "spawn_timer": INITIAL_ENEMY_SPAWN_DELAY,  # jeda awal sebelum duel pertama
         "player_hp": MAX_HP,      # HP player dibawa antar duel
         "wins": 0,
         "losses": 0,

@@ -136,6 +136,7 @@ class BattleSystem:
 
         self.finished = False
         self.winner: Optional[str] = None
+        self.fled = False  # True kalau player keluar (ESC) sebelum duel selesai
         self.phase = "PLAYER_INPUT"
         self.timer = 0.0
         self.result_timer = 0.0
@@ -243,6 +244,7 @@ class BattleSystem:
         - Enter/Space: konfirmasi aksi terpilih
         - D         : toggle debug overlay adversarial search
         - C         : toggle tabel perbandingan 3 algoritma di overlay
+        - ESC       : keluar dari Battle Mode walaupun duel belum selesai
         - Tombol lain saat RESULT: lewati layar hasil
         """
         if event.type != pygame.KEYDOWN:
@@ -254,6 +256,10 @@ class BattleSystem:
 
         if event.key == pygame.K_c:
             self.debug.toggle_compare()
+            return
+
+        if event.key == pygame.K_ESCAPE:
+            self._flee()
             return
 
         if self.phase == "RESULT":
@@ -274,6 +280,24 @@ class BattleSystem:
             self.selected = (self.selected + 1) % len(ACTIONS)
         elif event.key in (pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_SPACE):
             self._confirm_selection()
+
+    def _flee(self) -> None:
+        """Akhiri duel lebih awal & keluar dari Battle Mode (tombol ESC).
+
+        Berlaku di semua fase (PLAYER_INPUT / NPC_THINK) sehingga player bisa
+        kabur walaupun pertarungan belum selesai. Saat layar hasil sudah
+        tampil, ESC hanya melewati layar (sama seperti tombol lainnya).
+
+        Tidak menghitung menang/kalah; ``exit_battle()`` yang menangani
+        status overworld (termasuk reset darah ke 100).
+        """
+        if self.phase == "RESULT":
+            self.finished = True
+            return
+        self.fled = True
+        self.winner = None
+        self._add_log("Kamu meninggalkan duel.", TEXT_DIM)
+        self.finished = True
 
     def _confirm_selection(self) -> None:
         """Konfirmasi aksi player yang dipilih (jika legal)."""
@@ -596,6 +620,13 @@ class BattleSystem:
         head = self._fit_text(head_font, "AKSI  (1-4 / panah + Enter)", ACCENT, mw - pad * 2)
         screen.blit(head, (x + pad, y + 10))
 
+        # Opsi keluar dari Battle Mode sebelum duel selesai
+        esc_font = self._get_font(w // 86)
+        esc_hint = self._fit_text(
+            esc_font, "ESC: keluar dari duel (belum selesai)", GOLD, mw - pad * 2
+        )
+        screen.blit(esc_hint, (x + pad, y + 10 + head.get_height() + 4))
+
         key_font = self._get_font(w // 82)
         hint_label = "D: debug overlay   C: banding algoritma"
         hint = self._fit_text(key_font, hint_label, TEXT_DIM, mw - pad * 2)
@@ -603,7 +634,7 @@ class BattleSystem:
         legal = set(self.legal_actions())
         label_font = self._get_font(w // 66)
 
-        top = y + 10 + head.get_height() + 6
+        top = y + 10 + head.get_height() + esc_hint.get_height() + 12
         hint_y = y + mh - pad - hint.get_height()
         usable = hint_y - 8 - top
         item_h = max(22, usable // len(ACTIONS))
