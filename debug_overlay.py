@@ -530,7 +530,16 @@ class BattleDebugOverlay:
                 cmp_ex_w = max(cmp_ex_w, f.size(extra)[0])
             width = max(width, cmp_lab_w + 12 + cmp_act_w + 12 + cmp_ex_w + pad * 2)
 
-        width = min(width, sw - 40)
+        # Sesuaikan lebar konten dengan area aman (sisi kanan layar duel),
+        # dengan lantai MIN_PANEL_W. Tanpa ini panel selalu dibuat 430px lalu
+        # dipaksa menyusut di layar <1920px, dan penyusutan itulah yang dulu
+        # memicu mode modal (panel pindah ke tengah layar).
+        max_w = (
+            safe_rect.width
+            if (safe_rect is not None and safe_rect.width > 0)
+            else sw - 40
+        )
+        width = min(width, max(max_w, self.MIN_PANEL_W), sw - 40)
 
         # Bar skor dan marker harus tetap muat setelah lebar diklem.
         bar_space = width - pad * 2 - label_max - 12 - 8 - marker_w
@@ -691,10 +700,13 @@ class BattleDebugOverlay:
         self._place(target, content, safe_rect, (sw, sh), min_line / max(1, line_h))
 
     # Tinggi baris minimum (px) sebelum panel dianggap tidak terbaca dan
-    # dipindahkan ke mode modal. Dibuat 12 agar panel yang hanya perlu
-    # diperkecil sedikit (mis. tabel perbandingan) tetap tampil di sisi layar
-    # alih-alih menutupi pertarungan.
-    MIN_LINE = 12
+    # dipindahkan ke mode modal (tengah layar). Dibuat 9: panel yang muat di
+    # sisi layar meski harus menyusut sedikit (mis. 1280x720) tetap di pinggir,
+    # modal hanya untuk layar sangat kecil (<1152px) yang teksnya <9px.
+    MIN_LINE = 9
+    # Lebar minimum panel (px): menjaga baris label tetap terbaca saat area
+    # aman di layar kecil lebih sempit dari lebar panel alaminya (430px).
+    MIN_PANEL_W = 300
 
     def _place(self, screen, content, safe_rect, screen_size, min_scale=1.0):
         """Tempatkan panel di area aman, atau sebagai modal bila tidak terbaca.

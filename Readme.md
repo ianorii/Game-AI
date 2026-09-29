@@ -56,6 +56,13 @@ Overlay menampilkan skor evaluasi tiap aksi yang dipertimbangkan NPC, node
 count, jumlah cutoff, dan (saat `C` aktif) perbandingan ketiga algoritma pada
 state yang sama.
 
+Panel selalu ditempatkan di **sisi kanan layar duel**: lebarnya mengikuti area
+aman (di antara panel NPC dan battle log) sehingga tetap tampil di pinggir untuk
+semua resolusi umum (1920x1080, 1600x900, 1440x900, 1366x768, 1280x720, dst.),
+dengan tinggi baris minimum 9 px. Mode modal (panel di tengah layar + tirai
+gelap) hanya dipakai sebagai cadangan untuk layar sangat sempit (di bawah
+sekitar 1152 px lebar) yang teksnya sudah tidak terbaca bila disusutkan.
+
 ## Eksperimen dan laporan
 
 ```bash
