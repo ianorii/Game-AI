@@ -117,7 +117,7 @@ class SettingsMenu:
              "options": ["manhattan", "euclidean", "ucs"], "index": 0},
             {"type": "selector", "label": "Algoritma NPC", "key": "npc_heuristic",
              "options": ["ucs", "manhattan", "euclidean"], "index": 0},
-            {"type": "action", "label": "Reset Posisi", "key": "reset"},
+            {"type": "action", "label": "Reset Duel", "key": "reset"},
             {"type": "action", "label": "Simpan Grid", "key": "save_grid"},
             {"type": "action", "label": "Muat Grid", "key": "load_grid"},
             {"type": "action", "label": "Fullscreen", "key": "fullscreen"},

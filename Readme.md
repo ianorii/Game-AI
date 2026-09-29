@@ -33,6 +33,11 @@ Duel dimulai otomatis saat jarak Manhattan Player dan NPC <= 1 ubin
 `ENEMY_RESPAWN_DELAY = 5` detik (di `main.py`) sebelum musuh baru muncul,
 lalu langsung mengejar lagi.
 
+Posisi Player selalu dipertahankan: setelah duel selesai — maupun setelah
+tombol `R` / tombol **Reset Duel** di menu ESC — permainan dilanjutkan dari
+titik yang sama persis seperti saat war dimulai, tanpa kembali ke posisi awal
+peta.
+
 | Tombol (saat duel) | Fungsi |
 |-----|--------|
 | `1` / `2` / `3` / `4` | Pilih ATTACK / DEFEND / POTION / SPECIAL |
@@ -132,7 +137,7 @@ kecepatan efektifnya persis sesuai `move_speed`.
 | `E` / `Q` | Ganti heuristic Player (next / previous) |
 | `T` / `G` | Ganti heuristic NPC (next / previous) |
 | `F` | Toggle NPC mengikuti Player |
-| `R` | Reset posisi Player dan NPC, serta status duel |
+| `R` | Reset status duel + respawn musuh (posisi player tetap di tempat) |
 | `M` | Toggle grid editor |
 | `P` / `L` | Simpan / muat grid |
 | `1` `2` `3` `4` | Toggle layer debug pathfinding |

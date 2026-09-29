@@ -308,16 +308,8 @@ def handle_events(game_map, viewport, player, npc, overlay, state):
         if settings_menu and settings_menu.visible:
             action = settings_menu.handle_event(event)
             if action == "reset":
-                # Reset posisi player dan NPC
-                player.reset()
-                npc.reset()
-                npc.follow = False
-                state["mode"] = "OVERWORLD"
-                state["battle"] = None
-                state["enemy_spawned"] = False
-                state["spawn_timer"] = ENEMY_SPAWN_DELAY
-                state["player_hp"] = MAX_HP
-                state["status"] = "Player dan musuh di-reset."
+                # Reset status duel saja; posisi player/NPC tidak dipindahkan
+                reset_duel(state, npc)
             elif action == "save_grid":
                 # Simpan collision grid ke file
                 game_map.save_grid_override()
@@ -453,15 +445,8 @@ def handle_key_event(event, game_map, player, npc, overlay, state):
         state["status"] = f"NPC ikuti player: {'ON' if npc.follow else 'OFF'}"
 
     elif key == pygame.K_r:
-        player.reset()
-        npc.reset()
-        npc.follow = False
-        state["mode"] = "OVERWORLD"
-        state["battle"] = None
-        state["enemy_spawned"] = False
-        state["spawn_timer"] = ENEMY_SPAWN_DELAY
-        state["player_hp"] = MAX_HP
-        state["status"] = "Player dan musuh di-reset. Musuh akan muncul lagi."
+        # Reset status duel saja; posisi player/NPC tidak dipindahkan
+        reset_duel(state, npc)
 
     return None
 
@@ -903,7 +888,33 @@ def exit_battle(state, player, npc, game_map):
     # dan musuh disembunyikan dulu (enemy_spawned = False) selama jeda.
     state["enemy_spawned"] = False
     state["spawn_timer"] = ENEMY_RESPAWN_DELAY
+    # Posisi player TIDAK diubah: setelah duel selesai permainan dilanjutkan
+    # dari titik yang sama persis seperti saat war dimulai.
     state["status"] = f"Kembali ke overworld. {note}"
+
+
+def reset_duel(state, npc, status=None):
+    """Reset status duel dan jadwalkan respawn musuh TANPA memindahkan karakter.
+
+    Posisi player (dan NPC) dipertahankan apa adanya, baik setelah duel
+    selesai maupun saat reset manual (tombol R / tombol di menu ESC):
+    permainan dilanjutkan dari titik sekarang, bukan dari posisi awal peta.
+    Yang di-reset hanya status duel (mode, HP, timer spawn musuh).
+
+    Args:
+        state: Dict mutable state game
+        npc: Objek NPC (follow dimatikan sampai musuh spawn ulang)
+        status: Teks status HUD; default menjelaskan posisi dipertahankan
+    """
+    npc.follow = False
+    state["mode"] = "OVERWORLD"
+    state["battle"] = None
+    state["enemy_spawned"] = False
+    state["spawn_timer"] = ENEMY_SPAWN_DELAY
+    state["player_hp"] = MAX_HP
+    state["status"] = status or (
+        "Status duel di-reset. Posisi player dipertahankan, musuh muncul lagi."
+    )
 
 
 def update_overworld_enemy(game_map, player, npc, state, dt):
