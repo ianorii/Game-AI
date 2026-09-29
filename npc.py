@@ -50,9 +50,6 @@ class NPC:
         debug_path: Jalur yang ditemukan (untuk visualisasi)
         total_expanded: Jumlah total node yang diekspansi
         smooth_r, smooth_c: Posisi floating-point untuk interpolasi
-        battle_*: Stat battle (HP, ATK, DEF, potion, heal)
-        archetype/personality: Arketipe & bobot eval AI saat battle
-        ai_depth: Kedalaman Min-Max yang dipakai AI musuh
     """
 
     def __init__(self, row, col, sprite=None, name="Niko"):
@@ -98,22 +95,6 @@ class NPC:
         # Smooth movement interpolation
         self.smooth_r = float(row)
         self.smooth_c = float(col)
-
-        # Battle stats (adversarial search)
-        self.battle_hp = 100
-        self.battle_max_hp = 100
-        self.battle_atk = 10
-        self.battle_def = 5
-        self.battle_potions = 3
-        self.battle_heal = 30
-
-        # Kepribadian AI (diisi oleh core.apply_enemy_archetype)
-        # personality = bobot evaluation function per arketipe,
-        # ai_depth    = kedalaman Min-Max yang dipakai saat battle
-        self.archetype = None
-        self.archetype_name = None
-        self.personality = None
-        self.ai_depth = 4
 
         # Cached dialogue panel
         self._dlg_panel = None
