@@ -49,13 +49,17 @@ f(n) = g(n)
 ## Arsitektur Sistem
 
 ```
-main.py          ← Entry point, game loop, input handling
-├── player.py    ← Player movement (keyboard + A* pathfinding)
-├── npc.py       ← NPC follow behavior (A* recompute periodically)
-├── pathfinding.py ← Core A* & UCS implementation
-├── map.py       ← Grid system, collision detection, viewport
+main.py              ← Entry point, game loop, input handling
+├── player.py        ← Player movement (keyboard + A* pathfinding)
+├── npc.py           ← NPC follow behavior (A* recompute periodically)
 ├── debug_overlay.py ← Visualisasi visited nodes & path
-└── settings_menu.py ← Konfigurasi heuristic & parameter
+├── settings_menu.py ← Konfigurasi heuristic & parameter
+└── game/
+    ├── pathfinding/ ← Core A* & UCS implementation
+    ├── map/         ← Grid system, collision detection, viewport
+    └── adv_search/  ← Battle turn-based: Min-Max + Alpha-Beta
+        ├── core.py  ← GameState, evaluate, minimax, iterative deepening
+        └── battle.py← Battle UI overlay (HP bar, tombol aksi, battle log)
 ```
 
 ### Flow Algoritma A\* pada Player
@@ -88,7 +92,7 @@ Every 0.1 detik → recomput path
 
 ### 2. NPC Follow Behavior
 - NPC secara periodik menghitung ulang jalur ke player (setiap 0.1 detik)
-- Kecepatan NPC lebih lambat dari player (600 px/s vs 750 px/s)
+- Kecepatan NPC lebih lambat dari player (250 px/s vs 650 px/s)
 - NPC akan berhenti jika sudah dekat dengan player (Manhattan distance ≤ 1)
 
 ### 3. Debug Overlay
@@ -112,26 +116,102 @@ Visualisasi komponen A\*:
 - Klik kanan → buka cell (walkable)
 - Tekan `S` untuk simpan grid, `L` untuk muat grid
 
-### 5. Settings Menu
+### 5. Settings Menu (Pause)
 - Tekan `ESC` untuk buka/tutup menu
+- **Saat menu terbuka game dianggap pause**: player & NPC dibekukan
+  (tidak ada gerakan) dan battle **tidak akan terpicu** meski NPC
+  bersebelahan dengan player
 - Konfigurasi heuristic player & NPC
 - Toggle NPC follow, debug overlay, HUD
 - Reset posisi, fullscreen
 
+### 6. Battle Mode (Adversarial Search)
+
+Saat player bersebelahan dengan NPC, pertarungan turn-based dimulai.
+Inilah bagian yang memakai **adversarial search**.
+
+**Alur giliran:**
+```
+Player pilih aksi → resolve → jeda 0.4s → NPC (Min-Max) → resolve → giliran player
+```
+
+**4 aksi (Rock-Paper-Scissors ringan):**
+
+| Aksi | Efek | Dihukum oleh |
+|------|------|--------------|
+| `ATTACK` | Damage dasar `atk - 0.4 × def` (variasi ±10%) | musuh yang `DEFEND` |
+| `DEFEND` | `guard`: serangan berikutnya masuk hanya 40% | musuh yang `CHARGE` (tetap lumayan) |
+| `POTION` | Heal, tapi status `open` (+80% damage diterima) sampai giliran berikutnya | musuh yang menyerang di giliran berikutnya |
+| `CHARGE` | Serangan berikutnya damage ×2.4 | musuh yang `DEFEND` |
+
+**Cara AI memilih aksi (di `game/adv_search/core.py`):**
+1. **Min-Max** dengan **Alpha-Beta Pruning** + move ordering (aksi fatal diprioritaskan)
+2. **Iterative deepening** depth 1 → 4 dengan budget waktu 0.15 s (anytime algorithm)
+3. **Evaluation function**: selisih HP ternormalisasi, kesadaran lethal window,
+   ekonomi potion, nilai status (guard/charge/open), keuntungan giliran
+4. **Personalitas musuh**: bobot evaluation function berbeda per arketipe
+   (`brute`, `guardian`, `alchemist`, `assassin`) sehingga gaya bertarung beda
+5. **Wave/threat scaling**: tiap kemenangan naik level ancaman dan musuh
+   berganti arketipe (HP +4, ATK +1 tiap 3 wave, DEF +1 tiap 6 wave)
+
+**Yang ditampilkan di UI:** HP bar, jumlah potion, battle log, dan statistik
+pencarian AI (`depth`, `nodes`, `pruned`, waktu ms) tiap giliran musuh.
+
+Tekan `H` saat giliran player untuk meminta saran dari algoritma yang sama
+(`get_player_hint`) - bukti bahwa search yang sama bisa dipakai kedua pihak.
+
+**Debug overlay keputusan AI (tekan `F3`):**
+
+Panel di samping panel battle yang menampilkan *proses pengambilan
+keputusan NPC*, bukan hanya hasilnya:
+
+| Bagian | Isi |
+|--------|-----|
+| Status | `AI BERPIKIR...` / aksi terpilih + giliran & ronde |
+| Peluang menang | estimasi peluang NPC vs player dari skor eval |
+| Statistik pencarian | `depth`, `nodes`, `pruned` (+%), waktu vs budget |
+| Skor Min-Max per aksi | bar skor tiap aksi legal di root → aksi mana yang dipilih |
+| Principal variation | jalur main terbaik beberapa ply ke depan |
+| Evaluation function (live) | rincian tiap komponen skor: HP diff, lethal, potion, charge/guard/open, giliran |
+| Statistik pertarungan | damage keluar/masuk, heal, jumlah pemakaian tiap aksi, status aktif |
+
+Pencarian dijalankan **saat jeda 0.4 s dimulai**, sehingga panel sudah
+menampilkan keputusan dan statistik pencarian selama jeda berlangsung
+(bukan setelah NPC bergerak).
+
+> Catatan: "peluang menang" adalah **estimasi heuristik** (fungsi logistik
+> `1 / (1 + e^(-skor/60))` dari skor evaluation), bukan probabilitas pasti.
+> Angkanya dipakai untuk memvisualkan seberapa yakin pencarian, bukan untuk
+> pengambilan keputusan.
+
 ## Kendali
+
+### Overworld
 
 | Key | Fungsi |
 |-----|--------|
 | `W/A/S/D` atau `Arrow Keys` | Gerak manual |
 | `Mouse Click` | A* pathfinding ke target |
-| `E` | Toggle grid editor |
-| `M` | Toggle debug grid |
-| `1/2/3` | Toggle debug layers |
+| `M` | Toggle grid editor |
+| `P` / `L` | Simpan / muat collision grid |
+| `1/2/3/4` | Toggle debug layers |
+| `Q` / `E` | Cycle heuristic A* player |
+| `T` / `G` | Cycle heuristic A* NPC |
+| `F` | Toggle NPC follow |
+| `F11` | Toggle fullscreen |
 | `ESC` | Settings menu |
-| `F` | Toggle fullscreen |
-| `R` | Reset posisi |
-| `G` | Toggle NPC follow |
-| `H` | Toggle HUD |
+| `R` | Reset posisi player & NPC |
+
+### Saat Battle
+
+| Key | Fungsi |
+|-----|--------|
+| `←` / `→` atau `A` / `D` | Pilih tombol aksi |
+| `1/2/3/4` | Langsung pilih ATTACK / DEFEND / POTION / CHARGE |
+| `ENTER` / `SPACE` | Konfirmasi aksi (atau tutup layar hasil) |
+| `H` | Saran aksi dari Min-Max (hint untuk player) |
+| `F3` / `TAB` | Toggle panel debug keputusan AI |
+| `Mouse Click` | Klik tombol aksi |
 
 ## Instalasi
 

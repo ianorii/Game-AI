@@ -11,7 +11,7 @@ Modul ini menghandle:
 NPC Follow Behavior:
 - NPC secara periodik menghitung ulang jalur ke player (recompute)
 - Ini diperlukan karena posisi player berubah-ubah
-- NPC bergerak lebih lambat dari player (600 px/s vs 750 px/s)
+- NPC bergerak lebih lambat dari player (250 px/s vs 650 px/s)
 - NPC berhenti jika sudah dekat dengan player (Manhattan distance <= 1)
 """
 import math
@@ -40,7 +40,7 @@ class NPC:
         facing: Arah menghadap (-1 = kiri, 1 = kanan)
         follow: Mode follow (True = ikuti player, False = diam)
         heuristic: Nama heuristic untuk A* (default: "ucs")
-        move_speed: Kecepatan gerak (600 px/s, lebih lambat dari player)
+        move_speed: Kecepatan gerak (250 px/s, lebih lambat dari player)
         recompute_interval: Interval recompute path (0.1 detik)
         path: Jalur A* yang ditemukan
         path_index: Index saat ini di path
@@ -50,6 +50,9 @@ class NPC:
         debug_path: Jalur yang ditemukan (untuk visualisasi)
         total_expanded: Jumlah total node yang diekspansi
         smooth_r, smooth_c: Posisi floating-point untuk interpolasi
+        battle_*: Stat battle (HP, ATK, DEF, potion, heal)
+        archetype/personality: Arketipe & bobot eval AI saat battle
+        ai_depth: Kedalaman Min-Max yang dipakai AI musuh
     """
 
     def __init__(self, row, col, sprite=None, name="Niko"):
@@ -72,8 +75,11 @@ class NPC:
         self.follow = True
         self.heuristic = "ucs"  # Default: UCS (uniform exploration)
 
-        # Movement - lebih lambat dari player
-        self.move_speed = 600.0  # pixels per second (player: 750)
+        # Movement - lebih lambat dari player supaya player masih bisa
+        # kabur / positions (player 650 px/s, NPC 250 px/s)
+        # Catatan: dengan CELL_SIZE = 16, ini ≈ 15.6 cell/detik
+        # (player ≈ 40.6 cell/detik).
+        self.move_speed = 250.0  # pixels per second (player: 650)
         self.recompute_interval = 0.10  # seconds between path recomputations
 
         # Pathfinding state
@@ -100,6 +106,14 @@ class NPC:
         self.battle_def = 5
         self.battle_potions = 3
         self.battle_heal = 30
+
+        # Kepribadian AI (diisi oleh core.apply_enemy_archetype)
+        # personality = bobot evaluation function per arketipe,
+        # ai_depth    = kedalaman Min-Max yang dipakai saat battle
+        self.archetype = None
+        self.archetype_name = None
+        self.personality = None
+        self.ai_depth = 4
 
         # Cached dialogue panel
         self._dlg_panel = None
@@ -199,9 +213,12 @@ class NPC:
             else:
                 self.path = []
             self.path_index = 0
-            # Reset smooth position
-            self.smooth_r = float(self.row)
-            self.smooth_c = float(self.col)
+            # Jangan reset smooth position di sini: posisi smooth saat ini
+            # masih valid (berada di antara cell sebelumnya dan self.row/col,
+            # yang menjadi titik awal path baru). Jika di-reset, NPC akan
+            # "loncat" maju ke center cell setiap recompute sehingga kecepatan
+            # efektifnya jadi bergantung pada recompute_interval, bukan
+            # move_speed (gerakan jadi patah-patah dan tidak sesuai setting).
 
         # Bergerak mengikuti path
         if not self.path or self.path_index >= len(self.path):

@@ -74,7 +74,7 @@ class Player:
         self.debug_found = False  # Apakah jalur ditemukan
 
         # Movement
-        self.move_speed = 750.0  # pixels per second
+        self.move_speed = 650.0  # pixels per second (NPC: 250)
         self.manual_interval = 0.012  # seconds between manual moves (anti-bounce)
         self.manual_timer = 0.0  # Timer countdown
 
@@ -89,6 +89,7 @@ class Player:
         self.battle_atk = 12
         self.battle_def = 5
         self.battle_potions = 3
+        self.battle_max_potions = 3  # Kembali penuh setelah kemenangan
         self.battle_heal = 30
 
     def snap_to_walkable(self, game_map):
