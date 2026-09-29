@@ -395,13 +395,9 @@ class BattleDebugOverlay:
        [ATTACK: +18, DEFEND: +15, POTION: -10, SPECIAL: +18]
     2. Perbandingan jumlah node Minimax murni vs Alpha-Beta Pruning.
     3. Efisiensi pruning (% node yang dipotong) dan waktu kalkulasi (ms).
-    4. Opsional (``compare_mode``): tabel perbandingan Minimax vs Alpha-Beta vs
-       Early Stop sekaligus, termasuk aksi yang dipilih masing-masing algoritma
-       sehingga terlihat apakah ketiganya sepakat atau tidak.
 
     Attributes:
         visible: Apakah panel ditampilkan (toggle tombol 'D')
-        compare_mode: Apakah panel menampilkan tabel 3 algoritma (tombol 'C')
         stats: Dict statistik terakhir dari AdversarialAI.think()
     """
 
@@ -412,41 +408,19 @@ class BattleDebugOverlay:
         "SPECIAL": (208, 150, 250),
     }
 
-    COMPARE_LABEL = {
-        "minimax": "Minimax (tanpa pruning)",
-        "alphabeta": "Alpha-Beta Pruning",
-        "early_stop": "Early Stop (decided-state)",
-    }
-
-    COMPARE_SHORT = {
-        "minimax": "Minimax",
-        "alphabeta": "Alpha-Beta",
-        "early_stop": "Early Stop",
-    }
-
     def __init__(self):
         self.visible = True
-        self.compare_mode = False
         self.stats = {}
 
     def toggle(self):
         """Sembunyikan/tampilkan panel."""
         self.visible = not self.visible
 
-    def toggle_compare(self):
-        """Aktifkan/nonaktifkan tabel perbandingan tiga algoritma.
-
-        Mode ini memakai ``AdversarialAI.compare_all()`` yang menjalankan
-        ketiga algoritma pada state yang sama, jadi biayanya sekitar tiga kali
-        pencarian biasa. Karena itu ia dimatikan secara default.
-        """
-        self.compare_mode = not self.compare_mode
-
     def update(self, stats):
         """Simpan statistik terbaru dari AI.
 
         Args:
-            stats: Dict hasil AdversarialAI.think() atau compare_all()
+            stats: Dict hasil AdversarialAI.think()
         """
         if stats:
             self.stats = stats
@@ -468,7 +442,7 @@ class BattleDebugOverlay:
         line_h = f.get_height() + 3
 
         title = "DEBUG ADVERSARIAL SEARCH"
-        hint = "[D] sembunyikan  [C] banding"
+        hint = "[D] sembunyikan"
         depth = self.stats.get("depth", "-")
         algo = self.stats.get("algorithm", "alphabeta")
         if algo == "alphabeta":
@@ -479,20 +453,15 @@ class BattleDebugOverlay:
             algo = "Expectimax"
         elif algo == "iterative":
             algo = "Iterative Deepening"
-        if self.compare_mode:
-            algo += " + perbandingan"
         head = f"{title}   |   depth={depth}   |   {algo}"
 
         root = self.stats.get("root_scores") or []
         best = self.stats.get("best_action")
-        comparison = self.stats.get("comparison") or {}
 
-        mm_nodes = comparison.get("minimax", {}).get(
-            "nodes", self.stats.get("minimax_nodes", 0)
-        )
-        ab_nodes = comparison.get("alphabeta", {}).get(
-            "nodes", self.stats.get("alphabeta_nodes", 0)
-        )
+        # think() sudah menjalankan baseline minimax saat memakai alpha-beta,
+        # jadi kedua angka node tersedia tanpa pencarian tambahan.
+        mm_nodes = self.stats.get("minimax_nodes", 0)
+        ab_nodes = self.stats.get("alphabeta_nodes", 0)
         pruned = self.stats.get("pruned_nodes", 0)
         eff = self.stats.get("prune_efficiency", 0.0)
         evals = self.stats.get("evaluations", 0)
@@ -510,25 +479,6 @@ class BattleDebugOverlay:
         for action, score in root:
             label_max = max(label_max, f.size(f"{action:<8}{score:+5d}")[0])
         width = max(width, label_max + 12 + 150 + 8 + marker_w + pad * 2)
-
-        n_cmp = len(comparison) if comparison else 0
-        cmp_lab_w = cmp_act_w = cmp_ex_w = 0
-        if comparison:
-            keys = [k for k in ("minimax", "alphabeta", "early_stop") if comparison.get(k)]
-            cmp_lab_w = max(
-                f.size(f"  {self.COMPARE_SHORT.get(k, self.COMPARE_LABEL.get(k, k))}")[0]
-                for k in keys
-            )
-            cmp_act_w = max(
-                f.size(str(comparison[k].get("best_action") or "-"))[0] for k in keys
-            )
-            for k in keys:
-                row = comparison[k]
-                extra = f"{row.get('nodes', 0)} node  {row.get('time_ms', 0.0):.2f} ms"
-                if row.get("early_stop_hits"):
-                    extra += f"  stop={row['early_stop_hits']}"
-                cmp_ex_w = max(cmp_ex_w, f.size(extra)[0])
-            width = max(width, cmp_lab_w + 12 + cmp_act_w + 12 + cmp_ex_w + pad * 2)
 
         # Sesuaikan lebar konten dengan area aman (sisi kanan layar duel),
         # dengan lantai MIN_PANEL_W. Tanpa ini panel selalu dibuat 430px lalu
@@ -549,17 +499,12 @@ class BattleDebugOverlay:
 
         # Tinggi panel dihitung dari baris yang benar-benar digambar:
         # header, pemisah, judul "Pilihan aksi", baris skor (minimal 1),
-        # judul "Perbandingan", 8 stat_line, bar efisiensi, tabel banding,
+        # judul "Perbandingan algoritma", 8 stat_line, bar efisiensi,
         # dan footer kontrol. `gaps` menjumlahkan jarak non-garis_baris:
         # pemisah 7px, spasi 5px, spasi 4px, bar 4px, dan footer 4+6px.
-        cmp_extra = 0
-        if comparison:
-            cmp_extra = 1 + n_cmp  # header + satu baris per algoritma
-            if self.stats.get("actions_agree") is not None:
-                cmp_extra += 1  # baris pesan setuju/tidak
         root_rows = max(1, len(root))
         gaps = 7 + 5 + 4 + 4 + 4 + 6
-        height = pad * 2 + gaps + line_h * (13 + root_rows + cmp_extra)
+        height = pad * 2 + gaps + line_h * (13 + root_rows)
 
         # Panel digambar pada surface sendiri lalu diskalakan ke area aman,
         # sehingga isinya tidak pernah menimpa panel UI duel lain.
@@ -641,54 +586,6 @@ class BattleDebugOverlay:
             border_radius=4,
         )
         cy += line_h + 4
-
-        # --- Tabel perbandingan tiga algoritma (mode compare) ---
-        if comparison:
-            screen.blit(
-                f.render("Aksi & biaya tiap algoritma:", True, (240, 196, 96)),
-                (rect.x + pad, cy),
-            )
-            cy += line_h
-
-            col_node = rect.right - pad
-            col_lab = rect.x + pad
-            col_act = col_lab + cmp_lab_w + 12
-            for key in ("minimax", "alphabeta", "early_stop"):
-                row = comparison.get(key)
-                if not row:
-                    continue
-                label = self.COMPARE_SHORT.get(key, self.COMPARE_LABEL.get(key, key))
-                col = self.ACTION_COLOR.get(row.get("best_action"), (200, 210, 230))
-                screen.blit(
-                    _fit_text(f, f"  {label}", (170, 180, 200), cmp_lab_w),
-                    (col_lab, cy),
-                )
-
-                acted = f"{row.get('best_action') or '-'}"
-                act_max = col_node - cmp_ex_w - 12 - col_act
-                screen.blit(_fit_text(f, acted, col, act_max), (col_act, cy))
-
-                extra = f"{row.get('nodes', 0)} node  {row.get('time_ms', 0.0):.2f} ms"
-                if row.get("early_stop_hits"):
-                    extra += f"  stop={row['early_stop_hits']}"
-                ew = f.size(extra)[0]
-                screen.blit(
-                    _fit_text(f, extra, (200, 210, 230), ew), (col_node - ew, cy)
-                )
-                cy += line_h
-
-            agree = self.stats.get("actions_agree")
-            if agree is True:
-                msg, mcol = "  Semua algoritma memilih aksi yang sama", (140, 240, 170)
-            elif agree is False:
-                msg, mcol = "  Ada algoritma yang memilih aksi berbeda", (255, 140, 140)
-            else:
-                msg, mcol = "", (200, 210, 230)
-            if msg:
-                screen.blit(
-                    _fit_text(f, msg, mcol, rect.width - pad * 2), (rect.x + pad, cy)
-                )
-                cy += line_h
 
         # --- Footer: kontrol panel ---
         cy += 4

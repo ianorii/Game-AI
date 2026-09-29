@@ -343,39 +343,51 @@ node chance punya 6 anak.
 
 ## 4. Debug overlay
 
-Tombol `D` menampilkan atau menyembunyikan panel, tombol `C` mengaktifkan
-tabel perbandingan. Isi panel:
+Tombol `D` menampilkan atau menyembunyikan panel. Isi panel:
 
 1. Skor evaluasi tiap aksi di root dengan bar relatif, dan aksi yang dipilih.
 2. Node count minimax versus alpha-beta, node terpangkas, persentase efisiensi
    pruning, jumlah cutoff, jumlah evaluasi daun, dan waktu kalkulasi.
 3. Fungsi evaluasi dan urutan aksi yang sedang dipakai.
-4. **Tabel perbandingan tiga algoritma** pada state yang sama: minimax,
-   alpha-beta, dan early stop, lengkap dengan node, waktu, dan aksi yang
-   dipilih masing-masing, ditambah indikator apakah ketiganya sepakat.
 
-Mode perbandingan memanggil `compare_all()`, yang menelusuri pohon tiga kali,
-jadi biayanya sekitar tiga kali pencarian biasa. Karena itu mode ini mati
-secara default.
+Semua angka itu datang dari satu kali panggilan `think()` pada tiap giliran
+NPC: saat algoritma aktif alpha-beta, `think()` tetap menjalankan baseline
+minimax lebih dulu untuk keperluan pengukuran, jadi pembanding node terpangkas
+selalu tersedia tanpa pencarian tambahan.
+
+Panel dulunya punya tombol `C` untuk tabel perbandingan minimax, alpha-beta,
+dan early stop sekaligus. Tombol itu dihapus karena tampilannya hanya
+menambahkan beberapa baris pada panel yang sama. `AdversarialAI.compare_all()`
+sendiri dipertahankan untuk diagnostik dan masih dipanggil oleh self-test
+`python adversarial_ai.py`.
 
 Penempatan panel bukan sekadar "bikin muat". Isi overlay dirender lebih dulu ke
 permukaan terpisah, lalu permukaan itu diletakkan di area aman yang
-dihindari dari panel status, menu aksi, dan battle log.
+dihindari dari panel status, menu aksi, dan battle log. Lebar panel mengikuti
+lebar area aman (dengan lantai 300 piksel), sehingga panel dibangun sesuai
+ruang yang tersedia dan hampir tidak perlu diskalakan menyusut.
 
-| resolusi | non-compare | compare | perilaku |
+| resolusi | lebar area aman | skala | perilaku |
 |---|---|---|---|
-| 1920x1080 | 18 baris | 15 baris | muat di area aman |
-| 1600x900 | 14 baris | 13 baris | muat, mulai padat |
-| 1366x768 atau lebih kecil | 11-15 baris | 11-15 baris | modal penuh dengan latar redup |
+| 1920x1080 | 456 px | 1,00 | muat penuh, sisi kanan |
+| 1600x900 | 360 px | 1,00 | muat penuh, sisi kanan |
+| 1440x900 | 313 px | 1,00 | muat penuh, sisi kanan |
+| 1366x768 | 290 px | 0,97 | tetap di sisi kanan |
+| 1280x720 | 264 px | 0,88 | tetap di sisi kanan |
+| 1152x864 | 226 px | 0,75 | sisi kanan, batas bawah 9 px |
+| 1024x768 | 188 px | - | modal penuh dengan latar redup |
 
-Kriteria turun ke modal adalah tinggi baris efektif < 15 piksel, bukan
-resolusi tetap. Pada 1366x768 isi linear tidak muat dengan legibilitas cukup,
-jadi overlay berubah menjadi modal berlatar redup: duel tetap terlihat di
-belakang, tapi overlay tidak lagi menabrak panel mana pun.
+Kriteria turun ke modal adalah tinggi baris efektif < 9 piksel, bukan
+resolusi tetap. Pada 1024x768 dan lebih kecil isi panel tidak muat dengan
+legibilitas cukup, jadi overlay berubah menjadi modal berlatar redup: duel
+tetap terlihat di belakang, tapi overlay tidak lagi menabrak panel mana pun.
+Sebelum koreksi, ambangnya 12 piksel dan lebar panel dibuat tetap 430 piksel,
+sehingga semua layar di bawah 1920x1080 jatuh ke tengah layar.
 
-Tabel perbandingan di overlay diambil dari `compare_all()` yang dijalankan
-sungguhan, jadi angkanya bisa diperiksa ulang. Berikut hasil ukurnya untuk
-lima state dengan config produksi (`depth`, `alphabeta`, `balanced`, `default`):
+Angka perbandingan di bawah dihasilkan `compare_all()` yang dijalankan
+sungguhan (masih bisa diulang lewat `python adversarial_ai.py`), jadi angkanya
+bisa diperiksa ulang. Berikut hasil ukurnya untuk lima state dengan config
+produksi (`depth`, `alphabeta`, `balanced`, `default`):
 
 | State | Depth | minimax | alpha-beta | early stop | hemat | aksi |
 |---|---|---|---|---|---|---|
@@ -712,8 +724,9 @@ ruang aksi yang lebih besar; E7 itulah yang memisahkan kedua pengaruh itu.
    pihak aman padahal tidak.
 7. **Batas 80 ply pada duel.** Duel yang belum selesai dihitung sebagai
    bukan kemenangan, yang bisa tidak adil bagi profil yang suka menggantung.
-8. **Beban overlay.** Mode perbandingan menelusuri pohon tiga kali. Itu
-   hanya untuk diagnostik, bukan jalur produksi.
+8. **Beban `compare_all()`.** Fungsi pembanding menelusuri pohon tiga kali
+   pada state yang sama. Itu hanya untuk diagnostik dan self-test, bukan
+   jalur produksi; saat duel berjalan hanya `think()` yang dipanggil.
 9. **`is_decided` tidak dijamin optimal.** Hanya melihat satu giliran,
    sehingga bisa memangkas cabang yang masih dapat dibalik. Karena itu
    hemat early stop pada bagian 5.2 tidak boleh dibaca sebagai jaminan

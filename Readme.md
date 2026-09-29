@@ -49,12 +49,11 @@ peta.
 | `W` `S` atau `↑` `↓` | Geser pilihan aksi |
 | `Enter` / `Space` | Konfirmasi aksi |
 | `D` | Tampilkan / sembunyikan debug overlay AI |
-| `C` | Nyalakan tabel perbandingan minimax vs alpha-beta vs early stop |
 | `ESC` | Keluar dari Battle Mode walaupun duel belum selesai |
 
-Overlay menampilkan skor evaluasi tiap aksi yang dipertimbangkan NPC, node
-count, jumlah cutoff, dan (saat `C` aktif) perbandingan ketiga algoritma pada
-state yang sama.
+Overlay menampilkan skor evaluasi tiap aksi yang dipertimbangkan NPC, jumlah
+node minimax versus alpha-beta, node terpangkas, efisiensi pruning, jumlah
+cutoff, evaluasi daun, waktu kalkulasi, fungsi evaluasi, dan urutan aksi.
 
 Panel selalu ditempatkan di **sisi kanan layar duel**: lebarnya mengikuti area
 aman (di antara panel NPC dan battle log) sehingga tetap tampil di pinggir untuk

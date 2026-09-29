@@ -243,7 +243,6 @@ class BattleSystem:
         - Panah/WS  : pindah pilihan
         - Enter/Space: konfirmasi aksi terpilih
         - D         : toggle debug overlay adversarial search
-        - C         : toggle tabel perbandingan 3 algoritma di overlay
         - ESC       : keluar dari Battle Mode walaupun duel belum selesai
         - Tombol lain saat RESULT: lewati layar hasil
         """
@@ -252,10 +251,6 @@ class BattleSystem:
 
         if event.key == pygame.K_d:
             self.debug.visible = not self.debug.visible
-            return
-
-        if event.key == pygame.K_c:
-            self.debug.toggle_compare()
             return
 
         if event.key == pygame.K_ESCAPE:
@@ -382,13 +377,7 @@ class BattleSystem:
         if self.phase == "NPC_THINK":
             self.timer -= dt
             if self.timer <= 0:
-                if self.debug.compare_mode:
-                    # Menjalankan minimax, alpha-beta, dan early stop pada state
-                    # yang sama supaya overlay bisa menampilkan perbandingannya.
-                    # Tiga kali biaya pencarian, jadi hanya saat diminta.
-                    self.ai_stats = self.ai.compare_all(self.state, depth=self.depth)
-                else:
-                    self.ai_stats = self.ai.think(self.state, depth=self.depth)
+                self.ai_stats = self.ai.think(self.state, depth=self.depth)
                 self.debug.update(self.ai_stats)
                 action = self.ai_stats.get("best_action")
                 if action is None:
@@ -628,7 +617,7 @@ class BattleSystem:
         screen.blit(esc_hint, (x + pad, y + 10 + head.get_height() + 4))
 
         key_font = self._get_font(w // 82)
-        hint_label = "D: debug overlay   C: banding algoritma"
+        hint_label = "D: debug overlay"
         hint = self._fit_text(key_font, hint_label, TEXT_DIM, mw - pad * 2)
 
         legal = set(self.legal_actions())
