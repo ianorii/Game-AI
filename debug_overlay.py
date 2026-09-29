@@ -690,7 +690,11 @@ class BattleDebugOverlay:
         min_line = self.MIN_LINE
         self._place(target, content, safe_rect, (sw, sh), min_line / max(1, line_h))
 
-    MIN_LINE = 15
+    # Tinggi baris minimum (px) sebelum panel dianggap tidak terbaca dan
+    # dipindahkan ke mode modal. Dibuat 12 agar panel yang hanya perlu
+    # diperkecil sedikit (mis. tabel perbandingan) tetap tampil di sisi layar
+    # alih-alih menutupi pertarungan.
+    MIN_LINE = 12
 
     def _place(self, screen, content, safe_rect, screen_size, min_scale=1.0):
         """Tempatkan panel di area aman, atau sebagai modal bila tidak terbaca.
@@ -709,7 +713,10 @@ class BattleDebugOverlay:
             area = safe_rect.clip(area)
 
         scale = min(1.0, area.width / width, area.height / height)
-        if scale < min_scale:
+        # min_scale = MIN_LINE / tinggi_baris. Bila font sudah kecil, nilai itu
+        # bisa > 1 dan selalu memicu modal walau panel muat penuh. Batasi ke 1.0
+        # supaya modal hanya muncul saat panel benar-benar harus diperkecil.
+        if scale < min(1.0, min_scale):
             veil = pygame.Surface((sw, sh), pygame.SRCALPHA)
             veil.fill((4, 6, 12, 176))
             screen.blit(veil, (0, 0))

@@ -26,8 +26,10 @@ pengganti `pygame-ce` juga aman kalau `pygame` gagal terpasang.
 ## Menjalankan duel dan melihat AI-nya
 
 Tidak perlu menyetel apa pun untuk melihat AI-nya bekerja; aset dan peta sudah
-termasuk di repository. Duel dimulai otomatis saat jarak Manhattan Player dan
-NPC <= 1 ubin (`BATTLE_TRIGGER_DIST = 1` di `main.py`).
+termasuk di repository. Musuh muncul di lokasi acak yang cukup jauh, lalu
+langsung mengejar Player (mode follow aktif, bisa dimatikan dengan `F`).
+Duel dimulai otomatis saat jarak Manhattan Player dan NPC <= 1 ubin
+(`BATTLE_TRIGGER_DIST = 1` di `main.py`).
 
 | Tombol (saat duel) | Fungsi |
 |-----|--------|

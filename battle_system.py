@@ -409,13 +409,15 @@ class BattleSystem:
         if self.phase == "RESULT":
             self._draw_result(canvas, w, h)
 
-        # Debug overlay adversarial search, hanya boleh memakai area bebas
-        # di antara panel status, menu aksi, dan battle log.
+        # Debug overlay adversarial search dipasang di sisi kanan layar:
+        # di bawah panel status NPC, di atas battle log, dan mulai dari luar
+        # sprite NPC (cx = 0.70w, bayangan selebar 190px) supaya tidak
+        # menutupi kedua karakter maupun menu aksi.
         margin = 12
-        left = 20 + int(w * 0.30) + margin
-        right = w - 20 - int(w * 0.30) - margin
         top = 20 + int(h * 0.16) + margin
         bottom = h - 20 - int(h * 0.30) - margin
+        left = int(w * 0.70) + 100
+        right = w - 20
         safe = pygame.Rect(left, top, max(0, right - left), max(0, bottom - top))
         self.debug.draw(canvas, font or self._get_font(w // 90), safe)
 
@@ -446,7 +448,14 @@ class BattleSystem:
         nw, nh = max(1, int(sw * scale + 0.5)), max(1, int(sh * scale + 0.5))
         scaled = pygame.transform.smoothscale(self.background, (nw, nh))
 
-        out = pygame.Surface((w, h))
+        # Surface latar dibuat dengan SRCALPHA: layar X11/window punya channel
+        # alpha, dan bila latar dibuat tanpa SRCALPHA maka pikselnya bocor ke
+        # layar dengan alpha 0. Akibatnya blit berikutnya (sprite, judul) hanya
+        # di-copy alih-alih di-blend -> kotak hitam di balik sprite dan kotak
+        # putih/hijau di balik judul. Fill dulu dengan warna opaque agar semua
+        # piksel latar ber-alpha 255.
+        out = pygame.Surface((w, h), pygame.SRCALPHA)
+        out.fill(BG_BOTTOM)
         out.blit(scaled, ((w - nw) // 2, (h - nh) // 2))
 
         # Lapisan gelap bergradasi agar UI terbaca (lebih gelap di bawah)

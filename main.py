@@ -797,13 +797,13 @@ def spawn_enemy(game_map, player, npc, state, announce=True):
     npc.path = []
     npc.path_index = 0
     npc.recompute_timer = 0.0
-    npc.follow = False  # Musuh diam di tempat; player yang menghampiri
+    npc.follow = True  # Musuh langsung mengejar player
     npc.snap_to_walkable(game_map)
 
     state["enemy_spawned"] = True
     if announce:
-        show_toast(state, "Musuh muncul! Dekati dia untuk memulai duel.", ok=False)
-        state["status"] = "Musuh muncul! Dekati untuk memulai duel."
+        show_toast(state, "Musuh muncul dan mengejarmu! Bersiaplah berduel.", ok=False)
+        state["status"] = "Musuh mengejarmu! Hindari atau tantang dia untuk duel."
 
 
 def build_battle_background(game_map, cell, size=(720, 460)):
