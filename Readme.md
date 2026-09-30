@@ -6,7 +6,7 @@ Proyek ini berisi dua topik search AI, masing-masing untuk satu tahap tubes:
   dengan beberapa heuristic, dipakai untuk pergerakan Player dan NPC.
 - **Tahap 2** - adversarial search: duel turn-based melawan NPC. Mode battle
   aktif otomatis saat Player mendekatinya, lalu diselesaikan dengan Minimax,
-  alpha-beta pruning, early stop, move ordering, dan Expectimax.
+  alpha-beta pruning, move ordering, dan early stop.
 
 Fokus tubes tahap 2 adalah komponen AI, bukan game design. Penjelasan
 komplitnya ada di bagian **Adversarial Search (Tahap 2)** di bawah.
@@ -74,7 +74,7 @@ python adversarial_ai.py                         # self-test: alpha-beta harus =
 
 `experiments.py` menjalankan E0 sampai E7: horizon dan kondisi early stop,
 perbandingan algoritma, fungsi evaluasi, urutan aksi, kedalaman, perilaku NPC
-terhadap tiga lawan, Expectimax, dan branching 3 versus 4. Semua angka yang
+terhadap tiga lawan, dan branching 3 versus 4. Semua angka yang
 dikutip pada bagian **Adversarial Search (Tahap 2)** berasal dari perintah di
 atas, tanpa diedit tangan.
 
@@ -90,7 +90,7 @@ Game AI/
 ├── player.py                      pergerakan Player + A* + UCS
 ├── npc.py                         NPC follow dengan A*
 ├── battle_system.py               duel: giliran, aksi, UI panel
-├── adversarial_ai.py              Tubes 2: state, eval, minimax, alpha-beta, expectimax
+├── adversarial_ai.py              Tubes 2: state, eval, minimax, alpha-beta
 ├── debug_overlay.py               DebugOverlay (pathfinding) + BattleDebugOverlay (AI duel)
 ├── settings_menu.py               menu pengaturan
 ├── experiments.py                 harness E0-E7
@@ -272,7 +272,12 @@ di bagian ini; semua angkanya dihasilkan oleh `experiments.py`.
 | **Alpha-beta pruning** | Memangkas subtree yang mustahil mengalahkan skor terbaik yang sudah diketahui | `adversarial_ai.py` |
 | **Move ordering** | Aksi yang kemungkinan terbaik dicoba lebih dulu sehingga window menutup lebih cepat | `MOVE_ORDERS` |
 | **Early stop** | Pemangkasan tambahan bila `is_decided(state)` — satu pihak pasti mati, pihak lain tidak, jadi hasil akhir tidak berubah lagi | `is_decided()` |
-| **Expectimax** | Menggantikan jawaban pasti Player dengan ekspektasi atas kemungkinan aksinya | `expectimax()` |
+
+**Alpha-beta bukan algoritma baru — ia hanya minimax yang lebih hemat.**
+Yang dipotong adalah bagian pohon yang **mustahil mengubah keputusan akhir**,
+sehingga skor dan aksi yang dipilih **dijamin identik dengan minimax**; yang
+berbeda hanya jumlah node yang dihitung. Bukti empirisnya ada di self-test
+`python adversarial_ai.py` (aksi sama pada kedalaman 1-6, node lebih sedikit).
 
 Konfigurasi yang dipakai saat duel berlangsung: `algorithm = "alphabeta"`,
 `eval = "balanced"`, `order = "default"`, `depth = 4`, dengan `early_stop`
@@ -303,9 +308,6 @@ makin besar seiring bertambahnya kedalaman.
   karena skor seri).
 - **Early stop (E1):** pada kedalaman 7 menambah penghematan dari 78,8% menjadi
   **81,1%** dengan 16,6 kasus cutoff per 100 state.
-- **Expectimax (E6):** jauh lebih mahal — 37x node alpha-beta pada kedalaman 4 —
-  tetapi memilih aksi yang sama di **91,7%** state, sehingga alpha-beta
-  dipertahankan sebagai algoritma produksi.
 - **Branching 3 vs 4 (E7):** menambah aksi `SPECIAL` menaikkan kemenangan NPC
   dari 40,0% (tanpa SPECIAL) menjadi **93,3%**, dengan distribusi aksi root
   ATTACK 61,3% / DEFEND 3,8% / POTION 24,2% / SPECIAL 10,7%.
