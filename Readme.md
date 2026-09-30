@@ -1,15 +1,15 @@
-# Game AI - Pathfinding & Adversarial Search
+# Game AI — Adversarial Search (Tahap 2)
 
-Proyek ini berisi dua topik search AI, masing-masing untuk satu tahap tubes:
+README ini khusus membahas **adversarial search**: duel turn-based melawan NPC
+yang diselesaikan dengan Minimax, alpha-beta pruning, move ordering, dan early
+stop. Mode battle aktif otomatis saat Player mendekati musuh, lalu hasil
+pencarian AI-nya bisa dilihat langsung lewat debug overlay.
 
-- **Tahap 1** - pathfinding di grid 2D: A\* dan UCS (Uniform Cost Search)
-  dengan beberapa heuristic, dipakai untuk pergerakan Player dan NPC.
-- **Tahap 2** - adversarial search: duel turn-based melawan NPC. Mode battle
-  aktif otomatis saat Player mendekatinya, lalu diselesaikan dengan Minimax,
-  alpha-beta pruning, move ordering, dan early stop.
+Topik Tahap 1 (pathfinding A\* dan UCS di grid 2D) sengaja **tidak dibahas di
+sini** — dokumentasinya ada di README cabang lain. Di dokumen ini pergerakan
+hanya disinggung sepanjang yang dibutuhkan untuk menjalankan duel.
 
-Fokus tubes tahap 2 adalah komponen AI, bukan game design. Penjelasan
-komplitnya ada di bagian **Adversarial Search (Tahap 2)** di bawah.
+Fokus tubes tahap 2 adalah komponen AI, bukan game design.
 
 ## Instalasi
 
@@ -76,7 +76,7 @@ python adversarial_ai.py                         # self-test: alpha-beta harus =
 `experiments.py` menjalankan E0 sampai E7: horizon dan kondisi early stop,
 perbandingan algoritma, fungsi evaluasi, urutan aksi, kedalaman, perilaku NPC
 terhadap tiga lawan, dan branching 3 versus 4. Semua angka yang
-dikutip pada bagian **Adversarial Search (Tahap 2)** berasal dari perintah di
+dikutip pada bagian **Adversarial Search** berasal dari perintah di
 atas, tanpa diedit tangan.
 
 | Berkas | Isi |
@@ -88,11 +88,11 @@ atas, tanpa diedit tangan.
 ```text
 Game AI/
 ├── main.py                        game loop, input, pemicu duel
-├── player.py                      pergerakan Player + A* + UCS
-├── npc.py                         NPC follow dengan A*
-├── battle_system.py               duel: giliran, aksi, UI panel
-├── adversarial_ai.py              Tubes 2: state, eval, minimax, alpha-beta
-├── debug_overlay.py               DebugOverlay (pathfinding) + BattleDebugOverlay (AI duel)
+├── player.py                      pergerakan Player (A* / UCS = Tahap 1)
+├── npc.py                         NPC follow dengan A* (Tahap 1)
+├── battle_system.py               duel: giliran, aksi, UI panel, tombol depth
+├── adversarial_ai.py              Tahap 2: state, eval, minimax, alpha-beta
+├── debug_overlay.py               BattleDebugOverlay (Tahap 2) + DebugOverlay (Tahap 1)
 ├── settings_menu.py               menu pengaturan
 ├── experiments.py                 harness E0-E7
 ├── requirements.txt               dependensi: pygame, pygbag
@@ -134,120 +134,22 @@ Game AI/
 
 Taruh screenshot di `docs/screenshots/` dengan nama persis seperti di tabel,
 gambar di bawah akan tampil otomatis — tidak perlu file `.md` tambahan.
+Screenshot pathfinding (Tahap 1) tidak dipakai di README ini.
 
 | Berkas | Isi singkat |
 |--------|-------------|
-| `tahap1-overworld-debug.png` | Overworld + debug overlay A\* (layer `1`–`4` + panel A\* DEBUGGER) |
-| `tahap1-heuristic-manhattan.png` | Panel A\* DEBUGGER, heuristic Manhattan, `Expanded` kecil |
-| `tahap1-heuristic-ucs.png` | Titik sama, heuristic UCS (h=0), `Expanded` jauh lebih besar |
-| `tahap1-grid-obstacle.png` | Grid editor (tombol `M`), petak obstacle merah |
 | `tahap2-menu-duel.png` | Layar duel: HP, 4 aksi, battle log |
 | `tahap2-overlay-minimax.png` | Debug overlay AI (tombol `D`): skor aksi + statistik node |
 | `tahap2-overlay-pruning.png` | Overlay giliran lain: node alpha-beta < minimax, pruning > 0% |
-
-### Tahap 1 — Pathfinding
-
-<!-- TODO: drop file di docs/screenshots/ dengan nama yang sama, gambar tampil otomatis -->
-![Tahap 1 — overworld dengan debug overlay A* (visited, path, label g/h/f, panel A* DEBUGGER)](docs/screenshots/tahap1-overworld-debug.png)
-![Tahap 1 — heuristic Manhattan: jumlah node expanded](docs/screenshots/tahap1-heuristic-manhattan.png)
-![Tahap 1 — heuristic UCS pada titik yang sama: node expanded lebih banyak](docs/screenshots/tahap1-heuristic-ucs.png)
-![Tahap 1 — grid editor: air, atap, pagar, dan vegetasi ditandai obstacle](docs/screenshots/tahap1-grid-obstacle.png)
-
-### Tahap 2 — Adversarial Search
+| `tahap2-overlay-depth.png` | Overlay dengan kedalaman diganti (tombol `-`/`+`) |
 
 <!-- TODO: drop file di docs/screenshots/ dengan nama yang sama, gambar tampil otomatis -->
-![Tahap 2 — layar duel dengan empat pilihan aksi dan battle log](docs/screenshots/tahap2-menu-duel.png)
-![Tahap 2 — debug overlay AI: skor aksi, node minimax vs alpha-beta, pruning](docs/screenshots/tahap2-overlay-minimax.png)
-![Tahap 2 — debug overlay AI pada giliran lain: node alpha-beta lebih sedikit](docs/screenshots/tahap2-overlay-pruning.png)
+![Layar duel dengan empat pilihan aksi dan battle log](docs/screenshots/tahap2-menu-duel.png)
+![Debug overlay AI: skor aksi, node minimax vs alpha-beta, pruning](docs/screenshots/tahap2-overlay-minimax.png)
+![Debug overlay AI pada giliran lain: node alpha-beta lebih sedikit](docs/screenshots/tahap2-overlay-pruning.png)
+![Debug overlay dengan kedalaman pencarian diganti lewat tombol -/+](docs/screenshots/tahap2-overlay-depth.png)
 
-## Pathfinding (Tahap 1)
-
-### Formulasi masalah
-
-| Unsur | Representasi |
-|-------|--------------|
-| State | `(baris, kolom)` pada grid 96 x 64 |
-| Aksi | 4 arah: atas, kanan, bawah, kiri — tanpa diagonal (`allow_diagonal=False`) |
-| Cost langkah `g` | 1 per ubin |
-| Start | Posisi Player saat klik, atau posisi NPC saat recompute |
-| Goal | Ubin yang diklik (Player) atau posisi target (NPC) |
-| Selesai | `goal` keluar dari frontier = FOUND; frontier kosong = NO PATH |
-
-Graf yang ditelusuri bukan gambar peta mentah, melainkan grid hasil deteksi
-obstacle (`0` = bisa dilewati, `1` = terblokir), sehingga jalur tidak pernah
-menyeberangi air, atap, pagar, maupun vegetasi gelap.
-
-### A\* (A-Star)
-
-Menggabungkan `g(n)` (cost dari start ke node sekarang) dan `h(n)` (estimasi
-ke goal):
-
-```
-f(n) = g(n) + h(n)
-```
-
-Memakai priority queue min-heap dan optimal bila `h` **admissible**.
-Efisiensinya bergantung pada kualitas heuristic.
-
-### UCS (Uniform Cost Search)
-
-Special case dari A\* dengan `h(n) = 0` untuk semua node, jadi hanya
-`f(n) = g(n)`. Selalu optimal untuk graf berbobot non-negatif, tapi lebih lambat
-karena tidak ada panduan heuristic.
-
-### Heuristic
-
-| Heuristic | Formula | Keterangan |
-|-----------|---------|------------|
-| **Manhattan** | `abs(dx) + abs(dy)` | Paling efisien untuk grid 4-arah. Admissible dan consistent. |
-| **Euclidean** | `sqrt(dx^2 + dy^2)` | Admissible, tapi kurang informatif untuk grid 4-arah. |
-| **UCS** | `0` | Tanpa panduan heuristic, expands paling banyak node. |
-
-### Perbandingan ketiga varian
-
-| Varian | Optimal | Rata-rata node di-expand | Karakter |
-|--------|---------|--------------------------|----------|
-| A\* + Manhattan | ya (admissible & consistent) | **568** | Paling sedikit node, jadi paling cepat |
-| A\* + Euclidean | ya (admissible) | **774** | Lebih banyak node karena menganggap gerak diagonal mungkin |
-| UCS (`h = 0`) | ya | **1758** | Menjelajah ke segala arah, ± 3x node Manhattan |
-
-Angka di atas diukur pada peta asli dengan 56 pasang titik acak (seed 7),
-gerak 4 arah; ketiganya menghasilkan panjang jalur yang identik. Di permainan,
-perbandingan ini terlihat langsung pada angka `Expanded` di panel
-**A\* DEBUGGER** — tekan `E`/`Q` untuk mengganti heuristic Player dan `T`/`G`
-untuk heuristic NPC.
-
-### Kompleksitas
-
-Worst case ketiga algoritma O(b^d), dengan `b = 4` arah (8 bila diagonal
-diaktifkan) dan `d` = kedalaman solusi. UCS dapat membuka hampir seluruh
-simpul pada radius `d`, sementara A\* hanya membuka simpul dengan
-`f(n) ≤ f*` — makin dekat `h(n)` ke jarak sesungguhnya, makin sedikit simpul
-yang dibuka.
-
-### Alur kerja di dalam game
-
-1. Input (klik kiri atau gerak manual) menentukan start dan goal.
-2. `game/pathfinding/core.py` menjalankan pencarian; hasilnya disimpan di
-   `Player.debug_visited`, `Player.debug_path`, dan `Player.debug_node_data`
-   (nilai g/h/f tiap simpul).
-3. `DebugOverlay` menggambar layer sesuai tombol `1`–`4`, lalu Player bergerak
-   menyusuri path dengan interpolasi (tanpa snap).
-4. NPC memanggil fungsi yang sama setiap kali targetnya berubah. Default
-   heuristic: Player `manhattan` (`player.py`), NPC `ucs` (`npc.py`).
-
-### Kecepatan Gerak
-
-| Karakter | `move_speed` | Setara |
-|----------|--------------|--------|
-| **Player** (`player.py`) | `650` px/s | ≈ 40,6 ubin/detik |
-| **NPC** (`npc.py`) | `250` px/s | ≈ 15,6 ubin/detik |
-
-NPC sengaja dibuat lebih lambat dari player supaya player masih bisa menjaga
-jarak, sementara interpolasi NPC tanpa *snap* tiap recompute membuat
-kecepatan efektifnya persis sesuai `move_speed`.
-
-## Adversarial Search (Tahap 2)
+## Adversarial Search
 
 Duel bergiliran: Player memilih satu dari empat aksi (`ATTACK`, `DEFEND`,
 `POTION`, `SPECIAL`), NPC menjawab dengan aksi hasil pencarian adversarial.
@@ -280,6 +182,25 @@ sehingga skor dan aksi yang dipilih **dijamin identik dengan minimax**; yang
 berbeda hanya jumlah node yang dihitung. Bukti empirisnya ada di self-test
 `python adversarial_ai.py` (aksi sama pada kedalaman 1-6, node lebih sedikit).
 
+### Alur kerja di dalam game
+
+1. Player memilih aksi → `BattleSystem._resolve()` menerapkannya ke
+   `BattleState`, lalu giliran berpindah ke NPC.
+2. Setelah jeda `NPC_THINK_DELAY`, `BattleSystem.update()` memanggil
+   `AdversarialAI.think(state, depth)` (`adversarial_ai.py`).
+3. `think()` membangun pohon permainan sedalam `depth` ply: tiap simpul adalah
+   `BattleState`, anaknya adalah aksi legal (`POTION`/`SPECIAL` hanya muncul
+   bila tersedia), lewat `apply_action()` yang menghasilkan state baru.
+4. Daun dinilai fungsi evaluasi (`eval_balanced` secara default), lalu nilainya
+   mundur ke akar dengan aturan max untuk NPC dan min untuk Player; akar
+   memilih aksi dengan skor tertinggi.
+5. `think()` mengembalikan statistik akar (skor tiap aksi, node minimax vs
+   alpha-beta, node terpangkas, cutoff, waktu) → disimpan di
+   `BattleSystem.ai_stats` → dikirim ke `BattleDebugOverlay` (tombol `D`).
+6. Agar perbandingan selalu tersedia, `think()` juga menjalankan minimax murni
+   sebagai baseline tiap giliran (`run_baseline=True`), jadi overlay tidak
+   perlu pencarian tambahan untuk menampilkan kedua angka node.
+
 Konfigurasi yang dipakai saat duel berlangsung: `algorithm = "alphabeta"`,
 `eval = "balanced"`, `order = "default"`, `depth = 4`, dengan `early_stop`
 **nonaktif** (hasil eksperimennya tetap dilaporkan di bawah). Statistik tiap
@@ -293,6 +214,28 @@ dengan nilai depth sekarang. Setiap kali diubah, overlay **langsung
 dihitung ulang pada state yang sama**, jadi angka node minimax vs alpha-beta
 bisa dibandingkan antar kedalaman dalam satu tangkapan layar. Kedalaman terakhir
 dipertahankan untuk duel berikutnya.
+
+### Kompleksitas dan horizon
+
+Pohon berkedangkalan `b ≤ 4` (maksimum empat aksi per simpul, dan `POTION` /
+`SPECIAL` hanya muncul bila legal), `d` = `depth` yang dipasang:
+
+| Algoritma | Worst case | Best case (urutan aksi ideal) |
+|-----------|-----------|-------------------------------|
+| Minimax | O(b^d) | O(b^d) |
+| Alpha-beta | O(b^d) | O(b^(d/2)) |
+
+Karena itu urutan aksi (move ordering) menentukan seberapa dekat alpha-beta ke
+best case, dan E3 mengukurnya langsung.
+
+**Horizon effect (E0).** Dengan `depth = 4`, state dengan `player HP ≥ 50`
+tidak pernah sampai ke terminal: HP 100 butuh **10 ply**, HP 60 butuh 6 ply,
+HP 48 baru terlihat di 4 ply. Artinya skor `± WIN_SCORE` tidak pernah masuk
+evaluasi pada duel awal dan AI berperilaku seperti greedy berhorizon pendek.
+Karena itu tersedia `is_decided()` (dasar early stop): satu pihak sudah pasti
+mati dan pihak lain tidak, sehingga hasil akhir tidak lagi bergantung sisa
+kedalaman — misalnya player `HP 15` tanpa potion dengan damage masuk maksimal
+30 sudah diputuskan.
 
 ### Hasil eksperimen (ringkas)
 
@@ -323,22 +266,15 @@ makin besar seiring bertambahnya kedalaman.
 
 ## Kendali (Overworld)
 
+Hanya kendali yang dibutuhkan untuk menemukan musuh dan memulai duel.
+Kendali pathfinding Tahap 1 (ganti heuristic, grid editor, layer debug) tidak
+didokumentasikan di README ini.
+
 | Tombol | Fungsi |
 |-----|--------|
 | `W` `A` `S` `D` / `↑` `↓` `←` `→` | Gerak manual 1 cell |
-| Klik kiri | A\* pathfinding ke target |
-| `E` / `Q` | Ganti heuristic Player (next / previous) |
-| `T` / `G` | Ganti heuristic NPC (next / previous) |
+| Klik kiri | Berjalan otomatis ke titik yang diklik |
 | `F` | Toggle NPC mengikuti Player |
 | `R` | Reset status duel + respawn musuh (posisi player tetap di tempat) |
-| `M` | Toggle grid editor |
-| `P` / `L` | Simpan / muat grid (`data/grid_override.txt`) |
-| `1` `2` `3` `4` | Toggle layer debug pathfinding |
 | `ESC` | Buka / tutup settings menu (saat duel: keluar dari Battle Mode) |
 | `F11` | Toggle fullscreen |
-
-## Struktur Grid
-
-Ukuran peta 1536 x 1024 piksel, cell size 16 x 16, sehingga grid 96 x 64 cells.
-Representasi `0` = walkable, `1` = obstacle. Deteksi obstacle memakai
-analisis warna di level piksel untuk air, atap, stone/fence, dan vegetasi gelap.
