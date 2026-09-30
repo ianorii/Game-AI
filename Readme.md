@@ -147,7 +147,10 @@ Game AI/
 <img src="./docs/screenshots/tahap2-menu-battle.png" width=600>
 
 ### Tampilan Saat Kalah
-<img src="./docs/screenshots/tahap2-menu-battle.png" width=600>
+<img src="./docs/screenshots/tahap2-menu-lose.png" width=600>
+
+### Tampilan Saat Menang
+<img src="./docs/screenshots/tahap2-menu-win.png" width=600>
 
 ## Adversarial Search
 
