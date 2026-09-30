@@ -65,6 +65,8 @@ class DebugOverlay:
         self._label_bg_cache = {}
         self._panel_cache = None
         self._panel_size = (0, 0)
+        self._panel_font = None
+        self._panel_font_base = 0
 
     def toggle(self, key):
         """Toggle layer debug berdasarkan tombol yang ditekan.
@@ -245,6 +247,29 @@ class DebugOverlay:
                 (x - rendered.get_width() // 2, start_y + i * line_h),
             )
 
+    def _get_panel_font(self, base_font):
+        """Font khusus info panel, sedikit lebih besar dari font HUD.
+
+        Ukuran font dasar tidak tersedia langsung di pygame, jadi tinggi piksel
+        font dasar diubah ke ukuran font lewat rasio metrik font, lalu dinaikkan
+        sekitar 25%. Hasilnya di-cache selama tinggi font dasar tidak berubah
+        (mis. saat resolusi berubah pada fullscreen `F11`).
+
+        Args:
+            base_font: Font HUD yang dipakai game (dipakai sebagai acuan ukuran)
+
+        Returns:
+            pygame Font berukuran ~1,25x tinggi piksel font dasar
+        """
+        base_h = base_font.get_height()
+        if self._panel_font is None or self._panel_font_base != base_h:
+            probe = pygame.font.SysFont("consolas", 100)
+            ratio = (probe.get_height() / 100.0) or 1.0
+            target_h = int(base_h * 1.25)
+            self._panel_font = pygame.font.SysFont("consolas", max(16, int(round(target_h / ratio))))
+            self._panel_font_base = base_h
+        return self._panel_font
+
     def _draw_info_panel(self, screen, player, font, status=""):
         """Gambar info panel di kiri atas layar.
 
@@ -258,16 +283,26 @@ class DebugOverlay:
         Args:
             screen: Surface utama
             player: Objek Player
-            font: pygame Font
+            font: pygame Font HUD (diperbesar otomatis lewat `_get_panel_font`)
             status: Status text dari game state
         """
         sw, sh = screen.get_size()
-        panel_w = min(260, sw // 4)
-        padding = 10
-        line_h = 18
+        f = self._get_panel_font(font)
+        padding = 12
+        line_h = f.get_height() + 7
 
         # Hitung tinggi panel
         sections = self._get_panel_sections(player, status)
+
+        # Lebar panel mengikuti teks terpanjang, dibatasi lebar layar
+        content_w = 0
+        for section in sections:
+            if section.get("header"):
+                content_w = max(content_w, f.size(section["header"])[0])
+            for text, _color in section["lines"]:
+                content_w = max(content_w, f.size(text)[0])
+        panel_w = min(sw - 20, max(320, content_w + padding * 2 + 8))
+
         total_lines = sum(len(s["lines"]) for s in sections) + len(sections) - 1
         panel_h = padding * 2 + total_lines * line_h + 8
 
@@ -284,13 +319,13 @@ class DebugOverlay:
         for si, section in enumerate(sections):
             # Header section
             if section.get("header"):
-                header_surf = font.render(section["header"], True, section.get("header_color", (180, 190, 210)))
+                header_surf = f.render(section["header"], True, section.get("header_color", (180, 190, 210)))
                 panel.blit(header_surf, (padding, y_cursor))
                 y_cursor += line_h
 
             # Isi section
             for text, color in section["lines"]:
-                text_surf = font.render(text, True, color)
+                text_surf = f.render(text, True, color)
                 panel.blit(text_surf, (padding + 4, y_cursor))
                 y_cursor += line_h
 

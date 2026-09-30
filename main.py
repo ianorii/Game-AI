@@ -314,13 +314,13 @@ def handle_events(game_map, viewport, player, npc, overlay, state):
             elif action == "save_grid":
                 # Simpan collision grid ke file
                 game_map.save_grid_override()
-                state["status"] = "Grid disimpan ke grid_override.txt"
+                state["status"] = "Grid disimpan ke data/grid_override.txt"
             elif action == "load_grid":
                 # Muat collision grid dari file
                 ok = game_map.load_grid_override()
                 if state["edit_mode"]:
                     state["edit_surface"] = build_edit_surface(game_map, state["viewport"])
-                state["status"] = "Grid dimuat dari grid_override.txt" if ok else "Gagal memuat grid_override.txt"
+                state["status"] = "Grid dimuat dari data/grid_override.txt" if ok else "Gagal memuat data/grid_override.txt"
             elif action == "fullscreen":
                 toggle_fullscreen(game_map, state)
             elif action == "quit":
@@ -409,22 +409,22 @@ def handle_key_event(event, game_map, player, npc, overlay, state):
     elif key == pygame.K_p:
         try:
             game_map.save_grid_override()
-            show_toast(state, "Grid berhasil disimpan ke grid_override.txt", ok=True)
-            state["status"] = "Grid disimpan ke grid_override.txt"
+            show_toast(state, "Grid berhasil disimpan ke data/grid_override.txt", ok=True)
+            state["status"] = "Grid disimpan ke data/grid_override.txt"
         except Exception:
-            show_toast(state, "Gagal menyimpan grid_override.txt", ok=False)
-            state["status"] = "Gagal menyimpan grid_override.txt"
+            show_toast(state, "Gagal menyimpan data/grid_override.txt", ok=False)
+            state["status"] = "Gagal menyimpan data/grid_override.txt"
 
     elif key == pygame.K_l:
         ok = game_map.load_grid_override()
         if state["edit_mode"]:
             state["edit_surface"] = build_edit_surface(game_map, state["viewport"])
         if ok:
-            show_toast(state, "Grid berhasil dimuat dari grid_override.txt", ok=True)
-            state["status"] = "Grid dimuat dari grid_override.txt"
+            show_toast(state, "Grid berhasil dimuat dari data/grid_override.txt", ok=True)
+            state["status"] = "Grid dimuat dari data/grid_override.txt"
         else:
             show_toast(state, "Gagal memuat: file tidak ada / format salah", ok=False)
-            state["status"] = "Gagal memuat grid_override.txt"
+            state["status"] = "Gagal memuat data/grid_override.txt"
 
     elif key in (pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4):
         overlay.toggle(key)
