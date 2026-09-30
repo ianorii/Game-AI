@@ -342,11 +342,3 @@ makin besar seiring bertambahnya kedalaman.
 Ukuran peta 1536 x 1024 piksel, cell size 16 x 16, sehingga grid 96 x 64 cells.
 Representasi `0` = walkable, `1` = obstacle. Deteksi obstacle memakai
 analisis warna di level piksel untuk air, atap, stone/fence, dan vegetasi gelap.
-
-## Referensi
-
-- Russell, S. & Norvig, P. (2020). *Artificial Intelligence: A Modern
-  Approach*. 4th Edition. Chapter 3: Solving Problems by Searching.
-- Hart, P.E., Nilsson, N.J., & Raphael, B. (1968). A Formal Basis for the
-  Heuristic Determination of Minimum Cost Paths. *IEEE Transactions on Systems
-  Science and Cybernetics*.
