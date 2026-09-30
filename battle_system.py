@@ -265,7 +265,10 @@ class BattleSystem:
             self._set_depth(-1)
             return
 
-        if event.key in (pygame.K_EQUALS, pygame.K_KP_EQUALS, pygame.K_KP_PLUS):
+        if event.key in (
+            pygame.K_EQUALS, pygame.K_PLUS,
+            pygame.K_KP_EQUALS, pygame.K_KP_PLUS,
+        ):
             self._set_depth(+1)
             return
 
@@ -666,14 +669,25 @@ class BattleSystem:
         screen.blit(esc_hint, (x + pad, y + 10 + head.get_height() + 4))
 
         key_font = self._get_font(w // 82)
-        hint_label = "D: debug overlay"
-        hint = self._fit_text(key_font, hint_label, TEXT_DIM, mw - pad * 2)
+        # Nilai depth sekarang ikut ditampilkan supaya pemain bisa memantau
+        # perubahannya tanpa harus membuka debug overlay.
+        hint = self._fit_text(
+            key_font, f"D: debug overlay  |  depth {self.depth}", TEXT_DIM, mw - pad * 2
+        )
+        # Keterangan kontrol kedalaman pencarian AI: - menurunkan, + menaikkan.
+        # Ditampilkan di menu aksi supaya pemain tahu tanpa harus membuka overlay.
+        depth_hint = self._fit_text(
+            key_font,
+            f"[-] turunkan depth | [+] naikkan depth ({DEPTH_MIN}-{DEPTH_MAX})",
+            GOLD,
+            mw - pad * 2,
+        )
 
         legal = set(self.legal_actions())
         label_font = self._get_font(w // 66)
 
         top = y + 10 + head.get_height() + esc_hint.get_height() + 12
-        hint_y = y + mh - pad - hint.get_height()
+        hint_y = y + mh - pad - (depth_hint.get_height() + 4 + hint.get_height())
         usable = hint_y - 8 - top
         item_h = max(22, usable // len(ACTIONS))
 
@@ -716,7 +730,11 @@ class BattleSystem:
             screen.blit(label, (chip.right + 12, mid - label.get_height() // 2))
             screen.blit(info, (item.right - info.get_width() - 10, mid - info.get_height() // 2))
 
-        screen.blit(hint, (x + mw - hint.get_width() - pad, hint_y))
+        screen.blit(depth_hint, (x + mw - depth_hint.get_width() - pad, hint_y))
+        screen.blit(
+            hint,
+            (x + mw - hint.get_width() - pad, hint_y + depth_hint.get_height() + 4),
+        )
 
     def _draw_log(self, screen: pygame.Surface, w: int, h: int) -> None:
         """Panel battle log di kanan bawah."""
