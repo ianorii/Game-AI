@@ -1,8 +1,4 @@
-# Game AI — Adversarial Search (Tahap 2)
-
-Duel turn-based melawan NPC. NPC dikendalikan Minimax + alpha-beta pruning
-sedalam 4 ply, dan statistik pencariannya bisa dilihat langsung lewat debug
-overlay. Pathfinding (Tahap 1) tidak dibahas di README ini.
+# Game AI — Adversarial Search
 
 ## Instalasi
 
