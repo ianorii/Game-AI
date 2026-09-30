@@ -10,8 +10,9 @@ NPC (dikendalikan AdversarialAI). Sistem ini menangani:
 3. Rendering UI duel: panel HP, sprite, menu aksi, battle log, damage popup.
 4. Integrasi debug overlay adversarial search (toggle tombol 'D').
 
-Saat duel selesai, atribut ``finished`` bernilai True dan main loop akan
-mengembalikan game ke OVERWORLD.
+Saat duel selesai, layar hasil (menang/kalah/seri) tampil dan ``finished``
+baru bernilai True setelah pemain menekan **Enter** (atau ESC) — main loop
+tidak keluar dari Battle Mode sendirian, lalu game kembali ke OVERWORLD.
 """
 from __future__ import annotations
 
@@ -72,7 +73,8 @@ ACTION_INFO = {
 
 # Waktu tunggu dramatis sebelum NPC bergerak (detik)
 NPC_THINK_DELAY = 0.75
-# Lama layar hasil ditampilkan sebelum kembali ke overworld
+# Lama animasi masuk layar hasil (layar hasil tidak ditutup otomatis:
+# pemain menekan Enter untuk kembali ke overworld)
 RESULT_DELAY = 2.4
 
 # Rentang kedalaman pencarian yang bisa diubah pemain saat duel (tombol - / =).
@@ -252,7 +254,8 @@ class BattleSystem:
         - D         : toggle debug overlay adversarial search
         - - / =     : kurangi / tambah kedalaman pencarian AI (1..7)
         - ESC       : keluar dari Battle Mode walaupun duel belum selesai
-        - Tombol lain saat RESULT: lewati layar hasil
+        - Enter/Space (saat RESULT): tutup layar hasil dan kembali ke overworld
+        - Tombol lain saat RESULT: diabaikan (layar hasil tidak keluar otomatis)
         """
         if event.type != pygame.KEYDOWN:
             return
@@ -277,7 +280,11 @@ class BattleSystem:
             return
 
         if self.phase == "RESULT":
-            self.finished = True
+            # Layar hasil tidak ditutup otomatis: hanya Enter/Space (atau ESC)
+            # yang mengembalikan pemain ke overworld, jadi menang/kalah bisa
+            # dibaca dulu tanpa terburu-buru.
+            if event.key in (pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_SPACE):
+                self.finished = True
             return
 
         if self.phase != "PLAYER_INPUT":
@@ -332,8 +339,9 @@ class BattleSystem:
         """Akhiri duel lebih awal & keluar dari Battle Mode (tombol ESC).
 
         Berlaku di semua fase (PLAYER_INPUT / NPC_THINK) sehingga player bisa
-        kabur walaupun pertarungan belum selesai. Saat layar hasil sudah
-        tampil, ESC hanya melewati layar (sama seperti tombol lainnya).
+        kabur walaupun pertarungan belum selesai. Saat layar hasil (RESULT)
+        sudah tampil, ESC hanya menutup layar hasil — sama seperti Enter —
+        dan hasil menang/kalah tetap dihitung.
 
         Tidak menghitung menang/kalah; ``exit_battle()`` yang menangani
         status overworld (termasuk reset darah ke 100).
@@ -440,9 +448,10 @@ class BattleSystem:
                         self.phase = "PLAYER_INPUT"
 
         elif self.phase == "RESULT":
-            self.result_timer -= dt
-            if self.result_timer <= 0:
-                self.finished = True
+            # Layar hasil sengaja TIDAK ditutup otomatis: duel baru berakhir
+            # di overworld setelah pemain menekan Enter (lihat handle_event).
+            # Timer tetap ditarik ke nol dipakai sebagai animasi fade-in.
+            self.result_timer = max(0.0, self.result_timer - dt)
 
     # ------------------------------------------------------------------
     # Rendering
@@ -772,26 +781,38 @@ class BattleSystem:
             screen.blit(surf, (cx - surf.get_width() // 2, cy))
 
     def _draw_result(self, screen: pygame.Surface, w: int, h: int) -> None:
-        """Overlay layar hasil duel."""
+        """Overlay layar hasil duel.
+
+        Layar ini tidak pernah menutup sendiri: hasil menang/kalah/seri tetap
+        terpasang sampai pemain menekan Enter (atau ESC) untuk kembali ke
+        overworld. ``result_timer`` hanya dipakai untuk animasi fade-in.
+        """
+        t = max(0.0, min(1.0, (RESULT_DELAY - self.result_timer) / 0.4))
+
         veil = pygame.Surface((w, h), pygame.SRCALPHA)
-        veil.fill((4, 6, 12, 180))
+        veil.fill((4, 6, 12, int(180 * t)))
         screen.blit(veil, (0, 0))
 
         big = self._get_font(w // 26)
         if self.winner == "player":
             text, col = "KAMU MENANG!", (140, 240, 170)
-            sub = f"Musuh kalah - keluar dari Battle Mode"
+            sub = "Musuh tumbang - HP dipulihkan penuh"
         elif self.winner == "npc":
             text, col = "KAMU KALAH...", (240, 120, 120)
-            sub = "HP dipulihkan - kembali ke overworld"
+            sub = "HP dipulihkan penuh saat kembali"
         else:
             text, col = "SERI", GOLD
-            sub = "Kembali ke overworld"
+            sub = "Duel berakhir imbang"
         surf = big.render(text, True, col)
+        surf.set_alpha(int(255 * t))
         screen.blit(surf, (w // 2 - surf.get_width() // 2, int(h * 0.38)))
 
         small = self._get_font(w // 70)
         s2 = small.render(sub, True, TEXT)
+        s2.set_alpha(int(255 * t))
         screen.blit(s2, (w // 2 - s2.get_width() // 2, int(h * 0.38) + surf.get_height() + 10))
-        hint = self._get_font(w // 84).render("Tekan tombol apa saja untuk melanjutkan", True, TEXT_DIM)
+
+        hint = self._get_font(w // 84).render(
+            "Tekan Enter untuk kembali ke overworld", True, TEXT_DIM
+        )
         screen.blit(hint, (w // 2 - hint.get_width() // 2, int(h * 0.38) + surf.get_height() + s2.get_height() + 22))

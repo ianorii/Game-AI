@@ -38,6 +38,11 @@ musuh baru muncul, lalu langsung mengejar lagi.
 Setiap pertarungan selesai — menang, kalah, seri, maupun keluar paksa dengan
 `ESC` — darah Player selalu di-reset penuh (100 = `MAX_HP`).
 
+Hasil duel **tidak ditutup otomatis**: layar `KAMU MENANG!` / `KAMU KALAH...`
+/ `SERI` tetap menempel sampai kamu menekan `Enter` (ESC saat layar hasil juga
+menutupnya, dan hasil tetap dihitung), jadi aman untuk membaca statistik di
+debug overlay atau mengambil tangkapan layar lebih dulu.
+
 Posisi Player selalu dipertahankan: setelah duel selesai — maupun setelah
 tombol `R` / tombol **Reset Duel** di menu ESC — permainan dilanjutkan dari
 titik yang sama persis seperti saat war dimulai, tanpa kembali ke posisi awal
@@ -50,6 +55,7 @@ peta.
 | `Enter` / `Space` | Konfirmasi aksi |
 | `D` | Tampilkan / sembunyikan debug overlay AI |
 | `-` / `+` | Turunkan / naikkan kedalaman pencarian AI (1–7; `=` juga berfungsi); overlay langsung dihitung ulang pada state yang sama. Keterangannya tampil di menu aksi |
+| `Enter` / `Space` | Tutup layar hasil (menang/kalah/seri) dan kembali ke overworld |
 | `ESC` | Keluar dari Battle Mode walaupun duel belum selesai |
 
 Overlay menampilkan skor evaluasi tiap aksi yang dipertimbangkan NPC, jumlah
@@ -130,24 +136,18 @@ Game AI/
 `__pycache__/`, `venv/`, dan `build/` (output pygbag) di-ignore lewat
 `.gitignore`, jadi tidak muncul di atas.
 
-## Tangkapan Layar
+## Dokumentasi
+### Tampilan Battle Mode
+<img stc="./docs/screenshots/tahap2-menu-duel.png" width=600>
 
-Taruh screenshot di `docs/screenshots/` dengan nama persis seperti di tabel,
-gambar di bawah akan tampil otomatis — tidak perlu file `.md` tambahan.
-Screenshot pathfinding (Tahap 1) tidak dipakai di README ini.
+### Tampilan Debug Overlay Pertarungan
+<img stc="./docs/screenshots/tahap2-menu-overlay.png" width=600>
 
-| Berkas | Isi singkat |
-|--------|-------------|
-| `tahap2-menu-duel.png` | Layar duel: HP, 4 aksi, battle log |
-| `tahap2-overlay-minimax.png` | Debug overlay AI (tombol `D`): skor aksi + statistik node |
-| `tahap2-overlay-pruning.png` | Overlay giliran lain: node alpha-beta < minimax, pruning > 0% |
-| `tahap2-overlay-depth.png` | Overlay dengan kedalaman diganti (tombol `-`/`+`) |
+### Tampilan Saat Bertarung
+<img stc="./docs/screenshots/tahap2-menu-battle.png" width=600>
 
-<!-- TODO: drop file di docs/screenshots/ dengan nama yang sama, gambar tampil otomatis -->
-![Layar duel dengan empat pilihan aksi dan battle log](docs/screenshots/tahap2-menu-duel.png)
-![Debug overlay AI: skor aksi, node minimax vs alpha-beta, pruning](docs/screenshots/tahap2-overlay-minimax.png)
-![Debug overlay AI pada giliran lain: node alpha-beta lebih sedikit](docs/screenshots/tahap2-overlay-pruning.png)
-![Debug overlay dengan kedalaman pencarian diganti lewat tombol -/+](docs/screenshots/tahap2-overlay-depth.png)
+### Tampilan Saat Kalah
+<img stc="./docs/screenshots/tahap2-menu-battle.png" width=600>
 
 ## Adversarial Search
 
