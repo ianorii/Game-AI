@@ -138,16 +138,16 @@ Game AI/
 
 ## Dokumentasi
 ### Tampilan Battle Mode
-<img stc="./docs/screenshots/tahap2-menu-duel.png" width=600>
+<img src="./docs/screenshots/tahap2-menu-duel.png" width=600>
 
 ### Tampilan Debug Overlay Pertarungan
-<img stc="./docs/screenshots/tahap2-menu-overlay.png" width=600>
+<img src="./docs/screenshots/tahap2-menu-overlay.png" width=600>
 
 ### Tampilan Saat Bertarung
-<img stc="./docs/screenshots/tahap2-menu-battle.png" width=600>
+<img src="./docs/screenshots/tahap2-menu-battle.png" width=600>
 
 ### Tampilan Saat Kalah
-<img stc="./docs/screenshots/tahap2-menu-battle.png" width=600>
+<img src="./docs/screenshots/tahap2-menu-battle.png" width=600>
 
 ## Adversarial Search
 
