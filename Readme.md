@@ -49,6 +49,7 @@ peta.
 | `W` `S` atau `↑` `↓` | Geser pilihan aksi |
 | `Enter` / `Space` | Konfirmasi aksi |
 | `D` | Tampilkan / sembunyikan debug overlay AI |
+| `-` / `=` | Kurangi / tambah kedalaman pencarian AI (1–7); overlay langsung dihitung ulang pada state yang sama |
 | `ESC` | Keluar dari Battle Mode walaupun duel belum selesai |
 
 Overlay menampilkan skor evaluasi tiap aksi yang dipertimbangkan NPC, jumlah
@@ -284,6 +285,12 @@ Konfigurasi yang dipakai saat duel berlangsung: `algorithm = "alphabeta"`,
 **nonaktif** (hasil eksperimennya tetap dilaporkan di bawah). Statistik tiap
 giliran (node, cutoff, terpangkas, waktu) ditampilkan lewat
 `BattleDebugOverlay` dengan tombol `D`.
+
+Kedalaman bisa diubah **saat duel berjalan** dengan `-` / `=` (rentang 1–7,
+mengikuti rentang eksperimen E1/E4). Setiap kali diubah, overlay **langsung
+dihitung ulang pada state yang sama**, jadi angka node minimax vs alpha-beta
+bisa dibandingkan antar kedalaman dalam satu tangkapan layar. Kedalaman terakhir
+dipertahankan untuk duel berikutnya.
 
 ### Hasil eksperimen (ringkas)
 

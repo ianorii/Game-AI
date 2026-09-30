@@ -477,7 +477,8 @@ class BattleDebugOverlay:
         line_h = f.get_height() + 3
 
         title = "DEBUG ADVERSARIAL SEARCH"
-        hint = "[D] sembunyikan"
+        # [-]/[+] mengubah kedalaman langsung dari duel (lihat BattleSystem)
+        hint = "[D] sembunyikan   |   [-]/[+] ubah kedalaman"
         depth = self.stats.get("depth", "-")
         algo = self.stats.get("algorithm", "alphabeta")
         if algo == "alphabeta":
@@ -508,7 +509,7 @@ class BattleDebugOverlay:
         pad = 14
         marker = "<= dipilih"
         marker_w = f.size(marker)[0] + 8
-        width = max(f.size(head)[0] + pad * 2, 430)
+        width = max(f.size(head)[0], f.size(hint)[0]) + pad * 2
 
         label_max = 0
         for action, score in root:
@@ -563,7 +564,11 @@ class BattleDebugOverlay:
         cy += 7
 
         # --- Skor tiap aksi di root ---
-        screen.blit(f.render("Pilihan aksi NPC di root (depth 0):", True, (240, 196, 96)), (rect.x + pad, cy))
+        root_label = "NPC" if self.stats.get("root_is_npc", True) else "Player"
+        screen.blit(
+            f.render(f"Pilihan aksi {root_label} di root (depth 0):", True, (240, 196, 96)),
+            (rect.x + pad, cy),
+        )
         cy += line_h
         if not root:
             screen.blit(f.render("- (tidak ada aksi legal)", True, (170, 180, 200)), (rect.x + pad, cy))

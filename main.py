@@ -26,7 +26,7 @@ from collections import deque
 import pygame
 
 from adversarial_ai import MAX_HP
-from battle_system import BattleSystem
+from battle_system import BattleSystem, DEFAULT_DEPTH
 from debug_overlay import DebugOverlay
 from game.map import CELL_SIZE, COLS, ROWS, GameMap, Viewport
 from npc import NPC
@@ -839,6 +839,7 @@ def start_battle(state, player, npc, game_map):
         player_sprite=player.sprite,
         npc_sprite=npc.sprite,
         player_hp=state.get("player_hp", MAX_HP),
+        depth=state.get("ai_depth", DEFAULT_DEPTH),
         player_name="Player",
         npc_name=npc.name,
         background=battle_bg,
@@ -847,7 +848,9 @@ def start_battle(state, player, npc, game_map):
     state["edit_mode"] = False
     npc.follow = False
     npc.path = []
-    state["status"] = "BATTLE MODE - pilih aksi (1-4), D untuk debug overlay"
+    state["status"] = (
+        "BATTLE MODE - pilih aksi (1-4), D debug overlay, -/= ubah kedalaman"
+    )
 
 
 def exit_battle(state, player, npc, game_map):
@@ -873,6 +876,9 @@ def exit_battle(state, player, npc, game_map):
     # Darah selalu reset penuh setiap kali pertarungan selesai/keluar
     state["player_hp"] = MAX_HP
     if battle is not None:
+        # Pertahankan kedalaman pencarian yang dipilih pemain (tombol -/=)
+        # supaya duel berikutnya memakai kedalaman yang sama.
+        state["ai_depth"] = getattr(battle, "depth", DEFAULT_DEPTH)
         if getattr(battle, "fled", False):
             show_toast(
                 state, f"Kamu keluar dari duel. Darah dipulihkan 100. {note}",
@@ -923,6 +929,10 @@ def reset_duel(state, npc, status=None):
         status: Teks status HUD; default menjelaskan posisi dipertahankan
     """
     npc.follow = False
+    # Kedalaman pencarian yang sempat dipilih pemain dipertahankan
+    battle = state.get("battle")
+    if battle is not None:
+        state["ai_depth"] = getattr(battle, "depth", DEFAULT_DEPTH)
     state["mode"] = "OVERWORLD"
     state["battle"] = None
     state["enemy_spawned"] = False
@@ -1045,6 +1055,7 @@ async def main():
         # --- Battle Duel state ---
         "mode": "OVERWORLD",      # "OVERWORLD" atau "BATTLE"
         "battle": None,           # Instance BattleSystem saat BATTLE_MODE
+        "ai_depth": DEFAULT_DEPTH,  # Kedalaman pencarian AI (tombol -/= saat duel)
         "enemy_spawned": False,   # Musuh belum tampil di awal (hanya player)
         "spawn_timer": INITIAL_ENEMY_SPAWN_DELAY,  # jeda awal sebelum duel pertama
         "player_hp": MAX_HP,      # HP player dibawa antar duel

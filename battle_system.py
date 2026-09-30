@@ -75,6 +75,12 @@ NPC_THINK_DELAY = 0.75
 # Lama layar hasil ditampilkan sebelum kembali ke overworld
 RESULT_DELAY = 2.4
 
+# Rentang kedalaman pencarian yang bisa diubah pemain saat duel (tombol - / =).
+# Batas atas 7 mengikuti rentang eksperimen E1/E4 di experiments.py, supaya
+# angka node di debug overlay bisa langsung dibandingkan dengan laporan.
+DEPTH_MIN = 1
+DEPTH_MAX = 7
+
 KEY_TO_ACTION = {
     pygame.K_1: "ATTACK",
     pygame.K_2: "DEFEND",
@@ -116,6 +122,7 @@ class BattleSystem:
             background: Artwork latar duel (mis. map_battle.png) atau snapshot
                 terrain dari map overworld. Di-cover + digelapkan agar UI terbaca
         """
+        depth = max(DEPTH_MIN, min(DEPTH_MAX, int(depth)))
         self.ai = AdversarialAI(depth=depth)
         self.depth = depth
         self.state = BattleState(player_hp=max(1, min(MAX_HP, player_hp)))
@@ -243,6 +250,7 @@ class BattleSystem:
         - Panah/WS  : pindah pilihan
         - Enter/Space: konfirmasi aksi terpilih
         - D         : toggle debug overlay adversarial search
+        - - / =     : kurangi / tambah kedalaman pencarian AI (1..7)
         - ESC       : keluar dari Battle Mode walaupun duel belum selesai
         - Tombol lain saat RESULT: lewati layar hasil
         """
@@ -251,6 +259,14 @@ class BattleSystem:
 
         if event.key == pygame.K_d:
             self.debug.visible = not self.debug.visible
+            return
+
+        if event.key in (pygame.K_MINUS, pygame.K_KP_MINUS):
+            self._set_depth(-1)
+            return
+
+        if event.key in (pygame.K_EQUALS, pygame.K_KP_EQUALS, pygame.K_KP_PLUS):
+            self._set_depth(+1)
             return
 
         if event.key == pygame.K_ESCAPE:
@@ -275,6 +291,39 @@ class BattleSystem:
             self.selected = (self.selected + 1) % len(ACTIONS)
         elif event.key in (pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_SPACE):
             self._confirm_selection()
+
+    def _set_depth(self, delta: int) -> None:
+        """Ubah kedalaman pencarian AI (tombol ``-`` / ``=``) lalu hitung ulang.
+
+        Debug overlay dihitung ulang **pada state yang sama** dengan kedalaman
+        baru, sehingga angka node minimax vs alpha-beta, pruning, cutoff, dan
+        waktu bisa langsung dibandingkan antar kedalaman tanpa perlu menunggu
+        giliran NPC berikutnya.
+
+        Args:
+            delta: +1 untuk menambah, -1 untuk mengurangi kedalaman
+        """
+        new_depth = max(DEPTH_MIN, min(DEPTH_MAX, self.depth + delta))
+        if new_depth == self.depth:
+            self._add_log(
+                f"Kedalaman sudah di batas ({DEPTH_MIN}..{DEPTH_MAX}).", TEXT_DIM
+            )
+            return
+
+        self.depth = new_depth
+        self.ai.depth = new_depth
+
+        # Hitung ulang untuk state sekarang agar overlay langsung berubah.
+        # Perspektif selalu NPC (root MAX) supaya angka antar kedalaman
+        # sebanding langsung; label di overlay ikut menuliskannya.
+        if not self.state.is_terminal():
+            self.ai_stats = self.ai.think(self.state, depth=self.depth)
+            self.debug.update(self.ai_stats)
+
+        self._add_log(
+            f"Kedalaman pencarian -> {self.depth} (analisis NPC dihitung ulang)",
+            TEXT,
+        )
 
     def _flee(self) -> None:
         """Akhiri duel lebih awal & keluar dari Battle Mode (tombol ESC).
