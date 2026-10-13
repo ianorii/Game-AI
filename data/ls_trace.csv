@@ -1,0 +1,2 @@
+run_id,algo,iter,current,best,target,T,deltaE,accepted,rejected_by_constraint
+1,random_restart,1,0.0,0.0,0.5,,,,26

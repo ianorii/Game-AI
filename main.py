@@ -28,6 +28,16 @@ import pygame
 from adversarial_ai import MAX_HP
 from battle_system import BattleSystem, DEFAULT_DEPTH
 from debug_overlay import DebugOverlay
+from game.ambush.config import AmbushConfig
+from game.ambush.csv_export import (
+    write_csp_csv,
+    write_ls_csv,
+    write_summary_csv,
+)
+from game.ambush.director import LS_ALGOS, AmbushDirector
+from game.ambush.governor import DifficultyGovernor
+from game.ambush.overlay_ambush import AmbushDebugOverlay, build_view
+from game.ambush.trace import TraceBuffer
 from game.map import CELL_SIZE, COLS, ROWS, GameMap, Viewport
 from npc import NPC
 from player import Player
@@ -56,6 +66,10 @@ INITIAL_ENEMY_SPAWN_DELAY = 8.0  # Jeda musuh pertama: game start tidak langsung
 ENEMY_RESPAWN_DELAY = 5.0    # Detik jeda respawn musuh setelah duel selesai
 ENEMY_MIN_SPAWN_DIST = 8     # Jarak minimum spawn musuh dari player (ubin)
 ENEMY_MAX_SPAWN_DIST = 34    # Jarak maksimum agar musuh tetap mudah ditemukan
+
+# --- Parameter Ambush Director (Tahap 3) ---
+PUMP_MODES = ("instant", "slow", "step")  # F4: instant/slow/step
+INFER_MODES = ("ac3", "fc", "none")       # R: siklus inferensi CSP
 
 
 # ---------------------------------------------------------------------------
@@ -300,6 +314,43 @@ def handle_events(game_map, viewport, player, npc, overlay, state):
             battle.handle_event(event)
         return True
 
+    # Saat PREP_PLAYER, input mengatur loadout manual (Tahap 3).
+    if state.get("mode") == "PREP_PLAYER" and state.get("prep_screen") is not None:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                return False
+            if event.type == pygame.VIDEORESIZE and not state["fullscreen"]:
+                handle_resize(event, game_map, state)
+                continue
+            if event.type == pygame.KEYDOWN:
+                res = state["prep_screen"].handle_key(event.key)
+                if res == "confirm":
+                    state["player_loadout"] = state["prep_screen"].result()
+                    state["prep_screen"] = None
+                    begin_director(state, player, npc, game_map)
+                elif res == "cancel":
+                    state["prep_screen"] = None
+                    state["mode"] = "OVERWORLD"
+                    npc.follow = True
+                    state["status"] = "Persiapan dibatalkan. Musuh mengejar lagi."
+        return True
+
+    # Saat DIRECTOR Mode (PREP_NPC_CSP/LS/REVIEW), input mengatur
+    # penyusunan squad/antrean (Tahap 3 + duel berurutan Fase 5)
+    if state.get("mode") in ("PREP_NPC_CSP", "PREP_NPC_LS", "PREP_REVIEW") \
+            and state.get("director") is not None:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                return False
+            if event.type == pygame.VIDEORESIZE and not state["fullscreen"]:
+                handle_resize(event, game_map, state)
+                continue
+            if event.type == pygame.KEYDOWN:
+                if handle_director_key(event.key, game_map, player, npc,
+                                       state) is False:
+                    return False
+        return True
+
     for event in pygame.event.get():
         # Event keluar
         if event.type == pygame.QUIT:
@@ -444,6 +495,26 @@ def handle_key_event(event, game_map, player, npc, overlay, state):
     elif key == pygame.K_f:
         npc.follow = not npc.follow
         state["status"] = f"NPC ikuti player: {'ON' if npc.follow else 'OFF'}"
+
+    elif key == pygame.K_F4:
+        # Tahap 3: atur pump DIRECTOR dari overworld (berlaku duel berikut).
+        # Perlu di-set SEBELUM musuh menyentuh player, karena fase DIRECTOR
+        # mode instant hanya sekejap (1 frame) sehingga tak bisa diganti live.
+        modes = list(PUMP_MODES)
+        state["pump_mode"] = modes[
+            (modes.index(state["pump_mode"]) + 1) % len(modes)]
+        show_toast(state, f"Director pump: {state['pump_mode']}", ok=True)
+        state["status"] = (f"Director pump: {state['pump_mode']} "
+                           f"(berlaku duel berikut)")
+
+    elif key == pygame.K_TAB:
+        # Tahap 3: atur algoritma LS dari overworld (berlaku duel berikut).
+        algos = list(LS_ALGOS)
+        state["ls_algo"] = algos[
+            (algos.index(state["ls_algo"]) + 1) % len(algos)]
+        show_toast(state, f"Director algo: {state['ls_algo']}", ok=True)
+        state["status"] = (f"Director algo: {state['ls_algo']} "
+                           f"(berlaku duel berikut)")
 
     elif key == pygame.K_r:
         # Reset status duel saja; posisi player/NPC tidak dipindahkan
@@ -823,7 +894,8 @@ def build_battle_background(game_map, cell, size=(720, 460)):
     return region
 
 
-def start_battle(state, player, npc, game_map):
+def start_battle(state, player, npc, game_map, npc_buff=None, npc_squad=None,
+                 player_buff=None):
     """Inisialisasi BattleSystem dan pindah ke BATTLE_MODE.
 
     Args:
@@ -831,10 +903,16 @@ def start_battle(state, player, npc, game_map):
         player: Objek Player
         npc: Objek NPC
         game_map: Objek GameMap (untuk latar bertema lokasi)
+        npc_buff: Buff Tahap 3 dari Ambush Director (None = duel polos)
+        npc_squad: SquadConfig asal buff (untuk HUD buff)
     """
     mid = ((player.row + npc.row) // 2, (player.col + npc.col) // 2)
     # Latar duel: pakai artwork map_battle.png; fallback ke snapshot terrain map
     battle_bg = game_map.get_asset("map_battle") or build_battle_background(game_map, mid)
+    sim_txt = ""
+    res = state.get("director_result")
+    if res is not None and res.sim_difficulty is not None:
+        sim_txt = f"{res.sim_difficulty:.3f}"
     state["battle"] = BattleSystem(
         player_sprite=player.sprite,
         npc_sprite=npc.sprite,
@@ -843,6 +921,13 @@ def start_battle(state, player, npc, game_map):
         player_name="Player",
         npc_name=npc.name,
         background=battle_bg,
+        npc_buff=npc_buff,
+        npc_squad=npc_squad,
+        player_buff=player_buff,
+        player_loadout=state.get("player_loadout"),
+        target=state["governor"].target,
+        sim_rate=sim_txt,
+        enemy_base_hp=state["ambush_cfg"].enemy_base_hp,
     )
     state["mode"] = "BATTLE"
     state["edit_mode"] = False
@@ -851,6 +936,542 @@ def start_battle(state, player, npc, game_map):
     state["status"] = (
         "BATTLE MODE - pilih aksi (1-4), D debug overlay, -/= ubah kedalaman"
     )
+
+
+# ---------------------------------------------------------------------------
+# Ambush Director Integration (Overworld -> DIRECTOR -> Battle Mode)
+# ---------------------------------------------------------------------------
+
+def _csp_options(state):
+    """Petakan toggle live (Q/W/E/R) ke flag CSPSolver."""
+    tog = state["csp_toggles"]
+    return {
+        "use_mrv": tog["mrv"],
+        "use_degree": tog["deg"],
+        "use_lcv": tog["lcv"],
+        "inference": tog["infer"],
+    }
+
+
+def begin_prep_player(state, player, npc):
+    """Masuk PREP_PLAYER: jeda game, player atur loadout (2 slot manual)."""
+    from game.ambush.ui.player_loadout_screen import PlayerLoadoutScreen
+    state["prep_screen"] = PlayerLoadoutScreen(state.get("player_loadout"))
+    state["mode"] = "PREP_PLAYER"
+    state["edit_mode"] = False
+    npc.follow = False
+    npc.path = []
+    show_toast(state, "Musuh mendekat! Atur loadout-mu lalu Enter.",
+               ok=False, ttl=3.5)
+    state["status"] = ("PREP_PLAYER: Atas/Bawah slot, Kiri/Kanan item, "
+                       "Enter lanjut, Esc batal")
+
+
+def begin_director(state, player, npc, game_map):
+    """Masuk fase persiapan NPC: susun squad/antrean sebelum battle.
+
+    Berhenti sejenak dari overworld (player/NPC dibekukan, tidak di-reset);
+    director berjalan bertahap (instant/slow/step). Mode SEQUENTIAL memakai
+    antrean (plan_queue); mode BUFF memakai jalur lama. Target = override
+    tombol C bila ada, else target governor (ADAPTIF).
+    """
+    cfg = state["ambush_cfg"]
+    tracer = TraceBuffer()
+    target = state.get("target_override")
+    if target is None:
+        target = state["governor"].target
+    sequential = cfg.mode == "SEQUENTIAL"
+    director = AmbushDirector(
+        cfg, state["governor"], tracer=tracer,
+        csp_options=_csp_options(state), ls_algo=state["ls_algo"],
+        base_seed=state["director_seed"],
+        player_loadout=state.get("player_loadout"),
+    )
+    state["director_seed"] += 1
+    if sequential:
+        gen = director.run_gen_queue(state.get("wins", 0), target,
+                                     state.get("player_loadout"),
+                                     demo=state.get("demo_seed", False))
+    else:
+        gen = director.run_gen(state.get("wins", 0), target)
+    state["compare"] = None  # panel perbandingan dibangun ulang REVIEW
+    state["director"] = {
+        "director": director,
+        "tracer": tracer,
+        "gen": gen,
+        "kind": "queue" if sequential else "buff",
+        "target": target,
+        "phase_label": "CSP",
+        "phase_cat": "csp",
+        "status": "berjalan",
+        "finished": False,
+        "step_once": False,
+        "seed_gap": "",
+        "hold_until": 0.0,
+    }
+    state["mode"] = "PREP_NPC_CSP"
+    state["edit_mode"] = False
+    npc.follow = False
+    npc.path = []
+    show_toast(state, "Musuh mendekat! Director menyusun formasi squad...",
+               ok=False, ttl=3.0)
+    state["status"] = (
+        f"DIRECTOR [{state['pump_mode']}/{state['ls_algo']}] menyusun squad..."
+        f" F3 overlay, F4 pump, TAB algo"
+    )
+    if state["pump_mode"] != "instant":
+        show_toast(state, "Mode demo: Spasi=langkah, G=ulang, Enter=mulai duel",
+                   ok=True, ttl=4.0)
+    state["edit_mode"] = False
+    npc.follow = False
+    npc.path = []
+    show_toast(state, "Musuh mendekat! Director menyusun formasi squad...",
+               ok=False, ttl=3.0)
+    state["status"] = (
+        f"DIRECTOR [{state['pump_mode']}/{state['ls_algo']}] menyusun squad..."
+        f" F3 overlay, F4 pump, TAB algo"
+    )
+    if state["pump_mode"] != "instant":
+        show_toast(state, "Mode demo: Spasi=langkah, G=ulang, Enter=mulai duel",
+                   ok=True, ttl=4.0)
+
+
+def _track_phase(state, event):
+    """Perbarui label fase + info dari event generator director.
+
+    Pada mode slow, tiap ganti KATEGORI fase besar (CSP -> Local Search ->
+    Verifikasi) ditahan sejenak (dir_phase_hold) agar menu formasi terbaca.
+    """
+    d = state["director"]
+    phase = event.get("phase", "")
+    cat = d["phase_cat"]
+    if phase == "csp":
+        d["phase_label"] = f"CSP seed #{event.get('seed', 0) + 1}"
+    elif phase == "csp_seed_done":
+        d["phase_label"] = "CSP"
+    elif phase == "ls_start":
+        d["phase_label"] = "Local Search"
+        d["seed_gap"] = event.get("seed_gap", "")
+        cat = "ls"
+        state["mode"] = "PREP_NPC_LS"
+    elif phase == "ls_done":
+        d["phase_label"] = "Verifikasi"
+        cat = "verify"
+    elif phase == "done":
+        d["phase_label"] = "Selesai"
+        cat = "done"
+        state["mode"] = "PREP_REVIEW"
+    if cat != d["phase_cat"]:
+        d["phase_cat"] = cat
+        if state["pump_mode"] == "slow":
+            d["hold_until"] = (pygame.time.get_ticks() / 1000.0
+                               + state["ambush_cfg"].dir_phase_hold)
+
+
+def pump_director(state):
+    """Jalankan sepotong generator director sesuai pump mode.
+
+    Returns:
+        True jika director selesai (siap finish_director)
+    """
+    d = state["director"]
+    if d["finished"]:
+        return True
+    mode = state["pump_mode"]
+    gen = d["gen"]
+    try:
+        if mode == "instant":
+            for event in gen:
+                _track_phase(state, event)
+            # for-loop menelan StopIteration: tandai selesai eksplisit.
+            _hold_ready(state)
+            return True
+        elif mode == "slow":
+            for _ in range(state["ambush_cfg"].dir_slow_steps):
+                _track_phase(state, next(gen))
+        elif d["step_once"]:
+            d["step_once"] = False
+            _track_phase(state, next(gen))
+        else:
+            return False
+    except StopIteration:
+        _hold_ready(state)
+        return True
+    return False
+
+
+def _hold_ready(state):
+    """Tahan di layar hasil: duel TIDAK mulai sendiri, tunggu tombol siap.
+
+    Dipanggil tepat sekali saat generator habis (transisi berjalan->selesai).
+    """
+    d = state["director"]
+    if d["finished"]:
+        return
+    d["finished"] = True
+    d["status"] = "selesai"
+    d["phase_label"] = "Selesai"
+    show_toast(state, "Formasi selesai - Enter = duel, G = susun ulang",
+               ok=True, ttl=5.0)
+
+
+def finish_director(state, player, npc, game_map):
+    """Tutup fase DIRECTOR: ekspor CSV lalu mulai duel dengan buff.
+
+    Fase ini = PREP_REVIEW: ringkasan sudah terlihat di overlay (tahan
+    hingga Enter), jadi tidak ada fase terlewat otomatis.
+    """
+    tracer = state["director"]["tracer"]
+    kind = state["director"].get("kind", "buff")
+    if kind == "queue":
+        finish_queue_director(state, player, npc, game_map)
+        return
+    result = state["director"]["director"].last_result
+    state["director"] = None
+    if result is None:
+        show_toast(state, "Director gagal - duel polos.", ok=False)
+        start_battle(state, player, npc, game_map)
+        return
+    state["director_result"] = result
+    _export_ambush_csv(state, result, tracer)
+    if result.verified:
+        show_toast(
+            state,
+            f"Squad siap: {result.squad.leader()} +{result.squad.size() - 1} "
+            f"(gap {result.gap:.2f}). Bersiap duel!",
+            ok=True,
+        )
+    else:
+        show_toast(state, "Formasi tak valid - duel polos.", ok=False)
+    from game.ambush.player_loadout import loadout_to_buff
+    pl = state.get("player_loadout")
+    pbuff = loadout_to_buff(pl, state["ambush_cfg"]) if pl is not None else None
+    start_battle(state, player, npc, game_map,
+                 npc_buff=result.buff if result.verified else None,
+                 npc_squad=result.squad if result.verified else None,
+                 player_buff=pbuff)
+
+
+def finish_queue_director(state, player, npc, game_map):
+    """Tutup persiapan antrean: ekspor CSV lalu duel pertama (PREP_REVIEW)."""
+    tracer = state["director"]["tracer"]
+    result = state["director"]["director"].last_queue_result
+    state["director"] = None
+    if result is None or not result.verified:
+        show_toast(state, "Director gagal - duel polos.", ok=False)
+        start_battle(state, player, npc, game_map)
+        return
+    state["director_result"] = result
+    _export_ambush_csv(state, result, tracer)
+    from game.ambush.flow.queue_driver import QueueRun
+    from game.ambush.player_loadout import loadout_to_buff
+    cfg = state["ambush_cfg"]
+    pl = state.get("player_loadout")
+    pbuff = loadout_to_buff(pl, cfg) if pl is not None else None
+    cap = MAX_HP + (pbuff.hp if pbuff else 0)
+    state["player_buff"] = pbuff
+    state["queue_run"] = QueueRun(
+        queue=result.queue, buffs=list(result.buffs), target=result.target,
+        pred_light=result.light,
+        pred_full=result.sim_difficulty if result.sim_difficulty is not None
+        else result.light,
+        hp=max(1, min(cap, state.get("player_hp", MAX_HP))),
+        potions=3, cap=cap, cfg=cfg)
+    show_toast(state, f"Antrean siap: {result.queue.order_str()} "
+                      f"(gap {result.gap:.2f}). Bersiap duel!", ok=True)
+    start_queue_duel(state, player, npc, game_map)
+
+
+def start_queue_duel(state, player, npc, game_map):
+    """Mulai duel aktif antrean (HP/potion terbawa, musuh segar)."""
+    run = state["queue_run"]
+    mid = ((player.row + npc.row) // 2, (player.col + npc.col) // 2)
+    battle_bg = game_map.get_asset("map_battle") or build_battle_background(
+        game_map, mid)
+    res = state.get("director_result")
+    run = state.get("queue_run")
+    order = [(s.role, s.item) for s in run.queue.slots]
+    done = [(run.records[i].cleared if i < len(run.records) else False)
+            for i in range(run.k)]
+    state["battle"] = BattleSystem(
+        player_sprite=player.sprite,
+        npc_sprite=npc.sprite,
+        player_hp=run.hp,
+        depth=state.get("ai_depth", DEFAULT_DEPTH),
+        player_name="Player",
+        npc_name=f"{run.current_slot().role} #{run.idx + 1}",
+        background=battle_bg,
+        npc_buff=run.current_buff(),
+        npc_squad=None,
+        player_buff=state.get("player_buff"),
+        player_loadout=state.get("player_loadout"),
+        target=run.target,
+        sim_rate=(f"{res.sim_difficulty:.3f}" if res is not None
+                  and res.sim_difficulty is not None else ""),
+        player_potions=run.potions,
+        npc_potions=state["ambush_cfg"].npc_starting_potions,
+        duel_label=run.duel_label(),
+        queue_view={"order": order, "idx": run.idx, "done": done},
+        enemy_base_hp=state["ambush_cfg"].enemy_base_hp,
+    )
+    state["mode"] = "BATTLE"
+    state["edit_mode"] = False
+    npc.follow = False
+    npc.path = []
+    state["status"] = (f"{run.duel_label()} - {run.current_slot().role} "
+                       f"[{run.current_slot().item}]")
+
+
+def advance_queue(state, player, npc, game_map):
+    """Catat hasil satu duel lalu putuskan: transisi/menang/gagal."""
+    battle = state["battle"]
+    run = state["queue_run"]
+    cleared = battle.winner == "player"
+    status = run.record(hp_after=max(0, battle.state.player_hp),
+                        pot_after=battle.state.player_potions,
+                        cleared=cleared, fled=battle.fled)
+    state["battle"] = None
+    if status == "next":
+        state["mode"] = "TRANSITION"
+        state["transition_until"] = (
+            pygame.time.get_ticks() / 1000.0
+            + state["ambush_cfg"].transition_hold_s)
+        slot = run.current_slot()
+        show_toast(state, f"MUSUH #{run.idx + 1} MAJU - HP {run.hp}/"
+                          f"{run.cap} - Potion {run.potions}", ok=False,
+                   ttl=3.0)
+    elif status == "won_all":
+        exit_queue_battle(state, player, npc, game_map, won=True)
+    else:
+        exit_queue_battle(state, player, npc, game_map, won=False)
+
+
+def exit_queue_battle(state, player, npc, game_map, won):
+    """Tutup pertemuan: governor (progres+biner), CSV, HP reset, respawn."""
+    from game.ambush.csv_export import append_battle_result
+    import os
+    run = state["queue_run"]
+    progress = run.progress()
+    margin = run.margin()
+    governor = state.get("governor")
+    if governor is not None and not run.fled:
+        governor.update("player" if won else "npc", margin,
+                        progress=progress,
+                        failed_at=None if won else run.failed_at + 1)
+    if won:
+        state["wins"] = state.get("wins", 0) + 1
+        show_toast(state, "Antrean tuntas! Darah dipulihkan 100.", ok=True,
+                   ttl=3.2)
+    else:
+        if not run.fled:
+            state["losses"] = state.get("losses", 0) + 1
+        show_toast(state, "Pertemuan gagal. Darah dipulihkan 100.", ok=False,
+                   ttl=3.2)
+    try:
+        data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                "data")
+        append_battle_result(run.result_row(state["director_seed"],
+                                            "menang" if won else (
+                                                "kabur" if run.fled
+                                                else "kalah")),
+                             os.path.join(data_dir, "battle_result.csv"))
+    except OSError:
+        pass
+    state["queue_run"] = None
+    state["battle"] = None
+    state["player_hp"] = MAX_HP
+    state["mode"] = "OVERWORLD"
+    state["edit_mode"] = False
+    state["enemy_spawned"] = False
+    state["spawn_timer"] = ENEMY_RESPAWN_DELAY
+    state["status"] = "Kembali ke overworld. Darah dipulihkan 100."
+
+
+def _export_ambush_csv(state, result, tracer):
+    """Tulis csp_trace/ls_trace/summary.csv; gagal IO tak boleh crash game."""
+    try:
+        import os
+        data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                "data")
+        run_id = state["director_seed"]
+        write_csp_csv(tracer, os.path.join(data_dir, "csp_trace.csv"))
+        write_ls_csv(tracer, os.path.join(data_dir, "ls_trace.csv"),
+                     run_id=run_id, algo=result.ls_algo)
+        rows = state.setdefault("ambush_summary_rows", [])
+        tog = state["csp_toggles"]
+        rows.append({
+            "run_id": run_id,
+            "algo": result.ls_algo,
+            "heuristik": (f"mrv={tog['mrv']} deg={tog['deg']} "
+                          f"lcv={tog['lcv']} infer={tog['infer']}"),
+            "nodes_iter": f"{result.ls_iters}",
+            "waktu_ms": round(tracer.events[-1]["t"] * 1000.0, 2)
+                        if tracer.events else 0.0,
+            "skor_akhir": round(getattr(result, "difficulty",
+                                           getattr(result, "light", 0.0)), 4),
+            "jarak_ke_target": round(result.gap, 4),
+            "alasan_berhenti": result.ls_stop,
+        })
+        write_summary_csv(rows, os.path.join(data_dir, "summary.csv"))
+    except OSError:
+        pass
+
+
+def ambush_view(state):
+    """Rakit view overlay dari tracer + hasil director terakhir."""
+    d = state["director"]
+    tracer = d["tracer"]
+    director = d["director"]
+    result = getattr(director, "last_queue_result", None)
+    if result is None:
+        result = director.last_result
+    tog = state["csp_toggles"]
+    squad = getattr(result, "squad", None)
+    if squad is None:
+        seeds = getattr(director, "last_queue_seeds", None)
+        if seeds is None:
+            seeds = getattr(director, "last_seeds", [])
+        if result is not None and getattr(result, "queue", None) is not None:
+            squad = None
+        elif seeds:
+            squad = seeds[0]
+    sim = ""
+    if result is not None and result.sim_difficulty is not None:
+        sim = f"{result.sim_difficulty:.3f}"
+    target = state.get("target_override")
+    target_label = ("ADAPTIF" if target is None else f"{target:.2f}")
+    if target is None:
+        target = state["governor"].target
+    cfg = state["ambush_cfg"]
+    try:
+        from game.ambush.constraints import build_domains
+        domains0 = {k: len(v) for k, v in
+                    build_domains(state.get("wins", 0), cfg).items()}
+    except Exception:
+        domains0 = {}
+    queue = getattr(result, "queue", None)
+    per_duel = getattr(result, "per_duel", None)
+    sim_entries = getattr(result, "sim_entries", None) or []
+    tol = cfg.target_tol
+    honest = ""
+    done_ev = tracer.latest("director_done") or {}
+    if done_ev.get("gap") is not None:
+        from game.ambush.governor import honest_gap_label
+        try:
+            honest = honest_gap_label(float(done_ev["gap"]), tol)
+        except (TypeError, ValueError):
+            honest = ""
+    seed_queue = getattr(director, "last_queue_start", None)
+    return build_view(tracer, {
+        "phase": d["phase_label"],
+        "status": d["status"],
+        "ls_algo": state["ls_algo"],
+        "target": target,
+        "target_label": target_label,
+        "seed_mode": getattr(result, "seed_mode", ""),
+        "pump": state["pump_mode"],
+        "toggles": {"mrv": tog["mrv"], "deg": tog["deg"],
+                    "lcv": tog["lcv"], "infer": tog["infer"]},
+        "sideways_limit": state["ambush_cfg"].hc_sideways,
+        "ls_stop": (tracer.latest("ls_done") or {}).get("stop", ""),
+        "seed_gap": d["seed_gap"] if d["seed_gap"] != "" else (
+            result.seed_gap if result else ""),
+        "squad": squad if squad is not None else queue,
+        "sim": sim,
+        "player_loadout": state.get("player_loadout"),
+        "domains0": domains0,
+        "complete_consistent": (
+            "complete + consistent OK" if result is not None and getattr(
+                result, "verified", False) else ""),
+        "seed_queue": seed_queue,
+        "final_queue": queue,
+        "budget": getattr(result, "budget", ""),
+        "per_duel": per_duel,
+        "sim_entries": sim_entries,
+        "k_positions": queue.k() if queue is not None else 0,
+        "sim_gap": "",
+        "target_tol": tol,
+        "honest": honest,
+        "compare": state.get("compare"),
+    })
+
+
+def handle_director_key(key, game_map, player, npc, state):
+    """Satu tombol saat persiapan NPC. Return False untuk quit."""
+    if key == pygame.K_F3:
+        state["ambush_overlay"].visible = (
+            not state["ambush_overlay"].visible)
+        if state["ambush_overlay"].visible:
+            state["demo_seed"] = True  # demo nyala otomatis bersama F3
+            state["status"] = "Overlay ON: mode demo SEED RANDOM (X matikan)"
+    elif key == pygame.K_x:
+        state["demo_seed"] = not state.get("demo_seed", False)
+        state["status"] = ("SEED: {} (G untuk ulang)".format(
+            "RANDOM (demo)" if state["demo_seed"] else "BEST (gameplay)"))
+    elif key == pygame.K_c:
+        # C aktif HANYA saat F3 menyala dan di fase persiapan.
+        if not state["ambush_overlay"].visible or state.get("mode") not in (
+                "PREP_NPC_CSP", "PREP_NPC_LS", "PREP_REVIEW",
+                "PREP_PLAYER"):
+            state["status"] = "C hanya aktif saat F3 + fase persiapan"
+            return None
+        cycle = list(state["ambush_cfg"].target_cycle) + [None]
+        cur = state.get("target_override")
+        nxt = cycle[(cycle.index(cur) + 1) % len(cycle)] if cur in cycle \
+            else cycle[0]
+        state["target_override"] = nxt
+        label = "ADAPTIF" if nxt is None else f"{nxt:.2f}"
+        state["status"] = (f"Target: {label} (G untuk susun ulang, "
+                           f"tak auto-ulang)")
+    elif key == pygame.K_t:
+        state["ambush_overlay"].cycle_tab()
+        from game.ambush.overlay_ambush import TABS
+        state["status"] = (f"Overlay tab: "
+                           f"{TABS[state['ambush_overlay'].tab]} (T ganti)")
+    elif key == pygame.K_F4:
+        modes = list(PUMP_MODES)
+        state["pump_mode"] = modes[
+            (modes.index(state["pump_mode"]) + 1) % len(modes)]
+        state["status"] = f"Director pump: {state['pump_mode']}"
+    elif key == pygame.K_TAB:
+        algos = list(LS_ALGOS)
+        state["ls_algo"] = algos[
+            (algos.index(state["ls_algo"]) + 1) % len(algos)]
+        begin_director(state, player, npc, game_map)  # live: ulang run
+        state["status"] = (f"Director algo: {state['ls_algo']} "
+                           f"(run baru, F3 overlay)")
+    elif key == pygame.K_SPACE:
+        if state["director"]["finished"]:
+            finish_director(state, player, npc, game_map)  # siap -> duel
+        else:
+            state["director"]["step_once"] = True
+    elif key == pygame.K_g:
+        begin_director(state, player, npc, game_map)  # ulang seed baru
+    elif key == pygame.K_q:
+        state["csp_toggles"]["mrv"] = not state["csp_toggles"]["mrv"]
+        state["status"] = "MRV: {} (G untuk ulang)".format(
+            "ON" if state["csp_toggles"]["mrv"] else "OFF")
+    elif key == pygame.K_w:
+        state["csp_toggles"]["deg"] = not state["csp_toggles"]["deg"]
+        state["status"] = "Degree: {} (G untuk ulang)".format(
+            "ON" if state["csp_toggles"]["deg"] else "OFF")
+    elif key == pygame.K_e:
+        state["csp_toggles"]["lcv"] = not state["csp_toggles"]["lcv"]
+        state["status"] = "LCV: {} (G untuk ulang)".format(
+            "ON" if state["csp_toggles"]["lcv"] else "OFF")
+    elif key == pygame.K_r:
+        modes = list(INFER_MODES)
+        tog = state["csp_toggles"]["infer"]
+        state["csp_toggles"]["infer"] = modes[
+            (modes.index(tog) + 1) % len(modes)]
+        state["status"] = (f"Inferensi: {state['csp_toggles']['infer']} "
+                           f"(G untuk ulang)")
+    elif key in (pygame.K_RETURN, pygame.K_ESCAPE):
+        # Tombol SIAP: tuntaskan dulu bila belum, lalu mulai duel.
+        state["pump_mode"] = "instant"
+        if pump_director(state):
+            finish_director(state, player, npc, game_map)
+    return None
 
 
 def exit_battle(state, player, npc, game_map):
@@ -905,6 +1526,20 @@ def exit_battle(state, player, npc, game_map):
     state["battle"] = None
     state["mode"] = "OVERWORLD"
     state["edit_mode"] = False
+
+    # Tahap 3: catat hasil ke governor adaptif (target duel berikutnya).
+    governor = state.get("governor")
+    if governor is not None and battle is not None and not getattr(
+            battle, "fled", False) and battle.winner is not None:
+        if battle.winner == "player":
+            governor.update(
+                "player", max(0.0, battle.state.player_hp) / MAX_HP)
+        elif battle.winner == "npc":
+            governor.update(
+                "npc", max(0.0, battle.state.npc_hp)
+                / max(1, getattr(battle, "npc_max_hp", MAX_HP)))
+        else:
+            governor.update("draw")
 
     # Tunda respawn musuh: timer dihitung mundur oleh update_overworld_enemy(),
     # dan musuh disembunyikan dulu (enemy_spawned = False) selama jeda.
@@ -975,7 +1610,7 @@ def update_overworld_enemy(game_map, player, npc, state, dt):
 
     dist = abs(player.row - npc.row) + abs(player.col - npc.col)
     if dist <= BATTLE_TRIGGER_DIST:
-        start_battle(state, player, npc, game_map)
+        begin_prep_player(state, player, npc)
         return True
     return False
 
@@ -1040,6 +1675,10 @@ async def main():
     # Debug overlay untuk visualisasi pathfinding
     overlay = DebugOverlay()
 
+    # Ambush Director (Tahap 3): config + governor + overlay + toggle
+    ambush_cfg = AmbushConfig()
+    ambush_overlay = AmbushDebugOverlay()
+
     # Mutable game state (di-pass ke semua event handler)
     state = {
         "screen": screen,
@@ -1061,6 +1700,26 @@ async def main():
         "player_hp": MAX_HP,      # HP player dibawa antar duel
         "wins": 0,
         "losses": 0,
+        # --- Ambush Director (Tahap 3) state ---
+        "ambush_cfg": ambush_cfg,
+        "governor": DifficultyGovernor(ambush_cfg),
+        "ambush_overlay": ambush_overlay,
+        "director": None,        # runtime DIRECTOR (None di luar fasenya)
+        "director_result": None,  # hasil terakhir (untuk debug/demo)
+        "director_seed": 0,
+        "pump_mode": "slow",     # slow = menu formasi terlihat (F4 ganti)
+        "ls_algo": "random_restart",  # algoritma LS aktif (TAB)
+        "csp_toggles": {"mrv": True, "deg": True, "lcv": True,
+                        "infer": "ac3"},
+        "ambush_summary_rows": [],
+        "player_loadout": None,  # PlayerLoadout manual (PREP_PLAYER)
+        "prep_screen": None,     # layar loadout aktif
+        "player_buff": None,     # Buff loadout (dihitung saat duel dimulai)
+        "target_override": None,  # None = ADAPTIF (tombol C di PREP_* + F3)
+        "demo_seed": False,      # True = SEED RANDOM (demo, otomatis via F3)
+        "queue_run": None,       # QueueRun aktif (Fase 5 antrean)
+        "transition_until": 0.0,  # batas timer layar transisi
+        "compare": None,         # panel perbandingan (Fase 6, per frame)
     }
 
     # ---- Game Loop Utama ----
@@ -1091,7 +1750,102 @@ async def main():
             battle.draw(screen, small)
 
             if battle.finished:
-                exit_battle(state, player, npc, game_map)
+                if state.get("queue_run") is not None:
+                    advance_queue(state, player, npc, game_map)
+                else:
+                    exit_battle(state, player, npc, game_map)
+
+            pygame.display.flip()
+            await asyncio.sleep(0)  # Required untuk pygbag/web
+            clock.tick(FPS)
+            continue
+
+        # =================================================================
+        # TRANSITION (Fase 5: musuh berikut antrean maju)
+        # =================================================================
+        if state["mode"] == "TRANSITION" and state.get("queue_run") is not None:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    running = False
+                elif event.type == pygame.KEYDOWN and event.key in (
+                        pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_SPACE):
+                    start_queue_duel(state, player, npc, game_map)
+            run = state["queue_run"]
+            if (run is not None and state["mode"] == "TRANSITION"
+                    and pygame.time.get_ticks() / 1000.0
+                    >= state["transition_until"]):
+                start_queue_duel(state, player, npc, game_map)
+            screen.fill((12, 14, 18))
+            game_map.draw(screen, viewport)
+            player.draw(screen, viewport)
+            if state["enemy_spawned"]:
+                npc.draw(screen, viewport)
+            if state.get("queue_run") is not None:
+                from game.ambush.ui.transition import draw_transition
+                run = state["queue_run"]
+                slot = run.current_slot()
+                draw_transition(screen, small, run.idx + 1, run.k,
+                                slot.role, slot.item, run.hp, run.cap,
+                                run.potions,
+                                state["ambush_cfg"].transition_hold_s)
+            draw_toast(screen, small, state)
+            pygame.display.flip()
+            await asyncio.sleep(0)
+            clock.tick(FPS)
+            continue
+
+        # =================================================================
+        # PREP_PLAYER (Tahap 3: player atur loadout manual)
+        # =================================================================
+        if state["mode"] == "PREP_PLAYER" and state["prep_screen"] is not None:
+            screen.fill((12, 14, 18))
+            game_map.draw(screen, viewport)
+            player.draw(screen, viewport)
+            if state["enemy_spawned"]:
+                npc.draw(screen, viewport)
+            state["prep_screen"].draw(screen, small, state["governor"].target)
+            draw_toast(screen, small, state)
+            pygame.display.flip()
+            await asyncio.sleep(0)
+            clock.tick(FPS)
+            continue
+
+        # =================================================================
+        # PREP_NPC (Tahap 3 + Fase 5: susun squad/antrean sebelum battle)
+        # =================================================================
+        if state["mode"] in ("PREP_NPC_CSP", "PREP_NPC_LS", "PREP_REVIEW") \
+                and state["director"] is not None:
+            d = state["director"]
+            # Jeda baca antar fase (slow): render terus, pump ditahan.
+            held = (state["pump_mode"] == "slow" and not d["finished"]
+                    and pygame.time.get_ticks() / 1000.0 < d["hold_until"])
+            if not held:
+                pump_director(state)  # selesai -> TAHAN (tunggu Enter)
+            # Panel perbandingan: satu unit per frame SETELAH selesai
+            # (di luar anggaran 3 detik; tak membekukan game).
+            if d["finished"]:
+                if state.get("compare") is None:
+                    from game.ambush.compare_panel import init_compare
+                    try:
+                        state["compare"] = init_compare(state)
+                    except Exception:
+                        state["compare"] = {"done": True, "note": "gagal"}
+                cmp_ = state.get("compare")
+                if cmp_ is not None and not cmp_.get("done"):
+                    from game.ambush.compare_panel import pump_compare
+                    try:
+                        pump_compare(state)
+                    except Exception:
+                        cmp_["done"] = True
+            # Render adegan beku + overlay angka-angka (F3).
+            screen.fill((12, 14, 18))
+            game_map.draw(screen, viewport)
+            player.draw(screen, viewport)
+            if state["enemy_spawned"]:
+                npc.draw(screen, viewport)
+            state["ambush_overlay"].update(ambush_view(state))
+            state["ambush_overlay"].draw(screen, small)
+            draw_toast(screen, small, state)
 
             pygame.display.flip()
             await asyncio.sleep(0)  # Required untuk pygbag/web

@@ -1,0 +1,88 @@
+{
+ "date": "2026-10-13",
+ "seed": 20260712,
+ "n": 300,
+ "thresholds": {
+  "pearson": 0.85,
+  "spearman": 0.8
+ },
+ "config_hash": "91edf6421276556f",
+ "by_loadout": {
+  "lemah": {
+   "pearson": 0.9518,
+   "spearman": 0.6961,
+   "rmse": 0.0563,
+   "pearson_mapped": 0.9536,
+   "rmse_mapped": 0.0536,
+   "pairwise": 0.9252,
+   "top1": 1.0,
+   "top3": 0.6667,
+   "saturated_pct": 77.8,
+   "nonsat_pearson": 0.8342,
+   "map": {
+    "a": 0.8131,
+    "b": 0.1916
+   },
+   "n_test": 90,
+   "bias_per_role": {
+    "Archer": 0.001,
+    "Healer": -0.003,
+    "Mage": 0.001,
+    "Minion": 0.016,
+    "Tank": -0.007,
+    "Warrior": -0.004
+   }
+  },
+  "sedang": {
+   "pearson": 0.5417,
+   "spearman": 0.5797,
+   "rmse": 0.19,
+   "pearson_mapped": 0.5546,
+   "rmse_mapped": 0.1629,
+   "pairwise": 0.7475,
+   "top1": 1.0,
+   "top3": 0.3333,
+   "saturated_pct": 53.3,
+   "nonsat_pearson": 0.4398,
+   "map": {
+    "a": 0.8382,
+    "b": 0.1869
+   },
+   "n_test": 90,
+   "bias_per_role": {
+    "Archer": -0.049,
+    "Healer": -0.069,
+    "Mage": 0.023,
+    "Minion": 0.031,
+    "Tank": -0.017,
+    "Warrior": 0.013
+   }
+  },
+  "kuat": {
+   "pearson": 0.676,
+   "spearman": 0.6753,
+   "rmse": 0.2168,
+   "pearson_mapped": 0.6821,
+   "rmse_mapped": 0.1685,
+   "pairwise": 0.8076,
+   "top1": 0.0,
+   "top3": 0.6667,
+   "saturated_pct": 36.7,
+   "nonsat_pearson": 0.7369,
+   "map": {
+    "a": 0.7867,
+    "b": 0.2622
+   },
+   "n_test": 90,
+   "bias_per_role": {
+    "Archer": -0.115,
+    "Healer": -0.012,
+    "Mage": 0.07,
+    "Minion": 0.017,
+    "Tank": -0.022,
+    "Warrior": 0.07
+   }
+  }
+ },
+ "status": "calibrated: partial"
+}

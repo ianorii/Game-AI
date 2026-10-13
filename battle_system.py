@@ -16,6 +16,7 @@ tidak keluar dari Battle Mode sendirian, lalu game kembali ke OVERWORLD.
 """
 from __future__ import annotations
 
+import math
 import random
 from typing import Dict, List, Optional, Tuple
 
@@ -37,6 +38,10 @@ from adversarial_ai import (
     BattleState,
 )
 from debug_overlay import BattleDebugOverlay
+from game.ambush.buff import Buff, summarize_squad
+from game.ambush.buff_ai import BuffAwareAI, BuffBattleState, apply_chip_hook
+from game.ambush.config import AmbushConfig
+from game.ambush.enemy_queue import ENEMY_BASE_HP, enemy_max_hp
 
 
 # ---------------------------------------------------------------------------
@@ -112,6 +117,17 @@ class BattleSystem:
         player_name: str = "Player",
         npc_name: str = "Musuh",
         background: Optional[pygame.Surface] = None,
+        npc_buff: Optional[Buff] = None,
+        npc_squad=None,
+        player_buff: Optional[Buff] = None,
+        player_loadout=None,
+        target: float = 0.5,
+        sim_rate: str = "",
+        player_potions: Optional[int] = None,
+        npc_potions: Optional[int] = None,
+        duel_label: str = "",
+        queue_view: Optional[dict] = None,
+        enemy_base_hp: int = ENEMY_BASE_HP,
     ):
         """
         Args:
@@ -123,11 +139,48 @@ class BattleSystem:
             npc_name: Nama tampilan NPC
             background: Artwork latar duel (mis. map_battle.png) atau snapshot
                 terrain dari map overworld. Di-cover + digelapkan agar UI terbaca
+            npc_buff: Buff Tahap 3 dari Ambush Director (None = duel polos
+                tahap 2, perilaku tidak berubah sama sekali)
+            npc_squad: SquadConfig asal buff (untuk tampilan HUD saja)
         """
         depth = max(DEPTH_MIN, min(DEPTH_MAX, int(depth)))
-        self.ai = AdversarialAI(depth=depth)
         self.depth = depth
-        self.state = BattleState(player_hp=max(1, min(MAX_HP, player_hp)))
+        self.npc_buff = npc_buff
+        self.player_buff = player_buff
+        self.duel_label = duel_label  # mis. "MUSUH 2/3" (Fase 5 antrean)
+        self.queue_view = queue_view  # strip antrean (Fase 6) / None
+        self.npc_squad = npc_squad
+        self.player_loadout = player_loadout
+        self.target = target
+        self.sim_rate = sim_rate
+        self.turn_no = 1
+        self.npc_max_hp = enemy_max_hp(
+            npc_buff if npc_buff else Buff(), enemy_base_hp)
+        self.player_max_hp = MAX_HP + (player_buff.hp if player_buff else 0)
+        if npc_buff is not None or player_buff is not None:
+            # Duel ber-buff: transisi (BuffBattleState) + otak (BuffAwareAI)
+            # sama-sama kenal buff; duel polos memakai kelas tahap 2 asli.
+            self.state = BuffBattleState(
+                player_hp=max(1, min(self.player_max_hp, player_hp)),
+                npc_hp=self.npc_max_hp, buff=npc_buff,
+                player_buff=player_buff)
+            if player_potions is not None:  # potion terbawa antar-duel
+                self.state.player_potions = max(0, player_potions)
+            if npc_potions is not None:  # musuh segar / terbawa (config)
+                self.state.npc_potions = max(0, npc_potions)
+            self.ai = BuffAwareAI(depth=depth, buff=npc_buff,
+                                   player_buff=player_buff)
+        else:
+            self.ai = AdversarialAI(depth=depth)
+            self.state = BattleState(
+                player_hp=max(1, min(MAX_HP, player_hp)),
+                npc_hp=enemy_base_hp)
+            if player_potions is not None:
+                self.state.player_potions = max(0, player_potions)
+            if npc_potions is not None:
+                self.state.npc_potions = max(0, npc_potions)
+        from game.ambush.ui.battle_hud import BattleConfigHUD
+        self.hud = BattleConfigHUD()
         self.state.turn = 0  # Player mulai lebih dulu
 
         self.player_name = player_name
@@ -158,6 +211,13 @@ class BattleSystem:
         self._fonts: Dict[int, pygame.font.Font] = {}
 
         self._add_log("Duel dimulai. Giliranmu menyerang!", TEXT)
+        if npc_buff is not None and npc_squad is not None:
+            # Tampilkan buff aktif agar pengaruh squad terverifikasi di HUD.
+            # Summary dihitung dengan config default (sama dengan yang
+            # dipakai director di main.py); bila config di-custom, thread
+            # config sebagai ganti menghitung ulang di sini.
+            for line in summarize_squad(npc_squad, AmbushConfig()).lines()[:4]:
+                self._add_log(f"Buff: {line}", GOLD)
 
     # ------------------------------------------------------------------
     # Util internal
@@ -262,6 +322,10 @@ class BattleSystem:
 
         if event.key == pygame.K_d:
             self.debug.visible = not self.debug.visible
+            return
+
+        if event.key == pygame.K_h:
+            self.hud.toggle()
             return
 
         if event.key in (pygame.K_MINUS, pygame.K_KP_MINUS):
@@ -378,13 +442,62 @@ class BattleSystem:
         who = self.player_name if not is_npc else self.npc_name
         self._add_log(f"{who} memakai {ACTION_LABEL[action]}.", who_color)
 
-        # ATTACK memakai damage acak 15-20 saat resolusi nyata
+        # ATTACK memakai damage acak 15-20 saat resolusi nyata.
+        # State ber-buff (BuffBattleState) menerapkan bonus/cap/regen/armor/
+        # weaken di dalam apply_action; chip lewat hook akhir giliran NPC.
+        # Player dan NPC polos memakai aturan tahap 2 asli.
         if action == "ATTACK":
             dmg = random.randint(ATTACK_MIN, ATTACK_MAX)
-            self.state = self.state.apply_action(is_npc, action, attack_damage=dmg)
+            self.state = self.state.apply_action(
+                is_npc, action, attack_damage=dmg)
         else:
+            dmg = None
             self.state = self.state.apply_action(is_npc, action)
+        # Visibilitas loadout player: bonus serangan & redaman per-hit
+        # dicatat agar efek Sword/Shield terbaca (bukan angka misterius).
+        if not is_npc and action in ("ATTACK", "SPECIAL") \
+                and self.player_buff is not None:
+            bonus = (self.player_buff.atk if action == "ATTACK"
+                     else self.player_buff.spec)
+            if bonus > 0:
+                names = ", ".join(self.player_loadout.items
+                                  ) if self.player_loadout is not None else ""
+                self._add_log(f"Loadout +{bonus} dmg ({names}).", HEAL_COL)
+                self.hud.ping("player")
+        if is_npc and action in ("ATTACK", "SPECIAL") \
+                and self.player_buff is not None \
+                and self.player_buff.armor > 0:
+            base = dmg if dmg is not None else SPECIAL_DAMAGE
+            ditahan = base - int(math.ceil(base * (1.0 - self.player_buff.armor)))
+            if ditahan > 0:
+                self._add_log(f"Shield menahan {ditahan} dmg.", HEAL_COL)
+                self.hud.ping("player")
+        if is_npc:
+            before_chip = self.state.player_hp
+            apply_chip_hook(self.state, self.npc_buff)
+            if self.state.player_hp < before_chip and self.npc_buff is not None:
+                self._add_log(
+                    f"Healer/Archer NPC memicu: {before_chip - self.state.player_hp} chip.",
+                    (240, 200, 120))
+                self.hud.ping("npc")
+        else:
+            before_chip = self.state.npc_hp
+            apply_chip_hook(self.state, self.npc_buff)
+            if self.state.npc_hp < before_chip:
+                self._add_log("Loadout-mu memicu chip ke musuh.",
+                              (140, 240, 170))
+                self.hud.ping("player")
+            self.turn_no += 1
 
+        if is_npc and self.npc_buff is not None and self.npc_buff.regen > 0:
+            self._add_log(f"Healer NPC memulihkan {self.npc_buff.regen} HP.",
+                          HEAL_COL)
+            self.hud.ping("npc")
+        if not is_npc and self.player_buff is not None \
+                and self.player_buff.regen > 0:
+            self._add_log(f"Loadout-mu memulihkan {self.player_buff.regen} HP.",
+                          HEAL_COL)
+            self.hud.ping("player")
         # Popup damage/heal untuk kedua pihak
         d_player = self.state.player_hp - before_player
         d_npc = self.state.npc_hp - before_npc
@@ -421,6 +534,7 @@ class BattleSystem:
     # ------------------------------------------------------------------
     def update(self, dt: float) -> None:
         """Update timer, popup, dan logika giliran NPC."""
+        self.hud.tick(dt)
         if self.flash > 0:
             self.flash = max(0.0, self.flash - dt)
         if self.shake > 0:
@@ -479,6 +593,31 @@ class BattleSystem:
         self._draw_action_menu(canvas, w, h)
         self._draw_log(canvas, w, h)
         self._draw_popups(canvas, w, h)
+        # HUD konfigurasi (H): angka dari Buff yang sama dengan battle.
+        # Sengaja tanpa try/except: crash HUD harus terlihat di tes,
+        # bukan tenggelam diam-diam (pelajaran strip antrean Fase 6).
+        npc_members = ([(r, it) for r, it in
+                        zip(self.npc_squad.roles, self.npc_squad.items)]
+                       if self.npc_squad is not None
+                       else self._queue_member())
+        player_items = (list(self.player_loadout.items)
+                        if self.player_loadout is not None else [])
+        self.hud.draw(canvas, font or self._get_font(w // 90),
+                      player_items, npc_members,
+                      self.player_buff, self.npc_buff,
+                      self.turn_no, self.target, self.sim_rate,
+                      queue_view=self.queue_view,
+                      duel_label=self.duel_label,
+                      y_top=getattr(self, "_hud_y", None))
+
+    def _queue_member(self):
+        """[(role, item)] musuh aktif antrean, else [] (panel + HUD)."""
+        try:
+            order = self.queue_view["order"]
+            i = self.queue_view.get("idx", 0)
+            return [tuple(order[i])]
+        except (TypeError, IndexError, KeyError):
+            return []
 
         if self.phase == "RESULT":
             self._draw_result(canvas, w, h)
@@ -554,8 +693,14 @@ class BattleSystem:
 
     def _draw_title(self, screen: pygame.Surface, w: int, h: int) -> None:
         font = self._get_font(w // 42)
-        title = font.render("BATTLE DUEL", True, TEXT)
-        screen.blit(title, (w // 2 - title.get_width() // 2, int(h * 0.015)))
+        buffered = self.npc_buff is not None or self.player_buff is not None
+        # Tanpa glyph khusus (konsolas headless tak punya BINTANG): ASCII saja.
+        title_text = "BATTLE DUEL (BUFF)" if buffered else "BATTLE DUEL (polos)"
+        if self.duel_label:  # Fase 5: "MUSUH n/k" gabung judul (tak tumpuk).
+            title_text += f" - {self.duel_label}"
+        title = font.render(title_text, True, GOLD if buffered else TEXT)
+        title_y = int(h * 0.015)
+        screen.blit(title, (w // 2 - title.get_width() // 2, title_y))
 
         turn_font = self._get_font(w // 78)
         if self.phase == "PLAYER_INPUT":
@@ -565,7 +710,10 @@ class BattleSystem:
         else:
             label, col = "Duel selesai", GOLD
         surf = turn_font.render(label, True, col)
-        screen.blit(surf, (w // 2 - surf.get_width() // 2, int(h * 0.015) + title.get_height() + 4))
+        turn_y = title_y + title.get_height() + 4
+        screen.blit(surf, (w // 2 - surf.get_width() // 2, turn_y))
+        # Strip info HUD mulai di bawah blok judul (tak menimpa lagi).
+        self._hud_y = turn_y + surf.get_height() + 6
 
     def _draw_character(self, screen: pygame.Surface, w: int, h: int, side: str, ox: int, oy: int) -> None:
         """Gambar sprite karakter dengan bayangan dan bobbing halus."""
@@ -585,32 +733,61 @@ class BattleSystem:
         screen.blit(sprite, rect)
 
     def _draw_stats_panel(self, screen: pygame.Surface, w: int, h: int, side: str) -> None:
-        """Panel HP/stok potion/cooldown untuk satu pihak."""
+        """Panel HP/stok potion/cooldown + (H) konfigurasi buff tahap 3.
+
+        Dua panel ini simetris kiri (PLAYER) vs kanan (NPC) sesuai spek HUD:
+        baris buff dibaca dari Buff yang SAMA dengan battle (bukan hitungan
+        kedua), dan border menyala sesaat saat buff sisi itu terpicu.
+        """
         is_npc = side == "npc"
-        pw, ph = int(w * 0.30), int(h * 0.16)
+        buff = self.npc_buff if is_npc else self.player_buff
+        show_buff = self.hud.visible and buff is not None
+        if is_npc and self.npc_squad is not None and self.hud.visible:
+            members = [f"{r} [{it}]" for r, it in
+                       zip(self.npc_squad.roles, self.npc_squad.items)
+                       if r != "NONE"]
+        elif is_npc and self.hud.visible:
+            members = [f"{r} [{it}]" for r, it in self._queue_member()]
+        elif not is_npc and self.player_loadout is not None \
+                and self.hud.visible:
+            members = [str(it) for it in self.player_loadout.items
+                       if it != "NONE"] or ["tanpa item"]
+        else:
+            members = []
+        from game.ambush.ui.battle_hud import buff_lines_short
+        blines = buff_lines_short(buff, "npc" if is_npc else "player") \
+            if show_buff else []
+        extra = (len(members[:2]) + len(blines[:3])) if self.hud.visible else 0
+        small = self._get_font(w // 84)
+        line_h = small.get_height() + 2
+        pw, ph = int(w * 0.30), int(h * 0.16) + extra * line_h
         x = int(w - 20 - pw) if is_npc else 20
         y = 20
         rect = pygame.Rect(x, y, pw, ph)
 
         panel = pygame.Surface(rect.size, pygame.SRCALPHA)
         pygame.draw.rect(panel, PANEL_BG, panel.get_rect(), border_radius=14)
-        edge = (240, 130, 130) if is_npc else (120, 190, 255)
-        pygame.draw.rect(panel, edge, panel.get_rect(), 2, border_radius=14)
+        flashing = (self.hud.flash_npc if is_npc else self.hud.flash_player) > 0
+        edge = (255, 255, 160) if flashing else (
+            (240, 130, 130) if is_npc else (120, 190, 255))
+        pygame.draw.rect(panel, edge, panel.get_rect(),
+                         3 if flashing else 2, border_radius=14)
         screen.blit(panel, rect.topleft)
 
         name_font = self._get_font(w // 62)
-        small = self._get_font(w // 84)
 
-        name = self._fit_text(
-            name_font, self.npc_name if is_npc else self.player_name, edge, pw - 32
-        )
+        title = (self.npc_name if is_npc else self.player_name)
+        if show_buff:
+            title += " (BUFF)"
+        name = self._fit_text(name_font, title, edge, pw - 32)
         screen.blit(name, (x + 16, y + 12))
 
-        # HP bar
+        # HP bar (cap memakai max-HP ter-buff tahap 3 di kedua sisi)
         hp = self.state.npc_hp if is_npc else self.state.player_hp
+        cap = self.npc_max_hp if is_npc else self.player_max_hp
         bar_x, bar_y = x + 16, y + 12 + name.get_height() + 8
         bar_w, bar_h = pw - 32, max(14, ph // 7)
-        ratio = max(0.0, min(1.0, hp / MAX_HP))
+        ratio = max(0.0, min(1.0, hp / cap))
         col = HP_HIGH if ratio > 0.5 else (HP_MID if ratio > 0.25 else HP_LOW)
 
         pygame.draw.rect(screen, (16, 20, 30), (bar_x, bar_y, bar_w, bar_h), border_radius=bar_h // 2)
@@ -619,7 +796,7 @@ class BattleSystem:
                 screen, col, (bar_x, bar_y, int(bar_w * ratio), bar_h), border_radius=bar_h // 2
             )
         pygame.draw.rect(screen, PANEL_EDGE, (bar_x, bar_y, bar_w, bar_h), 1, border_radius=bar_h // 2)
-        hp_txt = small.render(f"{hp}/{MAX_HP}", True, (12, 16, 24) if ratio > 0.5 else TEXT)
+        hp_txt = small.render(f"{hp}/{cap}", True, (12, 16, 24) if ratio > 0.5 else TEXT)
         screen.blit(hp_txt, (bar_x + bar_w // 2 - hp_txt.get_width() // 2, bar_y + bar_h // 2 - hp_txt.get_height() // 2))
 
         info_y = bar_y + bar_h + 8
@@ -631,7 +808,7 @@ class BattleSystem:
         text_right = inner_r
 
         if defending:
-            badge = small.render("DEFEND", True, (10, 16, 24))
+            badge = small.render("DEFEND (1)", True, (10, 16, 24))
             chip_w, chip_h = badge.get_width() + 16, badge.get_height() + 6
             chip = pygame.Rect(inner_r - chip_w, info_y - 2, chip_w, chip_h)
             pygame.draw.rect(screen, (96, 190, 240), chip, border_radius=8)
@@ -653,6 +830,22 @@ class BattleSystem:
                 small, cd_label, GOLD if cd == 0 else TEXT_DIM, text_right - cd_x
             )
             screen.blit(cd_txt, (cd_x, info_y))
+
+        # Baris konfigurasi tahap 3 (H): anggota + efek angka (maks 5 baris).
+        by = info_y + small.get_height() + 6
+        if self.hud.visible:
+            for m in members[:2]:
+                surf = self._fit_text(small, m, TEXT, pw - 32)
+                screen.blit(surf, (inner_l, by))
+                by += line_h
+            for line, col in blines[:3]:
+                surf = self._fit_text(small, line, col, pw - 32)
+                screen.blit(surf, (inner_l, by))
+                by += line_h
+            if buff is None and not members:
+                surf = self._fit_text(small, "polos (tanpa buff) [H]",
+                                      TEXT_DIM, pw - 32)
+                screen.blit(surf, (inner_l, by))
 
     def _draw_action_menu(self, screen: pygame.Surface, w: int, h: int) -> None:
         """Kotak menu aksi player di kiri bawah."""
@@ -763,7 +956,8 @@ class BattleSystem:
         line_h = font.get_height() + 4
         start_y = y + 10 + head.get_height() + 8
         max_w = lw - 28
-        max_lines = max(1, (y + lh - 12 - start_y) // line_h)
+        # Log singkat: maksimal 5 baris terakhir (spek Fase 6).
+        max_lines = min(5, max(1, (y + lh - 12 - start_y) // line_h))
         for i, (text, color) in enumerate(self.log[-max_lines:]):
             surf = self._fit_text(font, text, color, max_w)
             screen.blit(surf, (x + 14, start_y + i * line_h))

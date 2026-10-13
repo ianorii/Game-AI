@@ -1,0 +1,9 @@
+{"comment": "R2 (ronde 2/3): bulk turun + offense naik (duel pendek & tegas); Tank armor->.05 (K6 Shield); Charm regen->1 (K6 Archer/Mage); Fang spec->1 (K6 Mage); Mage weaken->.15 (sinergi Boots); Boss ronde-2 hp->12. S tetap. Tanpa ubah cost.",
+ "config": {"npc_starting_potions": 2, "potion_bonus_per_duel": 0, "rest_heal_pct": 0.25},
+ "items": {"Dragon Fang": {"atk": 2, "spec": 1}, "Healing Charm": {"regen": 1}},
+ "roles": {"Archer": {"atk": 2, "hp": 5},
+           "Boss": {"hp": 12},
+           "Healer": {"hp": -10},
+           "Mage": {"hp": 2, "weaken": 0.15},
+           "Tank": {"armor": 0.05, "atk": 1, "hp": 4},
+           "Warrior": {"atk": 2, "hp": 10}}}

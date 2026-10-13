@@ -1,0 +1,9 @@
+{"comment": "R3 FINAL (ronde 3/3): Tank/Healer base turun via ancaman (bukan bulk, duel tetap pendek); Archer/Mage base ke tengah-ban; Mage weaken->.10 + Fang atk->1 (K6 burst solid). S tetap. Tanpa ubah cost.",
+ "config": {"npc_starting_potions": 2, "potion_bonus_per_duel": 0, "rest_heal_pct": 0.25},
+ "items": {"Dragon Fang": {"atk": 1, "spec": 1}, "Healing Charm": {"regen": 1}},
+ "roles": {"Archer": {"atk": 3, "hp": 6},
+           "Boss": {"hp": 12},
+           "Healer": {"atk": 1, "hp": -15},
+           "Mage": {"atk": 1, "hp": 2, "weaken": 0.1},
+           "Tank": {"atk": 2, "hp": 4},
+           "Warrior": {"atk": 2, "hp": 10}}}

@@ -1,0 +1,7 @@
+{"comment": "R1: half-steps (Boss tunda ronde 2, tanpa ubah cost). S terkunci: rest 0.25, npot 2, bonus 0.",
+ "config": {"npc_starting_potions": 2, "potion_bonus_per_duel": 0, "rest_heal_pct": 0.25},
+ "items": {"Dragon Fang": {"atk": 2, "spec": 2}},
+ "roles": {"Healer": {"regen": 2},
+           "Mage": {"spec": 7},
+           "Tank": {"armor": 0.1, "hp": 6},
+           "Warrior": {"hp": 13}}}

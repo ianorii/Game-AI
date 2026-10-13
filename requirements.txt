@@ -1,2 +1,2 @@
 pygame==2.6.1
-pygbag
+pygbag==0.9.3  # hanya untuk deploy web (CI)
