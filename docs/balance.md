@@ -1,6 +1,6 @@
 # BALANCE FREEZE (kunci default)
 
-Tanggal: 2026-10-14. Commit: `af1398f` (branch CSP). Berlaku setelah opsi C disetujui. Tidak ada tuning lagi
+Tanggal: 2026-10-14. Commit: `3efdbb5` (branch CSP). Berlaku setelah opsi C disetujui. Tidak ada tuning lagi
 kecuali (a) bug nyata atau (b) hasil uji main manual yang jelas melaporkan
 masalah. Tes penegak: `tests/test_ambush_queue.py::test_balance_freeze`
 (gagal bila default bergeser diam-diam).
