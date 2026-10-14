@@ -53,3 +53,6 @@ run_id,k,order,target,pred_light,pred_full,actual_progress,duel_menang,hp_sisa_p
 9000,2,Mage>Archer,0.5,0.5,0.375,0.5,1,28;0,3,kalah,2
 9001,4,Minion>Minion>Tank>Minion,0.5,0.5,0.0,0.5,2,100;100;0,0,kalah,3
 9002,3,Mage>Archer>Minion,0.5,0.5,0.6667,0.3333,1,33;0,3,kalah,2
+1,2,Warrior>Warrior,0.5,0.5,0.125,1.0,2,51;28,2,menang,
+2,4,Minion>Archer>Warrior>Minion,0.5697,0.5,0.375,1.0,4,100;33;20;45,3,menang,
+3,3,Archer>Warrior>Minion,0.6819,0.6667,0.1667,1.0,3,44;51;76,3,menang,

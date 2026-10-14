@@ -1179,6 +1179,10 @@ def finish_queue_director(state, player, npc, game_map):
         potions=3, cap=cap, cfg=cfg)
     show_toast(state, f"Antrean siap: {result.queue.order_str()} "
                       f"(gap {result.gap:.2f}). Bersiap duel!", ok=True)
+    if getattr(result, "capped", False):
+        from game.ambush.governor import ceiling_label
+        show_toast(state, ceiling_label(result.queue.order_str()),
+                   ok=False, ttl=4.0)
     start_queue_duel(state, player, npc, game_map)
 
 
@@ -1362,6 +1366,11 @@ def ambush_view(state):
         except (TypeError, ValueError):
             honest = ""
     seed_queue = getattr(director, "last_queue_start", None)
+    ceiling = ""
+    if getattr(result, "capped", False):
+        from game.ambush.governor import ceiling_label
+        order = queue.order_str() if queue is not None else ""
+        ceiling = ceiling_label(order)
     return build_view(tracer, {
         "phase": d["phase_label"],
         "status": d["status"],
@@ -1392,6 +1401,7 @@ def ambush_view(state):
         "sim_gap": "",
         "target_tol": tol,
         "honest": honest,
+        "ceiling": ceiling,
         "compare": state.get("compare"),
     })
 

@@ -34,7 +34,10 @@ def q(*pairs) -> EnemyQueue:
 def test_config_defaults():
     assert CFG.mode == "SEQUENTIAL"
     assert CFG.min_enemies == 2 and CFG.kmax == 4
-    assert CFG.rest_heal_pct == 0.25  # Tahap-A S terkunci
+    assert CFG.rest_heal_pct == 0.15  # Diagnosis disetujui
+    assert CFG.enemy_base_hp == 70  # darah dasar musuh (player tetap 100)
+    assert CFG.refill_potions_each_duel is True  # heal penuh tiap lawan
+    assert CFG.governor_max_target == 0.80  # plafon opsi C (.40-.80)
     assert CFG.npc_potions_carry is False
     assert CFG.light_sim_enabled is True  # objektif LS (Fase 4)
     assert CFG.light_sim_games == 4
@@ -43,6 +46,39 @@ def test_config_defaults():
     assert CFG.rerank_M == 2 and CFG.chain_rerank_games == 4
     assert CFG.budget_q_for(0.5) == 12  # 8 + round(0.5*8)
     assert CFG.budget_q_for(0.3) == 10 and CFG.budget_q_for(0.8) == 14
+
+
+def test_balance_freeze():
+    """BALANCE FREEZE: seluruh default terkunci (ubah = butuh persetujuan).
+
+    Nilai + tanggal/commit di docs/balance.md. Tes ini gagal bila ada yang
+    menggeser default diam-diam (hanya bug nyata / uji main manual).
+    """
+    from game.ambush.types import ITEM_TABLE, ROLE_TABLE
+    assert (CFG.rest_heal_pct, CFG.npc_starting_potions,
+            CFG.enemy_base_hp, CFG.refill_potions_each_duel) == \
+        (0.15, 1, 70, True)
+    assert (CFG.gov_min, CFG.governor_max_target) == (0.40, 0.80)
+    assert (CFG.base_q, CFG.budget_q_scale) == (8, 8)
+    assert CFG.boss_min_wins == 3
+    locked_roles = {
+        "Minion": (-50, -9, 0, 0, 0.0, 0, 0.0, 1),
+        "Warrior": (10, 2, 0, 0, 0.0, 0, 0.0, 3),
+        "Archer": (6, 3, 0, 0, 0.0, 1, 0.0, 3),
+        "Mage": (2, 1, 7, 0, 0.0, 0, 0.10, 4),
+        "Healer": (-15, 1, 0, 2, 0.0, 0, 0.0, 3),
+        "Tank": (4, 2, 0, 0, 0.05, 0, 0.0, 4),
+        "Boss": (6, 2, 4, 0, 0.05, 0, 0.0, 7),
+    }
+    for name, (hp, atk, spec, regen, armor, chip, weaken, cost) in \
+            locked_roles.items():
+        s = ROLE_TABLE[name]
+        assert (s.hp, s.atk, s.spec, s.regen, s.armor, s.chip, s.weaken,
+                s.cost) == (hp, atk, spec, regen, armor, chip, weaken,
+                             cost), name
+    fang, charm = ITEM_TABLE["Dragon Fang"], ITEM_TABLE["Healing Charm"]
+    assert (fang.atk, fang.spec, fang.cost) == (1, 1, 3)
+    assert (charm.regen, charm.cost) == (1, 1)
 
 
 def test_valid_queue():
@@ -518,7 +554,7 @@ def test_potion_bonus_default_zero():
     """Default potion murni terbawa (bonus hanya pembanding eksplisit)."""
     assert CFG.potion_bonus_per_duel == 0
     assert CFG.enemy_stat_scale == 1.0
-    assert CFG.rest_heal_pct == 0.25  # Tahap-A S terkunci
+    assert CFG.rest_heal_pct == 0.15  # Diagnosis disetujui
 
 
 
@@ -809,11 +845,11 @@ def test_queue_run_flow():
     """ENEMY_1 -> transisi -> ENEMY_2 ...; menang/kalah tercatat benar."""
     run = _qrun(k=3)
     assert run.duel_label() == "MUSUH 1/3"
-    assert run.record(62, 2, True) == "next"  # APPLY rest di sini (+25)
-    assert (run.idx, run.hp, run.potions) == (1, 87, 3)  # potion isi penuh
+    assert run.record(62, 2, True) == "next"  # APPLY rest di sini (+15)
+    assert (run.idx, run.hp, run.potions) == (1, 77, 3)  # potion isi penuh
     assert run.duel_label() == "MUSUH 2/3"
-    assert run.record(40, 1, True) == "next"  # 40+25=65
-    assert run.hp == 65
+    assert run.record(40, 1, True) == "next"  # 40+15=55
+    assert run.hp == 55
     assert run.record(0, 0, False) == "failed"
     assert run.failed_at == 2
     assert run.progress() == 2 / 3
@@ -1364,14 +1400,14 @@ def test_rest_driver_sim_same_value():
     """Rest via apply_rest: driver QueueRun == simulator ChainSim/Light."""
     from game.ambush.chain_eval import apply_rest
     from game.ambush.flow.queue_driver import QueueRun
-    assert apply_rest(42, 100, 0.25) == 67
-    assert apply_rest(0, 100, 0.25) == 0
+    assert apply_rest(42, 100, 0.15) == 57
+    assert apply_rest(0, 100, 0.15) == 0
     run = QueueRun(queue=q(("Warrior", EMPTY), ("Mage", EMPTY)), buffs=[],
                    target=0.5, pred_light=0.5, pred_full=None, hp=42,
                    potions=3, cap=100, cfg=CFG)
-    # pct default Tahap-A 0.25 -> HP dipulihkan via helper (bukan mentah).
-    assert run.cfg.rest_heal_pct == 0.25
-    assert run.record(42, 2, True) == "next" and run.hp == 67  # 42+25
+    # pct default diagnosis 0.15 -> HP dipulihkan via helper (bukan mentah).
+    assert run.cfg.rest_heal_pct == 0.15
+    assert run.record(42, 2, True) == "next" and run.hp == 57  # 42+15
 
 
 def test_enemy_base_hp_70():

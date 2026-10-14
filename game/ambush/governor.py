@@ -1,7 +1,9 @@
 """game/ambush/governor.py - Target difficulty adaptif dari riwayat battle.
 
 Naik bila player menang (apalagi telak/beruntun), turun bila sering kalah,
-dijepit [gov_min, gov_max]. Memegang riwayat (outcome, margin) untuk overlay.
+dijepit [gov_min, governor_max_target] (plafon terbukti Director 0.80;
+gov_max hanya pengaman absolut). Memegang riwayat (outcome, margin) untuk
+overlay.
 """
 from __future__ import annotations
 
@@ -27,7 +29,7 @@ class DifficultyGovernor:
         self._clamp()
 
     def _clamp(self) -> None:
-        self.target = min(self.cfg.gov_max,
+        self.target = min(self.cfg.gov_max, self.cfg.governor_max_target,
                           max(self.cfg.gov_min, self.target))
 
     last_progress: float = 1.0  # progres antrean terakhir (Fase 5)
@@ -87,3 +89,21 @@ def honest_gap_label(best_gap: float, tol: float) -> str:
         return f"pas target (gap {best_gap:.3f})"
     return (f"target di luar jangkauan, hasil terbaik: gap {best_gap:.3f} "
             f"(tol {tol:.3f})")
+
+
+def cap_target(cfg: AmbushConfig, target: float):
+    """Jepit permintaan target ke plafon terbukti Director.
+
+    Kembali (efektif, diminta, di_cap): di_cap True bila permintaan melebihi
+    governor_max_target (0.80). Pemanggil memakai target efektif untuk
+    pencarian/budget dan menampilkan ceiling_label() bila di_cap.
+    """
+    cap = cfg.governor_max_target
+    if target is not None and target > cap:
+        return cap, target, True
+    return target, target, False
+
+
+def ceiling_label(order: str) -> str:
+    """Label jujur plafon (spesifikasi): antrean tersulit + urutannya."""
+    return f"target di atas plafon, antrean tersulit: {order}"

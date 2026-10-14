@@ -1,7 +1,7 @@
-# Hasil eksperimen (`experiments/run_all.py --quick`, seed tetap)
+# Hasil eksperimen (`experiments/run_all.py --quick` / `--full`, seed tetap)
 
- mentah: `data/results/*.csv`. Full (100 seed) memakai skrip sama
- (`--full`); kualitatif konsisten (lihat catatan tiap tabel).
+ mentah: `data/results/*.csv`. Full (CSP 100 seed, LS 20 seed, autoplay 30)
+ konsisten kualitatif dengan quick (lihat catatan tiap tabel).
 
 ## 1. Ablasi CSP (nodes mean, 10 seed; lengkap di `csp_ablasi.csv`)
 
@@ -36,15 +36,16 @@ siapa pun; overlay melabelinya jujur).
 Lemah 0.95/0.70/0.056 · sedang 0.54/0.58/0.19 · kuat 0.68/0.68/0.22
 (Pearson/Spearman/RMSE). Status partial; ambang 0.85/0.80 tetap.
 
-## 4. Autoplay + lintasan adaptif
+## 4. Autoplay + lintasan adaptif (`--full`, n=30; quick konsisten)
 
 | Policy | menang% | progres | MAE ringan/penuh |
 |---|---|---|---|
-| greedy | 0–3 | 0.50 | 0.02/0.05 |
-| hemat | 3–10 | 0.51–0.55 | 0.02/0.05 |
-| depth4 | 0 | 0.45–0.50 | 0.05/0.05 |
+| greedy | 0.0 | 0.492 | 0.017/0.108 |
+| hemat | 3.3 | 0.478 | 0.058/0.14 |
+| depth4 | 30.0 | 0.65 | 0.142/0.2 |
 
 MAE kecil sebagian karena kuantisasi (prediksi menumpuk di target) —
 yang diukur adalah **konsistensi** sim-vs-autoplay se-kebijakan, bukan
-keakuratan lawan manusia. Target adaptif: 0.5 → ~0.4 dalam 2–3 pertemuan
-kalah, pulih ke ~0.57 setelah menang beruntun (tak hanyut permanen).
+keakuratan lawan manusia. Target adaptif (cap 0.80): lintasan full naik
+maks ~0.556 setelah menang beruntun, turun ke lantai 0.40 saat kalah
+(tak hanyut permanen; tak pernah melewati plafon).

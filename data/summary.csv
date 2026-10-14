@@ -1,2 +1,4 @@
 run_id,algo,heuristik,nodes_iter,waktu_ms,skor_akhir,jarak_ke_target,alasan_berhenti
-1,random_restart,mrv=True deg=True lcv=True infer=ac3,1,2101.36,0.5,0.0,target
+1,random_restart,mrv=True deg=True lcv=True infer=ac3,1,2395.13,0.5,0.0,target
+2,random_restart,mrv=True deg=True lcv=True infer=ac3,50,3988.85,0.5,0.0697,plateau
+3,random_restart,mrv=True deg=True lcv=True infer=ac3,2,3260.28,0.6667,0.0152,target

@@ -29,8 +29,9 @@ class AmbushConfig:
     mode: str = "SEQUENTIAL"  # "BUFF" = perilaku lama (1 NPC lead);
                               # "SEQUENTIAL" = antrean k musuh (default)
     min_enemies: int = 2      # antrean valid minimal 2 musuh aktif
-    rest_heal_pct: float = 0.25  # Tahap-A S: pulih antar-duel (terkecil yang
-                                 # membuat rantai termenangkan; K5 tetap >=10%)
+    rest_heal_pct: float = 0.15  # Disetujui diagnosis: satu-satunya tuas kecil
+                                 # yang menggeser kedua kebijakan (gagal greedy
+                                 # 31->39%, d4 14->25%) tanpa ubah rasa 1v1
     npc_potions_carry: bool = False  # True = potion musuh ikut terbawa
                                      # (default False = musuh segar)
     npc_starting_potions: int = 1  # potion awal TIAP musuh (anti-stall rantai;
@@ -146,7 +147,12 @@ class AmbushConfig:
     # terjangkau (maks 1.7% sampel dalam +-0.15 di semua tuas); 0.40 adalah
     # kelipatan 0.05 terendah dengan >=10% (14.7% pada loadout sedang).
     gov_min: float = 0.40      # batas bawah terjangkau (bukan tebakan)
-    gov_max: float = 0.95      # batas atas (jangan mustahil)
+    gov_max: float = 0.95      # batas atas absolut (pengaman, bukan target)
+    # Plafon terbukti Director (opsi C disetujui): 0.80 vs 0.95 identik dalam
+    # noise karena constraint budget membatasi difficulty maks ~0.75-0.81.
+    # Governor dijepit [gov_min, governor_max_target]; permintaan di atasnya
+    # dijawab antrean tersulit + label jujur (bukan target lebih tinggi).
+    governor_max_target: float = 0.80
     # Siklus tombol C (Fase 4+): nilai terendah yang terbukti, lalu 0.5/0.8;
     # ADAPTIF ditambahkan driver saat runtime (bukan di sini).
     target_cycle: tuple = (0.40, 0.50, 0.80)

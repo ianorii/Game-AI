@@ -112,6 +112,8 @@ class QueueDirectorResult:
     gap_full: float = 0.0             # |sim - target| pilihan final
     clear_rate: Optional[float] = None      # P(menang semua) utk governor
     per_duel: Optional[list] = None  # (hp_masuk, p_win, hp_keluar)/posisi
+    capped: bool = False  # True bila target diminta > plafon (opsi C)
+    requested_target: float = 0.0  # target asli sebelum dijepit plafon
 
 
 def _queue_light(cfg: AmbushConfig, player, base_seed: int) -> ChainLightSim:
@@ -209,7 +211,9 @@ class QueueDirectorMixin:
     def plan_queue(self, wins: int, target: float, player=None,
                    demo: bool = False) -> QueueDirectorResult:
         """Jalur instant/blocking (dipompa-tuntas == run_gen_queue)."""
+        from game.ambush.governor import cap_target
         cfg = self.cfg
+        target, requested, capped = cap_target(cfg, target)
         budget = cfg.budget_q_for(target)
         squads = self._queue_seeds(wins, budget)
         if not squads:  # darurat (tak terjadi di 60/60 uji): Warrior x2
@@ -231,7 +235,8 @@ class QueueDirectorMixin:
                        games=cfg.chain_rerank_games)
         result = self._finalize_queue(winner, res, wins, budget, target,
                                       seed_gap, seed_mode, sim, prefilter,
-                                      player)
+                                      player, capped, requested)
+        # ^^^ pemanggil plan_queue + run_gen_queue (keduanya menjepit target)
         self.last_queue_result = result
         if self.tracer is not None:
             self.tracer.emit("director_done", gap=result.gap, target=target,
@@ -243,7 +248,9 @@ class QueueDirectorMixin:
     def run_gen_queue(self, wins: int, target: float, player=None,
                       demo: bool = False):
         """Versi resumable: event CSP + LS di-yield per langkah."""
+        from game.ambush.governor import cap_target
         cfg = self.cfg
+        target, requested, capped = cap_target(cfg, target)
         budget = cfg.budget_q_for(target)
         gen = self._queue_seeds_gen(wins, budget)
         squads: List[EnemyQueue] = []
@@ -289,7 +296,8 @@ class QueueDirectorMixin:
                        games=cfg.chain_rerank_games)
         result = self._finalize_queue(winner, res, wins, budget, target,
                                       seed_gap, seed_mode, sim, prefilter,
-                                      player)
+                                      player, capped, requested)
+        # ^^^ pemanggil plan_queue + run_gen_queue (keduanya menjepit target)
         self.last_queue_result = result
         if self.tracer is not None:
             self.tracer.emit("director_done", gap=result.gap, target=target,
@@ -301,7 +309,9 @@ class QueueDirectorMixin:
 
     def _finalize_queue(self, winner, res, wins, budget, target, seed_gap,
                         seed_mode, sim, prefilter,
-                        player) -> QueueDirectorResult:
+                        player, capped: bool = False,
+                        requested: Optional[float] = None
+                        ) -> QueueDirectorResult:
         from game.ambush.difficulty import difficulty_gap as _gap
         cfg = self.cfg
         light = _queue_light(cfg, player, self.base_seed)
@@ -345,7 +355,9 @@ class QueueDirectorMixin:
             sim_difficulty=sim.evaluate(winner),
             sim_entries=list(getattr(sim, "last_entries", []) or []),
             gap_full=difficulty_gap(sim.evaluate(winner), target),
-            clear_rate=sim.clear_rate(winner), per_duel=per_duel)
+            clear_rate=sim.clear_rate(winner), per_duel=per_duel,
+            capped=capped,
+            requested_target=target if requested is None else requested)
 
 
 @dataclass
@@ -368,6 +380,8 @@ class DirectorResult:
     ls_rejected: int
     evaluator_name: str
     sim_difficulty: Optional[float] = None  # validasi simulasi (rerank)
+    capped: bool = False  # True bila target diminta > plafon (opsi C)
+    requested_target: float = 0.0  # target asli sebelum dijepit plafon
 
 
 class AmbushDirector(QueueDirectorMixin):
@@ -403,7 +417,9 @@ class AmbushDirector(QueueDirectorMixin):
     # -- blocking (instant gameplay + eksperimen) ----------------------
     def plan(self, wins: int, target: float) -> DirectorResult:
         """Jalankan seluruh alur sekaligus; kembalikan hasil terverifikasi."""
+        from game.ambush.governor import cap_target
         cfg = self.cfg
+        target, requested, capped = cap_target(cfg, target)
         budget = cfg.budget_for(target)
         problem = squad_problem(wins, budget, cfg)
 
@@ -440,7 +456,7 @@ class AmbushDirector(QueueDirectorMixin):
             winner = start
         sim_diff = self._sim_validate(winner, target)
         result = self._finalize(winner, sim_diff, res, wins, budget,
-                                target, seed_gap)
+                                target, seed_gap, capped, requested)
         self.last_result = result
         if self.tracer is not None:
             self.tracer.emit("director_done", gap=result.gap,
@@ -481,7 +497,9 @@ class AmbushDirector(QueueDirectorMixin):
 
     def _finalize(self, winner: SquadConfig,
                   sim_diff: Optional[float], res, wins: int, budget: int,
-                  target: float, seed_gap: float) -> DirectorResult:
+                  target: float, seed_gap: float,
+                  capped: bool = False,
+                  requested: Optional[float] = None) -> DirectorResult:
         cfg = self.cfg
         difficulty = self.heuristic.evaluate(winner)
         gap = difficulty_gap(difficulty, target)
@@ -498,12 +516,16 @@ class AmbushDirector(QueueDirectorMixin):
             evaluator_name=("simulation(rerank)" if sim_diff is not None
                             else "heuristic"),
             sim_difficulty=sim_diff,
+            capped=capped,
+            requested_target=target if requested is None else requested,
         )
 
     # -- generator (mode slow/step: pompa per frame/tombol) ------------
     def run_gen(self, wins: int, target: float):
         """Sama seperti plan() tetapi event CSP di-yield satu per satu."""
+        from game.ambush.governor import cap_target
         cfg = self.cfg
+        target, requested, capped = cap_target(cfg, target)
         budget = cfg.budget_for(target)
         problem = squad_problem(wins, budget, cfg)
         squads: List[SquadConfig] = []
@@ -542,7 +564,8 @@ class AmbushDirector(QueueDirectorMixin):
             winner = start
         sim_diff = self._sim_validate(winner, target)
         self.last_result = self._finalize(winner, sim_diff, res, wins,
-                                          budget, target, seed_gap)
+                                          budget, target, seed_gap,
+                                          capped, requested)
         gap, verified = self.last_result.gap, self.last_result.verified
         if self.tracer is not None:
             self.tracer.emit("director_done", gap=gap, target=target,

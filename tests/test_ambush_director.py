@@ -37,11 +37,52 @@ def test_governor_up_down_clamp():
     assert down < up
     for _ in range(30):
         gov.update("player", 1.0)
-    assert gov.target <= CFG.gov_max  # dijepit atas
+    assert gov.target <= CFG.governor_max_target  # plafon opsi C
     for _ in range(60):
         gov.update("npc", 1.0)
     assert gov.target >= CFG.gov_min  # dijepit bawah
     assert len(gov.history) > 0
+
+
+def test_governor_never_exceeds_ceiling_40_wins():
+    """Opsi C: menang-terus 40x menempel di plafon 0.80, tak lebih."""
+    gov = DifficultyGovernor(CFG)
+    peak = gov.target
+    for _ in range(40):
+        peak = max(peak, gov.update("player", 0.5, progress=1.0,
+                                    failed_at=None))
+    assert peak <= CFG.governor_max_target
+    assert gov.target == CFG.governor_max_target  # plateau, bukan hanyut
+
+
+def test_above_ceiling_honest_label_and_hardest_queue():
+    """Target 0.95 -> di-cap 0.80 + label jujur + antrean tetap tersulit."""
+    from game.ambush.enemy_queue import is_queue_valid
+    from game.ambush.governor import ceiling_label
+    director = AmbushDirector(CFG, DifficultyGovernor(CFG), base_seed=11)
+    res = director.plan_queue(0, 0.95)
+    assert res.capped is True
+    assert res.requested_target == 0.95 and res.target == 0.80
+    assert is_queue_valid(res.queue, 0, CFG.budget_q_for(0.80), CFG)
+    assert res.queue.k() >= 2
+    assert ceiling_label(res.queue.order_str()) == (
+        "target di atas plafon, antrean tersulit: "
+        f"{res.queue.order_str()}")
+    # Tanpa cap (0.80) tidak berlabel.
+    res2 = AmbushDirector(CFG, DifficultyGovernor(CFG),
+                          base_seed=11).plan_queue(0, 0.80)
+    assert res2.capped is False
+
+
+def test_target_050_vs_080_differ():
+    """0.50 vs 0.80 menghasilkan antrean berbeda (kriteria iii)."""
+    gov = DifficultyGovernor(CFG)
+    a = AmbushDirector(CFG, gov, base_seed=21).plan_queue(0, 0.50)
+    b = AmbushDirector(CFG, gov, base_seed=21).plan_queue(0, 0.80)
+    assert (a.queue.key() != b.queue.key()
+            or abs(a.light - b.light) > 1e-9), (a.queue.order_str(),
+                                                b.queue.order_str(),
+                                                a.light, b.light)
 
 
 def test_director_plan_verified():
@@ -106,6 +147,30 @@ def test_build_view_keys():
                 "best", "rejected", "history", "squad"):
         assert key in view, key
     assert len(view["history"]) >= 0
+
+
+def test_overlay_ceiling_label_draws():
+    """Label plafon tampil di overlay + HUD review tanpa crash (opsi C)."""
+    import os
+    os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
+    import pygame
+    pygame.init()
+    from game.ambush.governor import ceiling_label
+    from game.ambush.overlay_ambush import AmbushDebugOverlay, build_view
+    from game.ambush.trace import TraceBuffer
+    tr = TraceBuffer()
+    label = ceiling_label("Archer>Mage>Boss")
+    assert label == ("target di atas plafon, antrean tersulit: "
+                     "Archer>Mage>Boss")
+    view = build_view(tr, {"phase": "Selesai", "status": "selesai",
+                           "ls_algo": "hill_climbing", "target": 0.80,
+                           "target_label": "0.95", "ceiling": label})
+    assert view["ceiling"] == label
+    screen = pygame.display.set_mode((1280, 720))
+    font = pygame.font.SysFont("consolas", 14)
+    ov = AmbushDebugOverlay()
+    ov.view = view
+    ov.draw(screen, font)  # tak crash
 
 
 if __name__ == "__main__":

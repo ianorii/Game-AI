@@ -254,6 +254,7 @@ def build_view(tracer: TraceBuffer, ctx: dict) -> dict:
         "per_duel": ctx.get("per_duel"),
         "sim_hp_in": sim_hp_in,
         "honest": ctx.get("honest", ""),
+        "ceiling": ctx.get("ceiling", ""),
         "event_log": event_log(tracer),
         "compare": ctx.get("compare"),
     }
@@ -430,6 +431,8 @@ class AmbushDebugOverlay:
                   f"(selisih {_diff_str(v)})", TEXT))
         if v.get("honest"):
             R.append(("LS", "", v["honest"], YELLOW))
+        if v.get("ceiling"):
+            R.append(("LS", "", v["ceiling"], YELLOW))
         per, hp_in = v.get("per_duel"), v.get("sim_hp_in") or []
         if per:
             R.append(("LS", "", "--- PER POSISI (urutan penting) ---",

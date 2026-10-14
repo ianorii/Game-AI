@@ -1,15 +1,15 @@
-# Ringkasan run_all --quick
-2026-10-13
+# Ringkasan run_all --full
+2026-10-14
 
 ## Waktu (detik)
-- csp: 2s
-- ls: 144s
+- csp: 26s
+- ls: 456s
 - fidelity: 0s
-- autoplay: 37s
+- autoplay: 68s
 
 ## Autoplay
 | policy | menang% | progres | MAE ringan | MAE penuh |
 |---|---|---|---|---|
-| greedy | 0.0 | 0.5 | 0.0 | 0.0 |
-| conserve | 10.0 | 0.55 | 0.05 | 0.05 |
-| depth4 | 0.0 | 0.5 | 0.0 | 0.0 |
+| greedy | 0.0 | 0.492 | 0.017 | 0.108 |
+| conserve | 3.3 | 0.478 | 0.058 | 0.14 |
+| depth4 | 30.0 | 0.65 | 0.142 | 0.2 |

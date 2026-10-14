@@ -40,7 +40,7 @@ Siapkan: `python main.py`, musuh sudah muncul (tunggu ~8 dtk), F3 siap.
 - Enter → **MUSUH 1/k** (judul + strip `1 > … | 2 …`). Menangkan duel
   (atau mainkan), saksikan **TRANSISI** ("MUSUH #2 MAJU - HP x/y"),
   duel berikut HP/potion terbawa. Tekan H untuk HUD.
-- Tunjuk log pemicu buff ("Healer NPC memulihkan 3 HP") + panel berkedip.
+- Tunjuk log pemicu buff ("Healer NPC memulihkan 2 HP") + panel berkedip.
 - Kalah/menang → EXPLORE; `data/battle_result.csv` bertambah 1 baris.
 
 ## 6:00 — CSV (0,5 mnt)
@@ -61,10 +61,9 @@ Siapkan: `python main.py`, musuh sudah muncul (tunggu ~8 dtk), F3 siap.
    peringkat lumayan (pairwise 0.75–0.93) tapi skala tak dipercaya.
 5. **Mengapa crossover valid?** Kromosom per-slot berurutan; single-point
    antar-slot memindahkan blok anggota utuh (koherensi + urutan).
-6. **Mengapa target 0.3 tak terjangkau?** Lantai struktural: carry
-   (musuh segar + potion terbawa + rest 0) membuat sapuan penuh hampir
-   mustahil; wilayah Minion-padat terlalu tipis (<10% sampel). Diganti
-   0.40 berbasis data (14,7%).
+6. **Mengapa target 0.3 tak dibuka?** Cakupan 3–12% (tertinggi 11.7% hanya via
+   loadout lemah) < syarat 10% pada sedang; `gov_min` tetap 0.40. Dulu
+   lantainya struktural (carry + rest 0); kini datanya di atas.
 7. **Apa arti progres 0.5?** Rata-rata fraksi duel dimenangkan (bukan
    peluang sapu-bersih); biner dicatat terpisah.
 8. **Kapan CSP cukup vs LS perlu?** Seed dalam toleransi → LS dilewati
@@ -73,3 +72,16 @@ Siapkan: `python main.py`, musuh sudah muncul (tunggu ~8 dtk), F3 siap.
    (batas 3 dtk); sim penuh hanya rerank.
 10. **Validasi lawan manusia?** Belum — MAE terhadap pemain simulasi
     (tertulis di README); target adaptif memakai progres agar adil.
+11. **Mengapa governor di-cap 0.80?** Plafon terbukti ~0.75–0.81: 0.80 vs
+    0.95 identik dalam noise (tanpa Boss tak ada yang lebih sulit).
+    Win-streak menempel di 0.80 + label jujur bila diminta lebih.
+12. **Mengapa Boss tidak dilunakkan lagi?** Rantai berakhir-Boss acak
+    prog .58–.70 (lebih mudah dari keluaran Director .25) — Boss bukan
+    penahan puncak; antrean biasa yang menentukan. Boss tetap terakhir.
+13. **Hemat vs greedy?** Identik sejak refill penuh (cadangan selalu penuh);
+    dicatat jujur, tidak dipisahkan paksa.
+14. **Mengapa clear penuh rendah padahal target 0.5?** Target = progres
+    ("menang ~separuh duel"), bukan peluang sapu-bersih; duel dasar
+    knife-edge (pemenang ~90% HP hilang) membuat sapu-bersih langka.
+    Itu konsekuensi wajar + sensitif sustain (rest −10pp ≈ clear −.50
+    di level Director).

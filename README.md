@@ -122,7 +122,7 @@ cukup baik: pairwise 0,75–0,93), **heuristik** hanya pra-penyaring,
 ## Tes & eksperimen
 
 ```bash
-for t in tests/test_ambush_*.py; do python3 $t; done   # 98 tes
+for t in tests/test_ambush_*.py; do python3 $t; done   # 114 tes
 python3 experiments/run_all.py --quick    # beberapa menit
 python3 experiments/run_all.py --full     # lama (100 seed)
 python3 experiments/screens.py            # screenshot docs/screens/
@@ -140,8 +140,20 @@ python3 experiments/screens.py            # screenshot docs/screens/
   (dari data: 0.40 = kelipatan 0.05 terendah dengan 14,7%).
 - **Target = progres** (rata-rata fraksi duel dimenangkan), bukan peluang
   sapu-bersih; biner dicatat terpisah untuk governor/CSV.
+- **Kriteria clear direvisi (disetujui pasca-diagnosis)**: target lama
+  (25-40% depth-4 @0.50) ditulis sebelum data nyata dan tidak dikejar —
+  clear bergantung kebijakan pemain dan se ~0.14 pada N kecil. Kriteria baru:
+  (i) tidak jenuh: clear penuh < 90% @0.50 untuk kedua kebijakan;
+  (ii) >= 10% antrean gagal (progres <= 0.5) pada tiap loadout;
+  (iii) Director dapat membedakan target (0.8 vs 0.95 tidak identik).
+- **Hemat identik dengan greedy** (temuan jujur): refill penuh membuat
+  cadangan potion selalu penuh sehingga veto hemat tak pernah mengikat;
+  tidak dipisahkan paksa.
 - **MAE terhadap pemain simulasi** (greedy/depth-4/hemat), bukan manusia.
 - **Rest & potion+1 tak berpengaruh** pada jangkauan (terukur ~nol).
+- **Potion player diisi penuh tiap ganti lawan** (`refill_potions_each_duel`,
+  berbeda dari rencana awal "terbawa"; sim == driver via `carry_potions()`,
+  ada tesnya). Darah dasar musuh 70 (`ENEMY_BASE_HP`, player tetap 100).
 - **Bias Healer** (−0.55 heuristik, −0.07 ringan): regen+potion musuh
   sulit dimodelkan murah.
 - **Perjalanan keputusan**: label biner jenuh → progres; bug rest
@@ -149,3 +161,25 @@ python3 experiments/screens.py            # screenshot docs/screens/
   tuduhan "cache basi" dicabut setelah audit (salah label arsip M1/M3 —
   kunci cache tetap dikeraskan + 4 tes); M1 = stat dasar (bukan
   "terlemah") → M3 (−50% HP/ATK) terpilih dari data.
+- **Sensitif sustain**: rest 25% → 15% menurunkan clear depth-4 @0.50 dari
+  ~0.50 ke ~0.00 (n=8 vs n=12, Fisher p~0.02), sementara progres aktual
+  ~0.42-0.50 mendekati target 0.50. Target progres 0.5 = "menang ~separuh
+  duel", jadi clear penuh yang rendah adalah konsekuensi wajar — bukan bug.
+  Akarnya duel dasar tahap 2 yang knife-edge (pemenang kehilangan ~90% HP).
+- **Plafon Director ~0.75-0.81** karena batas constraint (budget), bukan
+  pencarian: 0.80 vs 0.95 identik dalam noise; opsi A (Boss untuk target
+  tinggi: antrean-Boss prog .58-.70, lebih mudah dari keluaran .25) dan
+  opsi B (jalur tersulit valid: tak mengalahkan keluaran Director untuk
+  depth-4) diuji dan ditolak dengan datanya. Governor di-cap 0.80 + label
+  jujur "target di atas plafon, antrean tersulit: {urutan}".
+- **Boss tak lebih sulit dari antrean biasa** pada praktiknya (rantai
+  berakhir-Boss acak prog ~0.58-0.70 vs keluaran Director ~0.25);
+  keterbatasan yang dicatat, bukan diperbaiki (Boss-tetap-terakhir).
+- **Hemat ≡ greedy** (refill penuh → cadangan selalu penuh; tidak dipisahkan
+  paksa). **0.30 tidak dibuka** (3-12% < syarat 10% pada sedang; hanya lemah
+  11.7%). Potion player isi-penuh tiap duel dan HP terbawa. MAE terhadap
+  pemain simulasi, bukan manusia.
+- **Metodologi**: paket tuning absolut-tak-kumulatif (run R2/R3-paket =
+  hibrida, dilabeli; keputusan dari ukur-di-kode-terkunci); bug harness
+  `is_queue_valid` (bool dipakai sebagai daftar) ditemukan dan dikoreksi
+  sebelum menyimpulkan opsi B; selisih dalam noise tidak dijadikan alasan.

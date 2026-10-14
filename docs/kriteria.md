@@ -16,14 +16,14 @@ gambar `docs/screens/*.png`, data `data/*.csv`, laporan `docs/hasil.md`.
 | Dituntut | Bukti |
 |---|---|
 | Target progres | Objective `1 − E[duel_menang/k]` (`chain_eval.py`); label overlay "target 0.50 (menang ~separuh duel)" |
-| Difficulty adaptif | `governor.py:update()` memakai progres (kalah tipis menurunkan sedikit); lintasan 40 pertemuan di `docs/hasil.md` |
+| Difficulty adaptif | `governor.py:update()` memakai progres (kalah tipis menurunkan sedikit); menang-terus plateau di plafon 0.80, kalah-terus di lantai 0.40 (40 pertemuan, sintetis + rantai autoplay) |
 
 ## c. CSP (X, D, C, algoritma, complete + consistent)
 
 | Dituntut | Bukti |
 |---|---|
 | X eksplisit | `ROLE_1..4`, `ITEM_1..4` (`constraints.py:variable_names`) |
-| D (boleh beda per slot) | `build_domains`: Boss hanya slot 1, Minion hanya SEQUENTIAL |
+| D (boleh beda per slot) | `build_domains`: BUFF: Boss hanya slot 1 (lead); SEQUENTIAL: Boss di slot AKTIF terakhir; Minion hanya SEQUENTIAL |
 | C unary | Boss butuh wins; ROLE NONE ⇒ ITEM NONE |
 | C binary | Maks 1 Healer; matriks kompatibilitas; canonical tanpa-lubang; Boss-terakhir; larangan Healer/Tank berturutan |
 | C global | AllDifferent item (pairwise `!=` di `pair_ok`); budget; min-2 aktif |
@@ -53,7 +53,7 @@ gambar `docs/screens/*.png`, data `data/*.csv`, laporan `docs/hasil.md`.
 
 ## f. Debug overlay angka-angka
 
-Isi (semua dari trace yang sama dengan CSV — ada tesnya): header fase/algo/pump/seed-mode/target/kalibrasi; LOG KEJADIAN 6 baris (✓/X, contoh di `docs/ambush.md`); CSP (nodes/backtrack/prune/ms, var+alasan, domain sebelum→sesudah, LCV, AC-3 queue/arc/hapus, pra-AC-3); LS (iter/cur/best, sideways, restart, SA T/dE/p/u + langkah-buruk, GA fit, penolakan + alasan, alasan berhenti); sebelum-vs-sesudah + sparkline + garis target; ringan/sim + selisih + label jujur; per-posisi; perbandingan bertahap; kontrol per fase. Tombol: F3 T TAB F4 Spasi C X G Enter H. Bukti visual: `docs/screens/fase-*.png` (7 file).
+Isi (semua dari trace yang sama dengan CSV — ada tesnya): header fase/algo/pump/seed-mode/target/kalibrasi/plafon; LOG KEJADIAN 6 baris (✓/X, contoh di `docs/ambush.md`); CSP (nodes/backtrack/prune/ms, var+alasan, domain sebelum→sesudah, LCV, AC-3 queue/arc/hapus, pra-AC-3); LS (iter/cur/best, sideways, restart, SA T/dE/p/u + langkah-buruk, GA fit, penolakan + alasan, alasan berhenti); sebelum-vs-sesudah + sparkline + garis target; ringan/sim + selisih + label jujur (+ label plafon bila target > 0.80); per-posisi; perbandingan bertahap; kontrol per fase. Tombol: F3 T TAB F4 Spasi C X G Enter H. Bukti visual: `docs/screens/fase-*.png` (7 file).
 
 ## g. Kompetensi slide (satu baris + bukti)
 
@@ -69,6 +69,17 @@ Isi (semua dari trace yang sama dengan CSV — ada tesnya): header fase/algo/pum
 
 1. **Per-posisi p_win** butuh prefilter heuristik terkalibrasi; tanpanya overlay menampilkan HP-masuk sim saja (dilabeli). Penyebab: kalibrasi heuristik partial (di bawah).
 2. **Kalibrasi heuristik partial** (Pearson 0.54–0.64 < 0.85): heuristik turun jadi pra-penyaring; objektif = sim ringan. Status tampil di overlay.
-3. **Target 0.3 tak terjangkau** (≤7,7% sampel): diganti 0.40 berbasis data; `gov_min=0.40`; label jujur bila di luar jangkauan.
-4. **Tab ALL di 720p** masih memotong daftar panjang (kontrol + sparkline disematkan; detail di tab CSP/LS/CMP).
-5. Validasi lawan manusia belum ada (MAE terhadap pemain simulasi saja).
+3. **Target 0.3 tak dibuka** (3–12% sampel, tertinggi 11.7% via loadout lemah
+   < syarat 10% pada sedang): `gov_min=0.40`, siklus C 0.40/0.50/0.80/ADAPTIF;
+   label jujur bila di luar jangkauan.
+4. **Plafon Director ~0.75–0.81** (terukur, bukan teori): 0.80 vs 0.95 identik
+   dalam noise; governor di-cap `governor_max_target=0.80` + label
+   "target di atas plafon, antrean tersulit: {urutan}". Opsi Boss & jalur
+   tersulit diuji-ditolak dengan data (`docs/balance_TahapA.md`).
+5. **Kriteria clear direvisi** (disetujui): tidak jenuh (<90% @0.50),
+   ≥10% antrean gagal per loadout, Director membedakan target.
+   Alasan: clear bergantung kebijakan + se ~0.14 pada N kecil.
+6. **Balance freeze** (`docs/balance.md` + tes penegak
+   `test_balance_freeze`): tak ada tuning kecuali bug nyata / uji main manual.
+7. **Tab ALL di 720p** masih memotong daftar panjang (kontrol + sparkline disematkan; detail di tab CSP/LS/CMP).
+8. Validasi lawan manusia belum ada (MAE terhadap pemain simulasi saja).
