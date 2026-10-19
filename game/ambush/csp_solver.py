@@ -57,19 +57,26 @@ class CSPProblem:
 
 def squad_problem(wins: int, budget: int, cfg: AmbushConfig,
                   queue_rules: bool = False,
-                  min_active: int = 1) -> CSPProblem:
+                  min_active: int = 1,
+                  avoid_roles: Tuple[str, ...] = ()) -> CSPProblem:
     """Bungkus X/D/C squad menjadi CSPProblem untuk solver generik.
 
     queue_rules/min_active = aturan antrean (Boss terakhir, larangan
-    defensif berturutan, min 2 aktif). Default False/1 = perilaku BUFF
-    lama; mesin solver tidak berubah, hanya predikatnya.
+    defensif berturutan, peran musuh saling berbeda, min 2 aktif).
+    Default False/1 = perilaku BUFF lama; mesin solver tidak berubah,
+    hanya predikatnya. avoid_roles = peran pertemuan sebelumnya yang
+    sebaiknya tidak muncul lagi (variasi antar-pertemuan).
     """
     variables = variable_names(cfg)
 
     def unary_ok(var: str, val: str) -> bool:
-        return not (
-            var.startswith("ROLE_") and val == BOSS and wins < cfg.boss_min_wins
-        )
+        if var.startswith("ROLE_") and val == BOSS and wins < cfg.boss_min_wins:
+            return False
+        # Variasi antar-pertemuan: peran musuh lama keluar dari domain
+        # slot manapun (partial: nilai pantangan ditolak sejak awal).
+        if queue_rules and avoid_roles and val in avoid_roles:
+            return False
+        return True
 
     defensive = {"Healer", "Tank"}
 
@@ -85,6 +92,10 @@ def squad_problem(wins: int, budget: int, cfg: AmbushConfig,
             if sj < si and vj == EMPTY and vi != EMPTY:
                 return False
             if queue_rules:
+                # Antrean: semua peran musuh harus berbeda (diagonal
+                # domain; dipangkas pula oleh check() saat komplit).
+                if vi != EMPTY and vj != EMPTY and vi == vj:
+                    return False
                 # Boss-last pairwise: Boss + slot belakang terisi = langgar.
                 if si < sj and vi == BOSS and vj != EMPTY:
                     return False
@@ -113,7 +124,8 @@ def squad_problem(wins: int, budget: int, cfg: AmbushConfig,
     def partial_ok(assign: Dict[str, str]) -> bool:
         # check() menilai partial assignment (variabel tak dikenal di-skip),
         # mencakup pula global budget di tiap langkah.
-        return not check(assign, wins, budget, cfg, queue_rules, min_active)
+        return not check(assign, wins, budget, cfg, queue_rules, min_active,
+                         avoid_roles)
 
     return CSPProblem(
         variables=variables,
@@ -123,7 +135,8 @@ def squad_problem(wins: int, budget: int, cfg: AmbushConfig,
         unary_ok=unary_ok,
         partial_ok=partial_ok,
         metainfo={"wins": wins, "budget": budget, "cfg": cfg,
-                  "queue_rules": queue_rules, "min_active": min_active},
+                  "queue_rules": queue_rules, "min_active": min_active,
+                  "avoid_roles": tuple(avoid_roles)},
     )
 
 

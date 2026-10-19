@@ -37,11 +37,29 @@ Siapkan: `python main.py`, musuh sudah muncul (tunggu ~8 dtk), F3 siap.
 
 ## 4:30 — Battle berurutan (1,5 mnt)
 
-- Enter → **MUSUH 1/k** (judul + strip `1 > … | 2 …`). Menangkan duel
-  (atau mainkan), saksikan **TRANSISI** ("MUSUH #2 MAJU - HP x/y"),
-  duel berikut HP/potion terbawa. Tekan H untuk HUD.
+- Enter → **DUEL 1/k** (judul + baris "Sekarang melawan: X | Berikutnya: Y |
+  Sudah kalah: ..."). Menangkan duel (atau mainkan), lalu saksikan **LAYAR
+  HASIL** ("HASIL DUEL 1/k — MENANG", lawan tadi, sisa HP, dan musuh
+  berikutnya + efeknya). Layar ini **menunggu Enter** (tidak lanjut otomatis).
+  Baris "kamu masuk duel berikutnya dengan HP …" **sudah dihapus** karena
+  tiap duel antrean selalu mulai dengan darah penuh. Tekan H untuk HUD.
 - Tunjuk log pemicu buff ("Healer NPC memulihkan 3 HP") + panel berkedip.
-- Kalah/menang → EXPLORE; `data/battle_result.csv` bertambah 1 baris.
+- Menang semua → "ANTREAN TUNTAS!"; kalah → "PERTEMUAN BERAKHIR" (keduanya
+  menunggu Enter lalu kembali ke EXPLORE). `data/battle_result.csv` bertambah
+  1 baris.
+- **Musuh selalu beda**: dalam satu pertemuan tak ada peran musuh yang
+  muncul dua kali; di pertemuan berikutnya (musuh baru mengejar di peta)
+  peran musuh pertemuan sebelumnya tidak dipakai lagi. Animasi demo
+  (slow/step) juga ikut tampil lagi — Enter (SIAP) hanya menuntaskan run
+  saat itu, pump mode tidak dipaksa jadi instant.
+- **Musuh di peta = karakter Boss**: yang mengejar di peta adalah satu
+  sprite karakter **Boss** (perilaku awal satu musuh, tapi tampilannya
+  Boss). "Anak buahnya" baru dipanggil di battle mode: begitu pertemuan
+  dimulai, animasi PREP menampilkan CSP + local search menyusun antrean
+  (2..4 musuh, sprite peran tiap duel diambil dari antrean). Boss ikut jadi
+  lawan hanya bila pencarian menaruhnya di slot terakhir (wins ≥ 3) — bukan
+  dijadwalkan tetap; pada uji 96 rencana murni Boss memang tidak pernah
+  terpilih (selalu kalah anggaran), jadi pertemuan ber-Boss jarang.
 
 ## 6:00 — CSV (0,5 mnt)
 

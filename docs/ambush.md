@@ -11,8 +11,8 @@ di duel 1v1 yang sudah ada.
 |---|---|
 | X | `ROLE_1..ROLE_3`, `ITEM_1..ITEM_3` (slot 1 = lead, efek penuh) |
 | D | `D(ROLE_1)` = 6 role + Boss + NONE; `D(ROLE_2..3)` tanpa Boss; `D(ITEM)` = 6 item + NONE |
-| C-unary | Boss ⇒ wins ≥ 3; ROLE NONE ⇒ ITEM NONE |
-| C-biner | maks 1 Healer; matriks kompatibilitas role–item (Sword: Warrior/Archer/Boss; Shield: Warrior/Tank/Boss; Boots: Warrior/Archer/Mage; Charm: Healer/Mage/Tank; Fang: semua); slot kosong tak di tengah |
+| C-unary | Boss ⇒ wins ≥ 3, ber-HP **150** (`enemy_max_hp`), dan hanya boleh di slot aktif terakhir; Boss ikut antrean **hanya bila pencarian (CSP+LS) memilihnya** — tidak dijadwalkan tetap; ROLE NONE ⇒ ITEM NONE |
+| C-biner | maks 1 Healer; matriks kompatibilitas role–item (Sword: Warrior/Archer/Boss; Shield: Warrior/Tank/Boss; Boots: Warrior/Archer/Mage; Charm: Healer/Mage/Tank; Fang: semua); slot kosong tak di tengah. **Mode antrean** (`queue_rules=True`): semua peran musuh saling berbeda, Boss hanya slot aktif terakhir, Healer/Tank tak berturutan |
 | C-global | SEMUA item non-NONE saling beda (AllDifferent penuh, pairwise); squad ≥ 1 anggota; total power ≤ budget (`6 + target×6`) |
 
 Satu sumber kebenaran: `BuffSummary` (`buff.py`) — overlay, evaluator,
@@ -76,6 +76,41 @@ Alur eksplisit (tak ada fase terlewat otomatis): `EXPLORE → PREP_PLAYER
 PREP_REVIEW (tahan hingga Enter, G = susun ulang) → BATTLE → EXPLORE`.
 Esc di PREP_PLAYER batal kembali ke EXPLORE.
 
+Di mode antrean (k≥2) alurnya `BATTLE → TRANSITION → BATTLE ...`. Layar
+TRANSITION menampilkan HASIL duel terakhir (MENANG/KALAH/KABUR) + lawan
+berikutnya (nama, item, HP, efek) dan **menunggu Enter** — tidak ada lanjut
+otomatis (jeda 1.5 dtk lama dihapus). Enter memulai duel berikutnya; di akhir
+pertemuan (menang semua/kalah/kabur) Enter mengembalikan ke EXPLORE.
+
+**Aturan variasi musuh (permintaan pemain).** (1) Dalam SATU pertemuan
+semua peran musuh wajib berbeda — "tidak ada musuh yang sama dua kali":
+dicek `enemy_queue.check_queue` (cermin `constraints.check`) dan dipangkas
+pairwise oleh CSP, jadi solusi/neighbour LS tak pernah memuat duplikat.
+(2) Antar-pertemuan: `main.py` mencatat `last_queue_roles` saat pertemuan
+tutup dan mengopernya sebagai `avoid_roles` ke director — peran itu keluar
+dari domain CSP, LS, dan repair; bila CSP tak menemukan antrean bebas
+(kasus langka), kandidat valid apa adanya tetap dipakai supaya duel tidak
+pernah berubah jadi "duel polos" (variasi = best-effort). Pemilihan akhir
+(rerank) hanya di antara kandidat bebas peran lama.
+
+Tombol SIAP (`Enter`/`ESC`) menuntaskan sisa langkah run **tanpa mengubah
+pump mode pemain** (`pump_director(..., instant=True)`) — animasi demo
+slow/step tetap tampil lagi di pertemuan berikutnya, bukan sekali pakai.
+
+**Musuh di peta = karakter Boss (permintaan pemain).** Yang mengejar di
+peta adalah satu sprite karakter Boss — "kembali seperti semula, tapi
+diganti jadi karakter Boss": `spawn_enemy` selalu memasang sprite role
+"Boss" (tanpa formasi, tanpa undian). "Anak buahnya" baru dipanggil di
+battle mode: begitu pertemuan dimulai, director menyusun antrean lewat
+CSP → local search (fase PREP), dan antrean itulah yang dilawan berurutan
+(`_queue_slot_sprite` memasang sprite peran tiap duel). Boss ikut jadi
+lawan hanya bila **pencarian** menempatkannya di slot aktif terakhir
+(wins ≥ `boss_min_wins`), bukan dijadwalkan tetap. Catatan temuan: pada uji
+96 rencana murni (wins 3/5/10 × target 0.5/0.75/0.9 × 4 seed) Boss tidak
+pernah terpilih — selalu kalah anggaran (biaya 7) atau pencarian berhenti
+saat target kesulitan tercapai; jadi pertemuan ber-Boss memang jarang, dan
+itu konsekuensi mekanisme pencarian yang berlaku.
+
 | Tombol | Fungsi |
 |---|---|
 | `F3` | overlay angka-angka |
@@ -83,7 +118,7 @@ Esc di PREP_PLAYER batal kembali ke EXPLORE.
 | `TAB` | ganti algo LS, run baru (bisa dari overworld, berlaku duel berikut) |
 | `TAB` | ganti algo LS (run baru) |
 | `Spasi` | 1 langkah (mode step); bila sudah selesai = mulai duel |
-| `Enter`/`ESC` | tombol SIAP: tuntaskan lalu mulai duel |
+| `Enter`/`ESC` | tombol SIAP: tuntaskan sisa langkah run ini lalu mulai duel (pump mode tak diubah, demo tetap tampil di pertemuan berikutnya) |
 | `H` (duel) | HUD konfigurasi Player vs NPC+Squad (angka = buff battle) |
 | PREP_PLAYER | Atas/Bawah slot, Kiri/Kanan item, Enter lanjut, Esc batal |
 | `G` | ulang run (seed baru) |

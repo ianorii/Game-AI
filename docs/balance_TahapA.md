@@ -13,6 +13,26 @@
 > M-M-T-B greedy .00->.00 (tak heal = mati, wajar), survive .83->.92.
 > K1-d4 1v1 pasca-amandemen-2: semua peran 1.00 kecuali Boss .92-1.00
 > (band Tahap-A resmi gugur; metrik baru = rantai pemain-lemah di atas).
+> AMANDEMEN-3 (permintaan pemain): SEMUA musuh mulai 100 HP - sama dengan
+> pemain. `ENEMY_BASE_HP`/`cfg.enemy_base_hp` = 100 (kembali ke angka awal
+> pra-amandemen-1) dan bonus HP peran dinolkan di ROLE_TABLE (hp=0 semua;
+> identitas peran tinggal serangan/spesial/regen/armor/chip/weaken, mis.
+> Minion tetap lemah dari atk-9). Konsekuensi: seluruh tabel keseimbangan di
+> bawah (yang diukur pada base 70 + delta HP peran) menjadi RIWAYAT, bukan
+> angka game saat ini; kalibrasi bobot heuristik (data/queue_weights.json,
+> `calibrated:false`) juga sudah lama non-aktif sehingga tak berubah. Satu
+> konteks bukti tes disesuaikan (`test_conserve_veto_binds` kini Minion
+> seed=20) agar veto hemat tetap terbukti mengubah jalannya duel nyata.
+> AMANDEMEN-4 (permintaan pemain "sampai melawan boss yang hpnya 150"):
+> Boss kembali punya bonus HP di ROLE_TABLE (hp=50) di atas `ENEMY_BASE_HP`
+> 100 sehingga `enemy_max_hp` Boss = **150**; peran lain tetap 100 (sama
+> dengan pemain). "Melawan Boss" tetap murni hasil pencarian CSP+local
+> search (syarat: wins >= `boss_min_wins` dan hanya slot aktif terakhir) -
+> Boss TIDAK dijadwalkan di akhir; uji 96 rencana murni (wins 3/5/10 x
+> target 0.5/0.75/0.9 x 4 seed) menunjukkan pencarian tak pernah memilihnya
+> (biaya peran 7 selalu kalah anggaran / pencarian berhenti saat target
+> tercapai), jadi pertemuan ber-Boss jarang - konsekuensi mekanisme
+> pencarian yang berlaku, bukan bug.
 
 Metode: CRN seed tetap 100-119 (N=20/sel depth-4/greedy/hemat; rentang antar-blok
 seed 100-109 vs 110-119 sebagai noise; selisih dalam noise bukan alasan).

@@ -153,7 +153,7 @@ def main():
     b1 = BattleSystem(player_hp=100, npc_buff=result.buffs[0],
                       player_buff=pbuff, player_loadout=pl, target=0.5,
                       sim_rate=f"{result.sim_difficulty:.3f}",
-                      player_potions=3, npc_potions=3, duel_label=f"MUSUH 1/{result.queue.k()}",
+                      player_potions=3, npc_potions=3, duel_label=f"DUEL 1 DARI {result.queue.k()}",
                       queue_view={"order": [(s.role, s.item)
                                             for s in result.queue.slots],
                                   "idx": 0, "done": [False] * result.queue.k()})
@@ -163,7 +163,7 @@ def main():
     b2 = BattleSystem(player_hp=62, npc_buff=result.buffs[1],
                       player_buff=pbuff, player_loadout=pl, target=0.5,
                       sim_rate=f"{result.sim_difficulty:.3f}",
-                      player_potions=2, npc_potions=3, duel_label=f"MUSUH 2/{result.queue.k()}",
+                      player_potions=2, npc_potions=3, duel_label=f"DUEL 2 DARI {result.queue.k()}",
                       queue_view={"order": [(s.role, s.item)
                                             for s in result.queue.slots],
                                   "idx": 1,
@@ -174,8 +174,17 @@ def main():
 
     base_scene()
     slot = result.queue.slots[1]
-    draw_transition(screen, font, min(2, result.queue.k()), result.queue.k(), slot.role,
-                    slot.item, 62, 100, 2, cfg.transition_hold_s)
+    draw_transition(
+        screen, font,
+        duel_no=min(1, result.queue.k()), k=result.queue.k(),
+        result="menang",
+        prev_role=result.queue.slots[0].role,
+        prev_item=result.queue.slots[0].item,
+        hp_after=62, cap=100, potions=2,
+        next_role=slot.role, next_item=slot.item,
+        foe_hp=100,
+        foe_lines=["Serangan +2", "Tahan damage 10%"],
+    )
     shot("fase-transisi.png")
     print("selesai:", sorted(p.name for p in OUT.glob("fase-*.png")))
 

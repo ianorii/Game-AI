@@ -50,8 +50,8 @@ class QueueRun:
         return self.queue.k()
 
     def duel_label(self) -> str:
-        """Judul duel aktif: 'MUSUH n/k'."""
-        return f"MUSUH {self.idx + 1}/{self.k}"
+        """Judul duel aktif: 'DUEL n DARI k' (bahasa pemain, bukan jargon)."""
+        return f"DUEL {self.idx + 1} DARI {self.k}"
 
     def current_slot(self):
         """Slot musuh aktif."""

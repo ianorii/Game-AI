@@ -10,6 +10,7 @@ gambar `docs/screens/*.png`, data `data/*.csv`, laporan `docs/hasil.md`.
 | Jumlah & karakter NPC + item | `game/ambush/enemy_queue.py`: `EnemySlot(role, item)`, `EnemyQueue` (k = 2..4); peran Warrior/Archer/Mage/Healer/Tank/Boss/Minion + 5 item di `game/ambush/types.py` |
 | Disusun SEBELUM menyerang | State machine `PREP_PLAYER → PREP_NPC_CSP → PREP_NPC_LS → PREP_REVIEW` (`game/ambush/flow/prep_state_machine.py`), duel baru mulai setelah Enter |
 | Terlihat | `docs/screens/fase-review-f3.png` (tabel antrean + biaya/budget) |
+| Musuh di peta = karakter Boss | `main.py:spawn_enemy`: yang mengejar selalu satu sprite role **Boss** (tanpa formasi/undian); anak buah "dipanggil" saat battle mode lewat antrean CSP+local search (`_queue_slot_sprite` memasang sprite peran tiap duel); tes `test_peta_karakter_boss_tunggal` |
 
 ## b. Tidak terlalu mudah / sulit (target + adaptif)
 
@@ -24,8 +25,8 @@ gambar `docs/screens/*.png`, data `data/*.csv`, laporan `docs/hasil.md`.
 |---|---|
 | X eksplisit | `ROLE_1..4`, `ITEM_1..4` (`constraints.py:variable_names`) |
 | D (boleh beda per slot) | `build_domains`: Boss hanya slot 1, Minion hanya SEQUENTIAL |
-| C unary | Boss butuh wins; ROLE NONE ⇒ ITEM NONE |
-| C binary | Maks 1 Healer; matriks kompatibilitas; canonical tanpa-lubang; Boss-terakhir; larangan Healer/Tank berturutan |
+| C unary | Boss butuh wins ≥ 3, ber-HP 150, dan hanya slot terakhir; **tidak dijadwalkan** — ia ikut antrean hanya bila pencarian (CSP+LS) memilihnya (uji 96 rencana murni: selalu kalah anggaran/target, jadi pertemuan ber-Boss jarang); ROLE NONE ⇒ ITEM NONE |
+| C binary | Maks 1 Healer; matriks kompatibilitas; canonical tanpa-lubang; Boss-terakhir; larangan Healer/Tank berturutan; **peran musuh saling berbeda** (satu musuh hanya sekali per pertemuan; `pair_ok` + `check`; mirror `enemy_queue.check_queue`) |
 | C global | AllDifferent item (pairwise `!=` di `pair_ok`); budget; min-2 aktif |
 | Backtracking | `csp_solver.py:_bt` (assign → inferensi → rekursi → restore) |
 | MRV + degree | `_select` (tie-break degree lalu urutan tetap) |

@@ -5,7 +5,7 @@ Enter konfirmasi, Esc batal. Murni menggambar + input; tanpa logika solver.
 """
 from __future__ import annotations
 
-from typing import List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import pygame
 
@@ -27,7 +27,8 @@ GREEN = (140, 240, 170)
 class PlayerLoadoutScreen:
     """State layar pilihan loadout player."""
 
-    def __init__(self, loadout: PlayerLoadout | None = None):
+    def __init__(self, loadout: PlayerLoadout | None = None,
+                 item_sprites: Optional[Dict[str, pygame.Surface]] = None):
         items: List[str] = list(loadout.items) if loadout else ["NONE"] * LOADOUT_SLOTS
         # Slot mulai terisi contoh menarik (Sword + Shield) agar demo hidup.
         if all(i == "NONE" for i in items):
@@ -44,6 +45,7 @@ class PlayerLoadoutScreen:
                                           if self.items[i] in self.options[i]
                                           else "NONE")
                     for i in range(LOADOUT_SLOTS)]
+        self.item_sprites = item_sprites or {}
 
     def handle_key(self, key: int) -> str | None:
         """Kembalikan 'confirm' / 'cancel' atau None."""
@@ -101,11 +103,19 @@ class PlayerLoadoutScreen:
             pygame.draw.rect(panel, EDGE if sel else (60, 70, 90), row,
                              2 if sel else 1, border_radius=9)
             name = self.items[i]
+            # Ikon item (Tahap 3) di samping nama, bila tersedia.
+            icon_x = row.x + 12
+            icon = self.item_sprites.get(name)
+            if icon is not None:
+                icon_rect = icon.get_rect()
+                icon_rect.topleft = (icon_x, row.y + 8)
+                panel.blit(icon, icon_rect)
+                icon_x += icon_rect.width + 6
             left = font.render(f"Slot {i + 1}: < {name} >", True,
                                TEXT if sel else DIM)
-            panel.blit(left, (row.x + 12, row.y + 8))
+            panel.blit(left, (icon_x, row.y + 8))
             desc = font.render(describe_item(name), True, GREEN)
-            panel.blit(desc, (row.x + 12, row.y + 8 + left.get_height() + 2))
+            panel.blit(desc, (icon_x, row.y + 8 + left.get_height() + 2))
             y += 72
         hint = font.render("Atas/Bawah slot | Kiri/Kanan item | "
                            "Enter mulai | Esc batal", True, DIM)

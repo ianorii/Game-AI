@@ -73,7 +73,8 @@ def test_npc_buff_still_applies_with_player():
     pbuff = loadout_to_buff(pl, CFG)
     battle = BattleSystem(player_hp=100, npc_buff=npc_buff, npc_squad=squad,
                           player_buff=pbuff, player_loadout=pl)
-    assert battle.npc_max_hp == 70 + npc_buff.hp
+    from game.ambush.enemy_queue import ENEMY_BASE_HP
+    assert battle.npc_max_hp == ENEMY_BASE_HP + npc_buff.hp
     assert battle.player_max_hp == 100 + pbuff.hp
     assert type(battle.ai).__name__ == "BuffAwareAI"
     assert type(battle.hud).__name__ == "BattleConfigHUD"

@@ -35,10 +35,21 @@ class AmbushConfig:
                                      # (default False = musuh segar)
     npc_starting_potions: int = 1  # potion awal TIAP musuh (anti-stall rantai;
                                    # player & POTION_LIMIT tak tersentuh)
-    enemy_base_hp: int = 70  # HP dasar musuh (cermin ENEMY_BASE_HP di
-                             # enemy_queue; player tetap 100 tahap 2).
-                             # HP maks musuh = base + buff.hp lewat
-                             # enemy_max_hp() (sim == battle == HUD).
+    enemy_base_hp: int = 100  # HP dasar musuh (cermin ENEMY_BASE_HP di
+                              # enemy_queue; player tetap 100 tahap 2).
+                              # AMANDEMEN-3 (permintaan pemain): SEMUA musuh
+                              # mulai 100 HP - sama dengan pemain - dan bonus
+                              # HP peran dinolkan di ROLE_TABLE, jadi
+                              # enemy_max_hp() selalu 100.
+                              # HP maks musuh = base + buff.hp lewat
+                              # enemy_max_hp() (sim == battle == HUD).
+                              # Setiap musuh baru SELALU mulai di HP maks
+                              # penuh (tidak terbawa antar-duel) dan HP-nya
+                              # turun normal sampai 0 saat duel (tanpa clamp
+                              # minimum lagi - bug "HP beku di 80" sudah
+                              # dihapus di battle_system.py).
+                              # Jika mengubah angka ini, docs/balance_TahapA.md
+                              # dan data kalibrasi ikut berubah.
     refill_potions_each_duel: bool = True  # potion heal player isi penuh
                                            # (POTION_LIMIT) tiap ganti lawan
                                            # dalam antrean (via carry_potions,
@@ -66,7 +77,10 @@ class AmbushConfig:
     corr_spearman_min: float = 0.80
     rmse_max: float = 0.08
     instant_budget_s: float = 3.0  # jalur gameplay sampai REVIEW (mode instant)
-    transition_hold_s: float = 1.5  # jeda layar transisi antar-duel
+    transition_hold_s: float = 1.5  # TIDAK dipakai lagi: layar transisi/
+                                    # hasil duel kini menunggu Enter pemain
+                                    # (permintaan pemain), bukan lanjut
+                                    # otomatis setelah jeda.
 
     def budget_q_for(self, target: float) -> int:
         """Budget power antrean untuk satu target difficulty."""

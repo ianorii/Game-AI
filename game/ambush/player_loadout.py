@@ -78,23 +78,27 @@ def loadout_power(loadout: PlayerLoadout) -> float:
 
 
 def describe_item(name: str) -> str:
-    """Satu baris efek item dalam angka untuk layar pilihan/HUD."""
+    """Satu baris efek item dalam kalimat pemain untuk layar pilihan/HUD.
+
+    Kosakata SAMA dengan buff_lines_short/buff.py: "Serangan +2",
+    "Tahan 10% damage", "Damage pasti 1/ronde" (bukan "ATK"/"dmg"/"chip").
+    """
     if name == EMPTY:
         return "Kosong"
     spec = ITEM_TABLE[name]
     bits = []
     if spec.atk:
-        bits.append(f"+{spec.atk} ATK")
+        bits.append(f"Serangan +{spec.atk}")
     if spec.spec:
-        bits.append(f"+{spec.spec} SPEC")
+        bits.append(f"Spesial +{spec.spec}")
     if spec.hp:
-        bits.append(f"+{spec.hp} HP")
+        bits.append(f"Darah maks +{spec.hp}")
     if spec.regen:
-        bits.append(f"+{spec.regen} regen")
+        bits.append(f"Pulih {spec.regen} HP/giliran")
     if spec.armor:
-        bits.append(f"-{spec.armor * 100:.0f}% dmg")
+        bits.append(f"Tahan {spec.armor * 100:.0f}% damage")
     if spec.chip:
-        bits.append(f"+{spec.chip} chip")
+        bits.append(f"Damage pasti {spec.chip}/ronde")
     if spec.weaken:
-        bits.append(f"-{spec.weaken * 100:.0f}% heal musuh")
+        bits.append(f"Heal musuh -{spec.weaken * 100:.0f}%")
     return ", ".join(bits) if bits else "Kosong"
