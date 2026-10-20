@@ -72,7 +72,8 @@ game/map game/pathfinding game/adv_search
 experiments/  run_all.py ablate_csp.py compare_ls.py fidelity.py
               fit_queue.py autoplay.py mae_report.py screens.py
 tests/        test_ambush_{foundation,csp_ls,director,verify,prep,queue}.py
-docs/         ambush.md kriteria.md hasil.md demo.md screens/
+docs/         ambush.md kriteria.md hasil.md demo.md csp_local_search.md
+              (ringkas CSP+LS + kolom foto) screens/
 data/         csp_trace.csv ls_trace.csv summary.csv battle_result.csv
 ```
 
