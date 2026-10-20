@@ -18,6 +18,7 @@ Modul yang digunakan:
 - settings_menu.py: Konfigurasi heuristic & parameter game
 """
 import asyncio
+import os
 import random
 import sys
 
@@ -35,9 +36,11 @@ from game.ambush.csv_export import (
     write_summary_csv,
 )
 from game.ambush.director import LS_ALGOS, AmbushDirector
+from game.ambush.enemy_queue import enemy_max_hp
 from game.ambush.governor import DifficultyGovernor
 from game.ambush.overlay_ambush import AmbushDebugOverlay, build_view
 from game.ambush.trace import TraceBuffer
+from game.ambush.types import ROLE_DISPLAY, display_role
 from game.map import CELL_SIZE, COLS, ROWS, GameMap, Viewport
 from npc import NPC
 from player import Player
@@ -70,6 +73,12 @@ ENEMY_MAX_SPAWN_DIST = 34    # Jarak maksimum agar musuh tetap mudah ditemukan
 # --- Parameter Ambush Director (Tahap 3) ---
 PUMP_MODES = ("instant", "slow", "step")  # F4: instant/slow/step
 INFER_MODES = ("ac3", "fc", "none")       # R: siklus inferensi CSP
+
+# Nama tampilan musuh di Battle Mode disesuaikan dengan aset
+# assets/images/08_karakter yang telah diperbaiki (nama setelah "karakter_").
+# Nama internal (role) tetap untuk logika CSP/buff; hanya tampilan di duel
+# yang diganti. "Minion" tidak punya aset -> tampil sebagai "Blacksmith".
+NPC_DISPLAY_NAME = ROLE_DISPLAY
 
 
 # ---------------------------------------------------------------------------
@@ -312,6 +321,22 @@ def handle_events(game_map, viewport, player, npc, overlay, state):
                 handle_resize(event, game_map, state)
                 continue
             battle.handle_event(event)
+        return True
+
+    # Saat TRANSITION antar-duel, Enter/Space = lanjut (TIDAK ada auto).
+    if state.get("mode") == "TRANSITION" and state.get("queue_run") is not None:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                return False
+            if event.type == pygame.VIDEORESIZE and not state["fullscreen"]:
+                handle_resize(event, game_map, state)
+                continue
+            if event.type == pygame.KEYDOWN and event.key in (
+                    pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_SPACE,
+                    pygame.K_ESCAPE):
+                advance_transition(state, player, npc, game_map)
+                if state.get("mode") != "TRANSITION":
+                    break  # sudah lanjut/keluar; event sisa jangan diproses
         return True
 
     # Saat PREP_PLAYER, input mengatur loadout manual (Tahap 3).
@@ -806,30 +831,35 @@ def reachable_cells(game_map, start):
     return seen
 
 
-def random_spawn_cell(game_map, player, min_dist=ENEMY_MIN_SPAWN_DIST, max_dist=ENEMY_MAX_SPAWN_DIST):
+def random_spawn_cell(game_map, player, min_dist=ENEMY_MIN_SPAWN_DIST, max_dist=ENEMY_MAX_SPAWN_DIST, excluded_positions=None):
     """Pilih cell walkable acak yang terlihat di map dan dapat dilewati player.
 
     Kriteria:
     - Walkable (grid == 0) dan reachable dari posisi player (BFS).
     - Jarak Manhattan dalam rentang [min_dist, max_dist] dari player.
+    - Tidak ada di excluded_positions (posisi enemy yang sudah dikalahkan).
 
     Args:
         game_map: Objek GameMap
         player: Objek Player
         min_dist: Jarak minimum dari player
         max_dist: Jarak maksimum dari player
+        excluded_positions: Daftar posisi (row, col) yang harus dihindari
 
     Returns:
         Tuple (row, col) atau None jika tidak ada kandidat
     """
+    excluded_positions = excluded_positions or []
     reachable = reachable_cells(game_map, (player.row, player.col))
     bucket = [
         (r, c)
         for (r, c) in reachable
         if min_dist <= abs(r - player.row) + abs(c - player.col) <= max_dist
+        and (r, c) not in excluded_positions
     ]
     if not bucket:
-        bucket = [cell for cell in reachable if cell != (player.row, player.col)]
+        bucket = [cell for cell in reachable if cell != (player.row, player.col)
+                  and cell not in excluded_positions]
     if not bucket:
         return None
     return random.choice(bucket)
@@ -838,6 +868,13 @@ def random_spawn_cell(game_map, player, min_dist=ENEMY_MIN_SPAWN_DIST, max_dist=
 def spawn_enemy(game_map, player, npc, state, announce=True):
     """Munculkan musuh di lokasi walkable acak yang jauh namun dapat dihampiri.
 
+    Permintaan pemain: yang mengejar di peta adalah KARAKTER BOSS (satu
+    sprite) - "kembali seperti semula, tapi diganti jadi karakter Boss".
+    Anak buahnya baru "dipanggil" saat battle mode: CSP + local search
+    menyusun antrean setelah pertemuan dimulai (PREP), dan Boss ikut jadi
+    lawan hanya bila pencarian menempatkannya di slot aktif terakhir
+    (wins >= boss_min_wins) - bukan dijadwalkan tetap di akhir.
+
     Args:
         game_map: Objek GameMap
         player: Objek Player (titik jauhi)
@@ -845,7 +882,12 @@ def spawn_enemy(game_map, player, npc, state, announce=True):
         state: Dict mutable state game
         announce: Tampilkan toast saat musuh muncul
     """
-    cell = random_spawn_cell(game_map, player)
+    excluded = state.get("defeated_enemy_positions", [])
+    cell = random_spawn_cell(game_map, player, excluded_positions=excluded)
+    if cell is None:
+        # Reset daftar jika semua posisi sudah digunakan
+        state["defeated_enemy_positions"] = []
+        cell = random_spawn_cell(game_map, player)
     if cell is None:
         cell = (npc.row, npc.col)
 
@@ -858,10 +900,19 @@ def spawn_enemy(game_map, player, npc, state, announce=True):
     npc.follow = True  # Musuh langsung mengejar player
     npc.snap_to_walkable(game_map)
 
+    # Sprite peta = karakter Boss (satu musuh, seperti perilaku awal).
+    sprites = state.get("npc_sprites") or {}
+    boss_sprite = sprites.get("Boss") or state.get("npc_sprite_base")
+    if boss_sprite is not None:
+        npc.sprite = boss_sprite
+    npc.name = display_role("Boss")
+
     state["enemy_spawned"] = True
     if announce:
-        show_toast(state, "Musuh muncul dan mengejarmu! Bersiaplah berduel.", ok=False)
-        state["status"] = "Musuh mengejarmu! Hindari atau tantang dia untuk duel."
+        show_toast(state, "Boss muncul dan mengejarmu! Dia memanggil anak "
+                          "buahnya saat duel.", ok=False)
+        state["status"] = ("Boss mengejarmu! Hindari atau tantang dia untuk "
+                           "duel.")
 
 
 def build_battle_background(game_map, cell, size=(720, 460)):
@@ -895,7 +946,7 @@ def build_battle_background(game_map, cell, size=(720, 460)):
 
 
 def start_battle(state, player, npc, game_map, npc_buff=None, npc_squad=None,
-                 player_buff=None):
+                 player_buff=None, npc_role=None, npc_sprite=None):
     """Inisialisasi BattleSystem dan pindah ke BATTLE_MODE.
 
     Args:
@@ -905,6 +956,10 @@ def start_battle(state, player, npc, game_map, npc_buff=None, npc_squad=None,
         game_map: Objek GameMap (untuk latar bertema lokasi)
         npc_buff: Buff Tahap 3 dari Ambush Director (None = duel polos)
         npc_squad: SquadConfig asal buff (untuk HUD buff)
+        npc_role: Role internal musuh (mis. "Boss", "Knight") untuk nama
+                  tampilan duel yang disesuaikan dengan aset 08_karakter.
+                  Jika None, gunakan npc.name.
+        npc_sprite: Sprite musuh untuk duel (None = sprite NPC di peta).
     """
     mid = ((player.row + npc.row) // 2, (player.col + npc.col) // 2)
     # Latar duel: pakai artwork map_battle.png; fallback ke snapshot terrain map
@@ -913,13 +968,15 @@ def start_battle(state, player, npc, game_map, npc_buff=None, npc_squad=None,
     res = state.get("director_result")
     if res is not None and res.sim_difficulty is not None:
         sim_txt = f"{res.sim_difficulty:.3f}"
+    # Nama tampilan musuh disesuaikan dengan aset 08_karakter (Tahap 3).
+    _npc_name = NPC_DISPLAY_NAME.get(npc_role, npc.name) if npc_role else npc.name
     state["battle"] = BattleSystem(
         player_sprite=player.sprite,
-        npc_sprite=npc.sprite,
+        npc_sprite=npc_sprite if npc_sprite is not None else npc.sprite,
         player_hp=state.get("player_hp", MAX_HP),
         depth=state.get("ai_depth", DEFAULT_DEPTH),
         player_name="Player",
-        npc_name=npc.name,
+        npc_name=_npc_name,
         background=battle_bg,
         npc_buff=npc_buff,
         npc_squad=npc_squad,
@@ -928,6 +985,10 @@ def start_battle(state, player, npc, game_map, npc_buff=None, npc_squad=None,
         target=state["governor"].target,
         sim_rate=sim_txt,
         enemy_base_hp=state["ambush_cfg"].enemy_base_hp,
+        # Aset Tahap 3
+        item_sprites=state.get("item_sprites"),
+        custom_font=state.get("custom_font"),
+        custom_font_path=state.get("custom_font_path"),
     )
     state["mode"] = "BATTLE"
     state["edit_mode"] = False
@@ -956,7 +1017,9 @@ def _csp_options(state):
 def begin_prep_player(state, player, npc):
     """Masuk PREP_PLAYER: jeda game, player atur loadout (2 slot manual)."""
     from game.ambush.ui.player_loadout_screen import PlayerLoadoutScreen
-    state["prep_screen"] = PlayerLoadoutScreen(state.get("player_loadout"))
+    state["prep_screen"] = PlayerLoadoutScreen(
+        state.get("player_loadout"),
+        item_sprites=state.get("item_sprites"))
     state["mode"] = "PREP_PLAYER"
     state["edit_mode"] = False
     npc.follow = False
@@ -986,6 +1049,9 @@ def begin_director(state, player, npc, game_map):
         csp_options=_csp_options(state), ls_algo=state["ls_algo"],
         base_seed=state["director_seed"],
         player_loadout=state.get("player_loadout"),
+        # Variasi antar-pertemuan: peran musuh pertemuan sebelumnya tidak
+        # diulang di pertemuan berikutnya (lihat docs/ambush.md).
+        avoid_roles=tuple(state.get("last_queue_roles", ())),
     )
     state["director_seed"] += 1
     if sequential:
@@ -1068,8 +1134,14 @@ def _track_phase(state, event):
                                + state["ambush_cfg"].dir_phase_hold)
 
 
-def pump_director(state):
+def pump_director(state, instant=False):
     """Jalankan sepotong generator director sesuai pump mode.
+
+    Args:
+        instant: True = tuntaskan SEMUA langkah sisa pada panggilan ini
+            (tombol SIAP). Mode pump milik pemain TIDAK diubah di sini
+            supaya animasi demo (slow/step) tetap tampil lagi di pertemuan
+            berikutnya - dulu Enter memaksa mode jadi "instant" permanen.
 
     Returns:
         True jika director selesai (siap finish_director)
@@ -1077,7 +1149,7 @@ def pump_director(state):
     d = state["director"]
     if d["finished"]:
         return True
-    mode = state["pump_mode"]
+    mode = "instant" if instant else state["pump_mode"]
     gen = d["gen"]
     try:
         if mode == "instant":
@@ -1135,10 +1207,16 @@ def finish_director(state, player, npc, game_map):
     state["director_result"] = result
     _export_ambush_csv(state, result, tracer)
     if result.verified:
+        # Kalimat pemain: "selisih target" (bukan "gap") = seberapa dekat
+        # formasi lawan dengan target kesulitan saat ini.
+        _lead_disp = display_role(result.squad.leader())
+        _n_extra = result.squad.size() - 1
+        _squad_disp = (_lead_disp if _n_extra <= 0
+                       else f"{_lead_disp} + {_n_extra} pendukung")
         show_toast(
             state,
-            f"Squad siap: {result.squad.leader()} +{result.squad.size() - 1} "
-            f"(gap {result.gap:.2f}). Bersiap duel!",
+            f"Squad lawan siap: {_squad_disp} "
+            f"(selisih target {result.gap:.2f}). Bersiap duel!",
             ok=True,
         )
     else:
@@ -1146,10 +1224,21 @@ def finish_director(state, player, npc, game_map):
     from game.ambush.player_loadout import loadout_to_buff
     pl = state.get("player_loadout")
     pbuff = loadout_to_buff(pl, state["ambush_cfg"]) if pl is not None else None
+    # Pilih sprite NPC berdasarkan role lead squad (Tahap 3)
+    _lead_role = result.squad.roles[0] if result and result.squad else "Warrior"
+    _npc_spr = state["npc_sprites"].get(_lead_role, state["npc_sprite_base"])
+    # Peringatan bagi pemain jika lawan adalah BOSS (mode BUFF gabungan).
+    if _lead_role == "Boss":
+        show_toast(
+            state, "PERINGATAN: Akan menghadapi BOSS! Bersiaplah.",
+            ok=False, ttl=5.0)
+        state["status"] = "PERINGATAN: BOSS mendekat! (lead squad: Boss)"
     start_battle(state, player, npc, game_map,
                  npc_buff=result.buff if result.verified else None,
                  npc_squad=result.squad if result.verified else None,
-                 player_buff=pbuff)
+                 player_buff=pbuff,
+                 npc_sprite=_npc_spr,
+                 npc_role=_lead_role)
 
 
 def finish_queue_director(state, player, npc, game_map):
@@ -1177,16 +1266,30 @@ def finish_queue_director(state, player, npc, game_map):
         else result.light,
         hp=max(1, min(cap, state.get("player_hp", MAX_HP))),
         potions=3, cap=cap, cfg=cfg)
-    show_toast(state, f"Antrean siap: {result.queue.order_str()} "
-                      f"(gap {result.gap:.2f}). Bersiap duel!", ok=True)
+    _order_disp = " > ".join(display_role(s.role) for s in result.queue.slots)
+    # Kalimat pemain: "selisih target" = seberapa dekat antrean lawan dengan
+    # target kesulitan saat ini (bukan istilah teknis "gap"/"difficulty").
+    show_toast(state, f"Antrean lawan siap: {_order_disp} "
+                      f"(selisih target {result.gap:.2f}). Bersiap duel!",
+               ok=True)
+    # Plafon (opsi C): target di atas 0.80 dijawab antrean tersulit + label.
     if getattr(result, "capped", False):
         from game.ambush.governor import ceiling_label
         show_toast(state, ceiling_label(result.queue.order_str()),
                    ok=False, ttl=4.0)
-    start_queue_duel(state, player, npc, game_map)
+    # Pilih sprite NPC berdasarkan role slot pertama dalam antrean (Tahap 3)
+    _first_role = result.queue.slots[0].role if result and result.queue \
+        and result.queue.slots else "Warrior"
+    _npc_spr = _queue_slot_sprite(state, _first_role)
+    start_queue_duel(state, player, npc, game_map, npc_sprite=_npc_spr)
 
 
-def start_queue_duel(state, player, npc, game_map):
+def _queue_slot_sprite(state, role):
+    """Sprite musuh untuk role tertentu (fallback: sprite dasar overworld)."""
+    return state["npc_sprites"].get(role, state["npc_sprite_base"])
+
+
+def start_queue_duel(state, player, npc, game_map, npc_sprite=None):
     """Mulai duel aktif antrean (HP/potion terbawa, musuh segar)."""
     run = state["queue_run"]
     mid = ((player.row + npc.row) // 2, (player.col + npc.col) // 2)
@@ -1199,11 +1302,12 @@ def start_queue_duel(state, player, npc, game_map):
             for i in range(run.k)]
     state["battle"] = BattleSystem(
         player_sprite=player.sprite,
-        npc_sprite=npc.sprite,
-        player_hp=run.hp,
+        npc_sprite=npc_sprite if npc_sprite is not None else npc.sprite,
+        player_hp=MAX_HP,  # Setiap duel antrean selalu mulai dengan darah penuh (100)
         depth=state.get("ai_depth", DEFAULT_DEPTH),
         player_name="Player",
-        npc_name=f"{run.current_slot().role} #{run.idx + 1}",
+        npc_name=(f"{display_role(run.current_slot().role)} "
+                  f"#{run.idx + 1}"),
         background=battle_bg,
         npc_buff=run.current_buff(),
         npc_squad=None,
@@ -1217,37 +1321,74 @@ def start_queue_duel(state, player, npc, game_map):
         duel_label=run.duel_label(),
         queue_view={"order": order, "idx": run.idx, "done": done},
         enemy_base_hp=state["ambush_cfg"].enemy_base_hp,
+        # Aset Tahap 3
+        item_sprites=state.get("item_sprites"),
+        custom_font=state.get("custom_font"),
+        custom_font_path=state.get("custom_font_path"),
     )
+    # Peringatan bagi pemain jika lawan berikutnya adalah BOSS
+    if run.current_slot().role == "Boss":
+        show_toast(state, "PERINGATAN: Akan menghadapi BOSS selanjutnya!",
+                   ok=False, ttl=5.0)
+        state["status"] = ("PERINGATAN: BOSS mendekat! "
+                           f"{run.duel_label()} - "
+                           f"{display_role(run.current_slot().role)} "
+                           f"[{run.current_slot().item}]")
     state["mode"] = "BATTLE"
     state["edit_mode"] = False
     npc.follow = False
     npc.path = []
-    state["status"] = (f"{run.duel_label()} - {run.current_slot().role} "
-                       f"[{run.current_slot().item}]")
+    if run.current_slot().role != "Boss":
+        state["status"] = (f"{run.duel_label()} - "
+                           f"{display_role(run.current_slot().role)} "
+                           f"[{run.current_slot().item}]")
 
 
 def advance_queue(state, player, npc, game_map):
-    """Catat hasil satu duel lalu putuskan: transisi/menang/gagal."""
+    """Catat hasil satu duel lalu BUKA layar hasil/transisi (menunggu Enter).
+
+    Layar ini sengaja TIDAK lanjut otomatis (dulu jeda 1.5 dtk): pemain
+    membaca hasil duel (menang/kalah) dan musuh berikutnya, lalu menekan
+    Enter untuk lanjut (lihat advance_transition()).
+    """
     battle = state["battle"]
     run = state["queue_run"]
     cleared = battle.winner == "player"
     status = run.record(hp_after=max(0, battle.state.player_hp),
                         pot_after=battle.state.player_potions,
                         cleared=cleared, fled=battle.fled)
+    # Antrean berlanjut: musuh berikutnya sudah disiapkan.
     state["battle"] = None
-    if status == "next":
-        state["mode"] = "TRANSITION"
-        state["transition_until"] = (
-            pygame.time.get_ticks() / 1000.0
-            + state["ambush_cfg"].transition_hold_s)
+    state["transition_result"] = {
+        "status": status,                    # "next" | "won_all" | "failed"
+        "won": status == "won_all",
+    }
+    state["mode"] = "TRANSITION"
+
+
+def advance_transition(state, player, npc, game_map):
+    """Lanjut dari layar TRANSITION (hanya saat pemain menekan Enter/Space).
+
+    - status "next"   -> mulai duel berikutnya di antrean (HP/potion terbawa).
+    - status lainnya  -> tutup pertemuan (governor/CSV/toast) ke overworld.
+
+    Idempoten: panggilan kedua di frame yang sama (mis. dua event Enter)
+    diabaikan karena mode sudah bukan TRANSITION lagi.
+    """
+    if state.get("mode") != "TRANSITION":
+        return
+    info = state.get("transition_result") or {}
+    if info.get("status") is None:
+        return  # belum ada hasil tercatat; jangan tutup pertemuan
+    state["transition_result"] = None
+    if info.get("status") == "next":
+        run = state["queue_run"]
         slot = run.current_slot()
-        show_toast(state, f"MUSUH #{run.idx + 1} MAJU - HP {run.hp}/"
-                          f"{run.cap} - Potion {run.potions}", ok=False,
-                   ttl=3.0)
-    elif status == "won_all":
-        exit_queue_battle(state, player, npc, game_map, won=True)
-    else:
-        exit_queue_battle(state, player, npc, game_map, won=False)
+        start_queue_duel(state, player, npc, game_map,
+                         npc_sprite=_queue_slot_sprite(state, slot.role))
+        return
+    exit_queue_battle(state, player, npc, game_map,
+                      won=bool(info.get("won")))
 
 
 def exit_queue_battle(state, player, npc, game_map, won):
@@ -1264,13 +1405,16 @@ def exit_queue_battle(state, player, npc, game_map, won):
                         failed_at=None if won else run.failed_at + 1)
     if won:
         state["wins"] = state.get("wins", 0) + 1
-        show_toast(state, "Antrean tuntas! Darah dipulihkan 100.", ok=True,
-                   ttl=3.2)
+        show_toast(state, f"Antrean tuntas! {run.k} musuh dikalahkan. "
+                          "Darah dipulihkan 100.", ok=True, ttl=3.2)
+    elif run.fled:
+        show_toast(state, "Kamu kabur dari pertemuan. Darah dipulihkan 100.",
+                   ok=True, ttl=3.2)
     else:
-        if not run.fled:
-            state["losses"] = state.get("losses", 0) + 1
-        show_toast(state, "Pertemuan gagal. Darah dipulihkan 100.", ok=False,
-                   ttl=3.2)
+        state["losses"] = state.get("losses", 0) + 1
+        _gagal = (run.failed_at or 0) + 1
+        show_toast(state, f"Pertemuan gagal di duel {_gagal}/{run.k}. "
+                          "Darah dipulihkan 100.", ok=False, ttl=3.2)
     try:
         data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                 "data")
@@ -1286,9 +1430,20 @@ def exit_queue_battle(state, player, npc, game_map, won):
     state["player_hp"] = MAX_HP
     state["mode"] = "OVERWORLD"
     state["edit_mode"] = False
+    # Variasi antar-pertemuan (permintaan pemain): catat peran musuh yang
+    # barusan dihadapi agar pertemuan berikutnya memilih musuh yang beda.
+    state["last_queue_roles"] = tuple(s.role for s in run.queue.slots)
+    # Simpan posisi enemy yang dikalahkan agar tidak muncul lagi di posisi sama
+    defeated = state.get("defeated_enemy_positions", [])
+    defeated.append((npc.row, npc.col))
+    state["defeated_enemy_positions"] = defeated
     state["enemy_spawned"] = False
     state["spawn_timer"] = ENEMY_RESPAWN_DELAY
-    state["status"] = "Kembali ke overworld. Darah dipulihkan 100."
+    state["status"] = (
+        f"Antrean tuntas ({run.k} musuh). Darah dipulihkan 100." if won else
+        ("Kabur dari pertemuan. Darah dipulihkan 100." if run.fled else
+         f"Pertemuan gagal di duel {(run.failed_at or 0) + 1}/{run.k}. "
+         "Darah dipulihkan 100."))
 
 
 def _export_ambush_csv(state, result, tracer):
@@ -1477,9 +1632,10 @@ def handle_director_key(key, game_map, player, npc, state):
         state["status"] = (f"Inferensi: {state['csp_toggles']['infer']} "
                            f"(G untuk ulang)")
     elif key in (pygame.K_RETURN, pygame.K_ESCAPE):
-        # Tombol SIAP: tuntaskan dulu bila belum, lalu mulai duel.
-        state["pump_mode"] = "instant"
-        if pump_director(state):
+        # Tombol SIAP: tuntaskan sisa langkah run INI saja tanpa mengubah
+        # mode pump pemain, supaya animasi demo director tetap tampil lagi
+        # di pertemuan berikutnya (permintaan pemain).
+        if pump_director(state, instant=True):
             finish_director(state, player, npc, game_map)
     return None
 
@@ -1606,7 +1762,8 @@ def update_overworld_enemy(game_map, player, npc, state, dt):
     Returns:
         True jika duel baru saja dimulai
     """
-    # Fase spawn: awalnya hanya player yang tampil di map
+    # Fase spawn: awalnya hanya player yang tampil di map (yang mengejar
+    # adalah karakter Boss; anak buahnya baru dipanggil saat battle mode).
     if not state["enemy_spawned"]:
         state["spawn_timer"] -= dt
         if state["spawn_timer"] <= 0:
@@ -1657,7 +1814,15 @@ async def main():
 
     # Load dan scale sprite karakter
     player_sprite = game_map.get_asset("08_karakter/karakter_pemain")
-    npc_sprite = game_map.get_asset("08_karakter/karakter_npc")
+    # Sprite musuh di overworld: pakai aset yang BENAR-BENAR ada di
+    # 08_karakter (sebelumnya "karakter_npc" tidak ada sehingga NPC tak
+    # tampil sama sekali). Fallback berurutan bila salah satu hilang.
+    npc_sprite = (
+        game_map.get_asset("08_karakter/karakter_knight")
+        or game_map.get_asset("08_karakter/karakter_.explorer")
+        or game_map.get_asset("08_karakter/karakter_blacksmith")
+        or game_map.get_asset("08_karakter/karakter_boss")
+    )
 
     # Target height untuk sprite agar konsisten
     TARGET_H = 60  # match current sprite height
@@ -1673,6 +1838,67 @@ async def main():
         npc_sprite = pygame.transform.smoothscale(
             npc_sprite, (int(nw * scale_n), TARGET_H)
         )
+
+    # ---------------------------------------------------------------------------
+    # Aset Tahap 3: sprite NPC varian, item, sound effects, custom font.
+    # Semua dengan graceful fallback (tidak crash bila file aset belum ada).
+    # ---------------------------------------------------------------------------
+    _NPC_SPRITE_KEYS = {
+        "Warrior": "08_karakter/karakter_knight",
+        "Archer": "08_karakter/karakter_archer",
+        "Mage": "08_karakter/karakter_mage",
+        "Healer": "08_karakter/karakter_spellcaster",
+        "Tank": "08_karakter/karakter_.explorer",
+        "Boss": "08_karakter/karakter_boss",
+        "Minion": "08_karakter/karakter_blacksmith",
+    }
+    npc_sprites = {}
+    for _role, _key in _NPC_SPRITE_KEYS.items():
+        _spr = game_map.get_asset(_key)
+        if _spr:
+            _nw, _nh = _spr.get_size()
+            _scale = TARGET_H / _nh
+            npc_sprites[_role] = pygame.transform.smoothscale(
+                _spr, (int(_nw * _scale), TARGET_H)
+            )
+
+    def _load_item_sprite(key: str, fallback_color: tuple) -> pygame.Surface:
+        _base = os.path.dirname(os.path.abspath(__file__))
+        path = os.path.join(_base, "assets", "images", "items", f"{key}.png")
+        try:
+            surf = pygame.image.load(path).convert_alpha()
+            return pygame.transform.smoothscale(surf, (32, 32))
+        except Exception:
+            surf = pygame.Surface((32, 32), pygame.SRCALPHA)
+            pygame.draw.rect(surf, fallback_color, surf.get_rect(),
+                             border_radius=6)
+            pygame.draw.rect(surf, (255, 255, 255, 90),
+                             surf.get_rect().inflate(-6, -6), 2, border_radius=4)
+            return surf
+
+    _ITEM_SPRITE_KEYS = {
+        "Iron Sword": ("iron_sword", (200, 120, 60)),
+        "Heavy Shield": ("heavy_shield", (100, 140, 200)),
+        "Swift Boots": ("swift_boots", (160, 200, 100)),
+        "Healing Charm": ("healing_charm", (220, 100, 160)),
+        "Dragon Fang": ("dragon_fang", (180, 60, 220)),
+    }
+    item_sprites = {}
+    for _item_name, (_key, _color) in _ITEM_SPRITE_KEYS.items():
+        item_sprites[_item_name] = _load_item_sprite(_key, _color)
+
+    custom_font = None
+    custom_font_path = None
+    _FONT_PATHS = ["assets/fonts/pixel.ttf", "assets/fonts/game.ttf"]
+    for _fp in _FONT_PATHS:
+        if os.path.exists(_fp):
+            try:
+                custom_font = pygame.font.Font(_fp, 16)
+                custom_font_path = _fp
+                break
+            except Exception:
+                custom_font = None
+                custom_font_path = None
 
     # Buat player dan NPC
     player = Player(*PLAYER_START, player_sprite)
@@ -1728,9 +1954,17 @@ async def main():
         "target_override": None,  # None = ADAPTIF (tombol C di PREP_* + F3)
         "demo_seed": False,      # True = SEED RANDOM (demo, otomatis via F3)
         "queue_run": None,       # QueueRun aktif (Fase 5 antrean)
-        "transition_until": 0.0,  # batas timer layar transisi
+        "transition_result": None,  # hasil duel terakhir (layar TRANSITION)
         "compare": None,         # panel perbandingan (Fase 6, per frame)
+        "defeated_enemy_positions": [],  # Posisi enemy yang sudah dikalahkan (tidak muncul lagi)
+        "last_queue_roles": (),  # Peran musuh pertemuan terakhir (variasi)
     }
+    # --- Aset Tahap 3 disimpan ke state (setelah state didefinisikan) ---
+    state["npc_sprite_base"] = npc_sprite
+    state["npc_sprites"] = npc_sprites
+    state["item_sprites"] = item_sprites
+    state["custom_font"] = custom_font
+    state["custom_font_path"] = custom_font_path
 
     # ---- Game Loop Utama ----
     running = True
@@ -1771,33 +2005,48 @@ async def main():
             continue
 
         # =================================================================
-        # TRANSITION (Fase 5: musuh berikut antrean maju)
+        # TRANSITION (Fase 5: hasil duel + musuh berikutnya; Enter = lanjut)
+        # Tidak ada auto-lanjut: handle_events() menangani Enter/Space.
         # =================================================================
         if state["mode"] == "TRANSITION" and state.get("queue_run") is not None:
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    running = False
-                elif event.type == pygame.KEYDOWN and event.key in (
-                        pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_SPACE):
-                    start_queue_duel(state, player, npc, game_map)
+            from game.ambush.ui.battle_hud import buff_lines_short
+            from game.ambush.ui.transition import draw_transition
             run = state["queue_run"]
-            if (run is not None and state["mode"] == "TRANSITION"
-                    and pygame.time.get_ticks() / 1000.0
-                    >= state["transition_until"]):
-                start_queue_duel(state, player, npc, game_map)
+            info_t = state.get("transition_result") or {}
+            is_next = info_t.get("status") == "next"
+            rec = run.records[-1] if run.records else None
+            cfg_t = state["ambush_cfg"]
+            slot = run.current_slot()
+            foe_buff = run.current_buff()
+            foe_hp = enemy_max_hp(foe_buff, cfg_t.enemy_base_hp)
+            # Efek lawan ditulis dengan kalimat pemain (mis. "Serangan +2",
+            # "Tahan damage 10%") supaya jelas SEBELUM duel.
+            foe_lines = [text for text, _col in
+                         buff_lines_short(foe_buff, "npc")]
+            result = ("kabur" if run.fled else
+                      ("menang" if (rec is not None and rec.cleared)
+                       else "kalah"))
             screen.fill((12, 14, 18))
             game_map.draw(screen, viewport)
             player.draw(screen, viewport)
             if state["enemy_spawned"]:
                 npc.draw(screen, viewport)
-            if state.get("queue_run") is not None:
-                from game.ambush.ui.transition import draw_transition
-                run = state["queue_run"]
-                slot = run.current_slot()
-                draw_transition(screen, small, run.idx + 1, run.k,
-                                slot.role, slot.item, run.hp, run.cap,
-                                run.potions,
-                                state["ambush_cfg"].transition_hold_s)
+            draw_transition(
+                screen, small,
+                duel_no=(rec.index + 1 if rec is not None else run.idx + 1),
+                k=run.k,
+                result=result,
+                prev_role=(rec.role if rec is not None else None),
+                prev_item=(rec.item if rec is not None else None),
+                hp_after=(rec.hp_after if rec is not None else None),
+                cap=run.cap,
+                potions=(rec.pot_after if rec is not None else 0),
+                next_role=(slot.role if is_next else None),
+                next_item=(slot.item if is_next else None),
+                foe_hp=(foe_hp if is_next else None),
+                foe_lines=(foe_lines if is_next else None),
+                finished=not is_next,
+            )
             draw_toast(screen, small, state)
             pygame.display.flip()
             await asyncio.sleep(0)
@@ -1830,7 +2079,14 @@ async def main():
             held = (state["pump_mode"] == "slow" and not d["finished"]
                     and pygame.time.get_ticks() / 1000.0 < d["hold_until"])
             if not held:
-                pump_director(state)  # selesai -> TAHAN (tunggu Enter)
+                pump_done = pump_director(state)
+            else:
+                pump_done = False
+            # Demo/slow mode: tunggu input user (Spasi/Enter) sebelum masuk battle.
+            # Non-demo/instant: lanjut otomatis saat director selesai.
+            if pump_done and d["finished"] and state["pump_mode"] != "slow":
+                finish_director(state, player, npc, game_map)
+                continue
             # Panel perbandingan: satu unit per frame SETELAH selesai
             # (di luar anggaran 3 detik; tak membekukan game).
             if d["finished"]:

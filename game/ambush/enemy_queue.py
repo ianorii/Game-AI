@@ -18,9 +18,22 @@ from game.ambush.config import AmbushConfig
 from game.ambush.types import BOSS, EMPTY, HEALER, ITEM_TABLE, ROLE_TABLE
 
 #: HP dasar musuh (player tetap 100 milik tahap 2). Semua HP maks musuh =
-#: ENEMY_BASE_HP + buff.hp (mis. Warrior 70+10=80). Satu-satunya angka dasar
-#: sisi musuh; sim, battle nyata, dan HUD wajib lewat enemy_max_hp().
-ENEMY_BASE_HP = 70
+#: ENEMY_BASE_HP + buff.hp. Tiap musuh baru selalu dimulai di HP maks penuh
+#: (tidak terbawa antar-duel) dan HP saat duel turun normal sampai 0 —
+#: tidak ada clamp minimum (satu-satunya angka dasar sisi musuh; sim, battle
+#: nyata, dan HUD wajib lewat enemy_max_hp()).
+#:
+#: AMANDEMEN-3 (permintaan pemain): SEMUA musuh mulai 100 HP — sama dengan
+#: pemain. Bonus HP peran dinolkan di ROLE_TABLE, jadi buff.hp = 0 untuk
+#: semua musuh kecuali Boss dan enemy_max_hp() = 100. (AMANDEMEN-1
+#: sebelumnya menurunkan nilai ini 100 -> 70.) Mengubahnya berarti mengubah
+#: keseimbangan yang diukur di docs/balance_TahapA.md.
+#:
+#: AMANDEMEN-4 (permintaan pemain: "sampai melawan boss yang hpnya 150"):
+#: Boss kini ber-bonus hp +50 di ROLE_TABLE sehingga HP maksnya 150; peran
+#: lain tetap 100. Angka 150 muncul otomatis di sim/battle/HUD/panel karena
+#: semuanya memanggil enemy_max_hp() (ENEMY_BASE_HP tidak berubah).
+ENEMY_BASE_HP = 100
 
 #: Peran defensif: dua berurutan dilarang (aturan adjacency, Fase 2 CSP).
 #: Alasan: dua duel defensif berturut-turut membuat antrean membosankan
@@ -134,12 +147,19 @@ def queue_from_assign(assign: dict, cfg: AmbushConfig) -> EnemyQueue:
 
 
 def check_queue(queue: EnemyQueue, wins: int, budget: int,
-                cfg: AmbushConfig) -> List[str]:
+                cfg: AmbushConfig,
+                avoid_roles: Tuple[str, ...] = ()) -> List[str]:
     """Daftar pelanggaran antrean. Kosong = valid (cerminan constraints.py).
 
     Aturan: k dalam [min_enemies, kmax]; Boss perlu wins + hanya slot
-    aktif terakhir; maks 1 Healer; Healer/Tank tak boleh berturutan;
-    Fang ≤ 1; kompatibilitas peran-item per slot; total cost ≤ budget.
+    aktif terakhir; semua peran musuh HARUS saling berbeda (satu musuh
+    hanya muncul sekali per pertandingan); maks 1 Healer; Healer/Tank tak
+    boleh berturutan; Fang ≤ 1; kompatibilitas peran-item per slot; total
+    cost ≤ budget.
+
+    Args:
+        avoid_roles: peran musuh pertemuan sebelumnya. Variasi antar
+            pertemuan (permintaan pemain); kosong = tak ada pantangan.
     """
     bad: List[str] = []
     slots = list(queue.slots)
@@ -154,6 +174,16 @@ def check_queue(queue: EnemyQueue, wins: int, budget: int,
             bad.append(f"Boss harus slot aktif terakhir (ada di {i + 1})")
         if s.item != EMPTY and s.role not in ITEM_TABLE[s.item].allowed_roles:
             bad.append(f"{s.role} tidak kompatibel dengan {s.item}")
+    roles_seen = [s.role for s in slots]
+    dups = sorted({r for r in roles_seen if roles_seen.count(r) > 1})
+    if dups:
+        bad.append("musuh yang sama muncul dua kali dalam satu pertandingan "
+                   f"({', '.join(dups)})")
+    if avoid_roles:
+        repeated = sorted({r for r in roles_seen if r in avoid_roles})
+        if repeated:
+            bad.append("peran pertemuan sebelumnya masih dipakai "
+                       f"({', '.join(repeated)})")
     if sum(1 for s in slots if s.role == HEALER) > 1:
         bad.append("dua Healer dalam satu antrean")
     for a, b in zip(slots, slots[1:]):
@@ -173,6 +203,7 @@ def check_queue(queue: EnemyQueue, wins: int, budget: int,
 
 
 def is_queue_valid(queue: EnemyQueue, wins: int, budget: int,
-                   cfg: AmbushConfig) -> bool:
+                   cfg: AmbushConfig,
+                   avoid_roles: Tuple[str, ...] = ()) -> bool:
     """True jika antrean valid (lengkap dan konsisten)."""
-    return not check_queue(queue, wins, budget, cfg)
+    return not check_queue(queue, wins, budget, cfg, avoid_roles)

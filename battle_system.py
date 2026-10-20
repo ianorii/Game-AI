@@ -17,6 +17,7 @@ tidak keluar dari Battle Mode sendirian, lalu game kembali ke OVERWORLD.
 from __future__ import annotations
 
 import math
+import os
 import random
 from typing import Dict, List, Optional, Tuple
 
@@ -42,6 +43,7 @@ from game.ambush.buff import Buff, summarize_squad
 from game.ambush.buff_ai import BuffAwareAI, BuffBattleState, apply_chip_hook
 from game.ambush.config import AmbushConfig
 from game.ambush.enemy_queue import ENEMY_BASE_HP, enemy_max_hp
+from game.ambush.types import display_role
 
 
 # ---------------------------------------------------------------------------
@@ -128,6 +130,10 @@ class BattleSystem:
         duel_label: str = "",
         queue_view: Optional[dict] = None,
         enemy_base_hp: int = ENEMY_BASE_HP,
+        # --- Aset Tahap 3 (semua optional, fallback aman) ---
+        item_sprites: Optional[Dict[str, pygame.Surface]] = None,
+        custom_font: Optional[pygame.font.Font] = None,
+        custom_font_path: Optional[str] = None,
     ):
         """
         Args:
@@ -142,17 +148,24 @@ class BattleSystem:
             npc_buff: Buff Tahap 3 dari Ambush Director (None = duel polos
                 tahap 2, perilaku tidak berubah sama sekali)
             npc_squad: SquadConfig asal buff (untuk tampilan HUD saja)
+            item_sprites: Dict nama item -> surface ikon (untuk HUD item)
+            custom_font: Font kustom TTF (None = fallback system font)
+            custom_font_path: Path file TTF untuk membuat font berukuran bervariasi
         """
         depth = max(DEPTH_MIN, min(DEPTH_MAX, int(depth)))
         self.depth = depth
         self.npc_buff = npc_buff
         self.player_buff = player_buff
-        self.duel_label = duel_label  # mis. "MUSUH 2/3" (Fase 5 antrean)
-        self.queue_view = queue_view  # strip antrean (Fase 6) / None
+        self.duel_label = duel_label  # mis. "DUEL 2 DARI 3" (Fase 5 antrean)
+        self.queue_view = queue_view  # info antrean (Fase 6) / None
         self.npc_squad = npc_squad
         self.player_loadout = player_loadout
         self.target = target
         self.sim_rate = sim_rate
+        # --- Aset Tahap 3 ---
+        self.item_sprites = item_sprites or {}
+        self.custom_font = custom_font
+        self._custom_font_path = custom_font_path
         self.turn_no = 1
         self.npc_max_hp = enemy_max_hp(
             npc_buff if npc_buff else Buff(), enemy_base_hp)
@@ -237,11 +250,21 @@ class BattleSystem:
         return big
 
     def _get_font(self, size: int) -> pygame.font.Font:
-        """Font cache agar tidak membuat Font baru tiap frame."""
+        """Font cache agar tidak membuat Font baru tiap frame.
+
+        Pakai custom_font (Tahap 3) bila tersedia, else fallback system font.
+        """
         size = max(11, int(size))
         if size not in self._fonts:
-            name = "consolas" if pygame.font.match_font("consolas") else None
-            self._fonts[size] = pygame.font.SysFont(name, size)
+            if self.custom_font is not None:
+                path = getattr(self, "_custom_font_path", None)
+                if path and os.path.exists(path):
+                    self._fonts[size] = pygame.font.Font(path, size)
+                else:
+                    self._fonts[size] = self.custom_font
+            else:
+                name = "consolas" if pygame.font.match_font("consolas") else None
+                self._fonts[size] = pygame.font.SysFont(name, size)
         return self._fonts[size]
 
     def _fit_text(
@@ -477,21 +500,22 @@ class BattleSystem:
             apply_chip_hook(self.state, self.npc_buff)
             if self.state.player_hp < before_chip and self.npc_buff is not None:
                 self._add_log(
-                    f"Healer/Archer NPC memicu: {before_chip - self.state.player_hp} chip.",
-                    (240, 200, 120))
+                    f"Damage pasti musuh: {before_chip - self.state.player_hp}"
+                    f" ke kamu.", (240, 200, 120))
                 self.hud.ping("npc")
         else:
             before_chip = self.state.npc_hp
             apply_chip_hook(self.state, self.npc_buff)
             if self.state.npc_hp < before_chip:
-                self._add_log("Loadout-mu memicu chip ke musuh.",
-                              (140, 240, 170))
+                self._add_log(
+                    f"Damage pasti item-mu: {before_chip - self.state.npc_hp}"
+                    f" ke musuh.", (140, 240, 170))
                 self.hud.ping("player")
             self.turn_no += 1
 
         if is_npc and self.npc_buff is not None and self.npc_buff.regen > 0:
-            self._add_log(f"Healer NPC memulihkan {self.npc_buff.regen} HP.",
-                          HEAL_COL)
+            self._add_log(f"Musuh memulihkan {self.npc_buff.regen} HP "
+                          f"tiap giliran (Spellcaster/Charm).", HEAL_COL)
             self.hud.ping("npc")
         if not is_npc and self.player_buff is not None \
                 and self.player_buff.regen > 0:
@@ -511,6 +535,12 @@ class BattleSystem:
             self._push_popup(
                 f"{d_player:+d}", HEAL_COL if d_player > 0 else DAMAGE_COL, "player"
             )
+
+        # Catatan: TIDAK ada lagi clamp "HP NPC minimum 80". Clamp lama
+        # membuat HP musuh membeku di 80 setiap giliran NPC sehingga musuh
+        # praktis tidak bisa dikalahkan. HP musuh kini bebas turun sampai 0;
+        # yang tetap adalah HP MAKS tiap lawan baru = 100 (ENEMY_BASE_HP,
+        # AMANDEMEN-3: semua musuh 100 HP sama dengan pemain; buff.hp = 0).
 
         if self.state.is_terminal():
             self._enter_result()
@@ -588,27 +618,52 @@ class BattleSystem:
         self._draw_title(canvas, w, h)
         self._draw_character(canvas, w, h, "player", ox, oy)
         self._draw_character(canvas, w, h, "npc", ox, oy)
-        self._draw_stats_panel(canvas, w, h, "npc")
-        self._draw_stats_panel(canvas, w, h, "player")
-        self._draw_action_menu(canvas, w, h)
-        self._draw_log(canvas, w, h)
-        self._draw_popups(canvas, w, h)
-        # HUD konfigurasi (H): angka dari Buff yang sama dengan battle.
-        # Sengaja tanpa try/except: crash HUD harus terlihat di tes,
-        # bukan tenggelam diam-diam (pelajaran strip antrean Fase 6).
+
+        # Data anggota untuk panel konfigurasi (HUD)
         npc_members = ([(r, it) for r, it in
                         zip(self.npc_squad.roles, self.npc_squad.items)]
                        if self.npc_squad is not None
                        else self._queue_member())
         player_items = (list(self.player_loadout.items)
                         if self.player_loadout is not None else [])
+
+        # --- Sidebar tengah: info duel + strip antrean (pusat, rapi) ---
+        # Digambar SEBELUM panel HP agar panel HP tidak menabrak teks tengah.
         self.hud.draw(canvas, font or self._get_font(w // 90),
                       player_items, npc_members,
                       self.player_buff, self.npc_buff,
                       self.turn_no, self.target, self.sim_rate,
                       queue_view=self.queue_view,
                       duel_label=self.duel_label,
-                      y_top=getattr(self, "_hud_y", None))
+                      y_top=getattr(self, "_hud_y", None),
+                      item_sprites=self.item_sprites)
+        hud_bottom = getattr(self.hud, "content_bottom",
+                             getattr(self, "_hud_y", int(h * 0.14)))
+
+        # Panel HP/stok/konfigurasi (di bawah sidebar tengah, simetris kiri
+        # = PLAYER dan kanan = NPC). y_start diambil dari bawah HUD tengah
+        # supaya tidak menabrak teks pesan/enem/item di tengah layar.
+        self._draw_stats_panel(canvas, w, h, "npc", y_start=hud_bottom + 14)
+        self._draw_stats_panel(canvas, w, h, "player", y_start=hud_bottom + 14)
+
+        self._draw_action_menu(canvas, w, h)
+        self._draw_log(canvas, w, h)
+        self._draw_popups(canvas, w, h)
+
+        # Layar hasil duel (tutup seluruh adegan, tak bisa dilewati otomatis).
+        if self.phase == "RESULT":
+            self._draw_result(canvas, w, h)
+
+        # Debug overlay adversarial search di sisi kanan layar,
+        # di bawah panel status NPC, di atas battle log, dan mulai dari luar
+        # sprite NPC supaya tidak menutupi karakter maupun menu aksi.
+        margin = 12
+        top = 20 + int(h * 0.16) + margin
+        bottom = h - 20 - int(h * 0.30) - margin
+        left = int(w * 0.70) + 100
+        right = w - 20
+        safe = pygame.Rect(left, top, max(0, right - left), max(0, bottom - top))
+        self.debug.draw(canvas, font or self._get_font(w // 90), safe)
 
     def _queue_member(self):
         """[(role, item)] musuh aktif antrean, else [] (panel + HUD)."""
@@ -618,21 +673,6 @@ class BattleSystem:
             return [tuple(order[i])]
         except (TypeError, IndexError, KeyError):
             return []
-
-        if self.phase == "RESULT":
-            self._draw_result(canvas, w, h)
-
-        # Debug overlay adversarial search dipasang di sisi kanan layar:
-        # di bawah panel status NPC, di atas battle log, dan mulai dari luar
-        # sprite NPC (cx = 0.70w, bayangan selebar 190px) supaya tidak
-        # menutupi kedua karakter maupun menu aksi.
-        margin = 12
-        top = 20 + int(h * 0.16) + margin
-        bottom = h - 20 - int(h * 0.30) - margin
-        left = int(w * 0.70) + 100
-        right = w - 20
-        safe = pygame.Rect(left, top, max(0, right - left), max(0, bottom - top))
-        self.debug.draw(canvas, font or self._get_font(w // 90), safe)
 
     def _draw_background(self, screen: pygame.Surface, w: int, h: int) -> None:
         """Gambar latar duel.
@@ -692,28 +732,44 @@ class BattleSystem:
         return out
 
     def _draw_title(self, screen: pygame.Surface, w: int, h: int) -> None:
-        font = self._get_font(w // 42)
+        """Gambar judul duel dan info turn di bagian tengah atas."""
+        title_font = self._get_font(w // 40)
+        turn_font = self._get_font(w // 70)
         buffered = self.npc_buff is not None or self.player_buff is not None
-        # Tanpa glyph khusus (konsolas headless tak punya BINTANG): ASCII saja.
-        title_text = "BATTLE DUEL (BUFF)" if buffered else "BATTLE DUEL (polos)"
-        if self.duel_label:  # Fase 5: "MUSUH n/k" gabung judul (tak tumpuk).
-            title_text += f" - {self.duel_label}"
-        title = font.render(title_text, True, GOLD if buffered else TEXT)
-        title_y = int(h * 0.015)
+
+        # Indikator BOSS: tampilkan judul khusus jika lawan adalah Boss
+        is_boss = "Boss" in self.npc_name
+        if is_boss:
+            title_text = "⚔️ BOSS BATTLE ⚔️"
+            title_col = (240, 96, 96)
+        else:
+            title_text = "BATTLE DUEL (BUFF)" if buffered else "BATTLE DUEL"
+            if self.duel_label:
+                title_text += f" - {self.duel_label}"
+            title_col = GOLD if buffered else TEXT
+        title = title_font.render(title_text, True, title_col)
+        title_y = int(h * 0.025)
         screen.blit(title, (w // 2 - title.get_width() // 2, title_y))
 
-        turn_font = self._get_font(w // 78)
+        # Label turn di bawah judul
         if self.phase == "PLAYER_INPUT":
-            label, col = "Giliranmu - pilih aksi", (140, 240, 170)
+            label, col = "GILIRANMU - pilih aksi", (140, 240, 170)
         elif self.phase == "NPC_THINK":
-            label, col = f"{self.npc_name} berpikir...", (240, 170, 120)
+            label, col = f"{self.npc_name} BERPIKIR...", (240, 170, 120)
         else:
-            label, col = "Duel selesai", GOLD
+            label, col = "DUEL SELESAI", GOLD
         surf = turn_font.render(label, True, col)
-        turn_y = title_y + title.get_height() + 4
+        turn_y = title_y + title.get_height() + 8
         screen.blit(surf, (w // 2 - surf.get_width() // 2, turn_y))
-        # Strip info HUD mulai di bawah blok judul (tak menimpa lagi).
-        self._hud_y = turn_y + surf.get_height() + 6
+
+        # Garis pemisah horizontal di bawah info judul
+        line_y = turn_y + surf.get_height() + 10
+        pygame.draw.line(
+            screen, (60, 70, 90),
+            (int(w * 0.15), line_y), (int(w * 0.85), line_y), 2
+        )
+        # _hud_y = batas bawah area judul; HUD sidebar tengah dimulai di sini.
+        self._hud_y = line_y + 26
 
     def _draw_character(self, screen: pygame.Surface, w: int, h: int, side: str, ox: int, oy: int) -> None:
         """Gambar sprite karakter dengan bayangan dan bobbing halus."""
@@ -732,12 +788,34 @@ class BattleSystem:
         rect = sprite.get_rect(midbottom=(cx, cy + 80))
         screen.blit(sprite, rect)
 
-    def _draw_stats_panel(self, screen: pygame.Surface, w: int, h: int, side: str) -> None:
+    def _icon_small(self, item_name: str, size: int = 20
+                    ) -> Optional[pygame.Surface]:
+        """Ikon item ukuran kecil untuk baris anggota panel HP (cache).
+
+        Dipakai supaya baris peran/item rapi (ikon 20px di kolom kanan)
+        tanpa memanggil smoothscale ulang tiap frame.
+        """
+        cache = getattr(self, "_icon_small_cache", None)
+        if cache is None:
+            cache = self._icon_small_cache = {}
+        key = (item_name, size)
+        if key not in cache:
+            src = self.item_sprites.get(item_name)
+            cache[key] = (pygame.transform.smoothscale(src, (size, size))
+                          if src is not None else None)
+        return cache[key]
+
+    def _draw_stats_panel(self, screen: pygame.Surface, w: int, h: int, side: str,
+                          y_start: Optional[int] = None) -> None:
         """Panel HP/stok potion/cooldown + (H) konfigurasi buff tahap 3.
 
         Dua panel ini simetris kiri (PLAYER) vs kanan (NPC) sesuai spek HUD:
         baris buff dibaca dari Buff yang SAMA dengan battle (bukan hitungan
         kedua), dan border menyala sesaat saat buff sisi itu terpicu.
+
+        Args:
+            y_start: Posisi Y atas panel. Jika None, pakai _hud_y + 12.
+                     Digunakan agar panel HP tidak menabrak sidebar tengah.
         """
         is_npc = side == "npc"
         buff = self.npc_buff if is_npc else self.player_buff
@@ -757,12 +835,20 @@ class BattleSystem:
         from game.ambush.ui.battle_hud import buff_lines_short
         blines = buff_lines_short(buff, "npc" if is_npc else "player") \
             if show_buff else []
-        extra = (len(members[:2]) + len(blines[:3])) if self.hud.visible else 0
         small = self._get_font(w // 84)
         line_h = small.get_height() + 2
-        pw, ph = int(w * 0.30), int(h * 0.16) + extra * line_h
+        # Baris anggota memuat ikon item 20px -> butuh tinggi ekstra agar
+        # ikon dan teks tidak berdempetan.
+        member_h = max(line_h, 24)
+        n_mem = len(members[:2]) if self.hud.visible else 0
+        n_buf = len(blines[:3])
+        pw, ph = (int(w * 0.28),
+                  int(h * 0.16) + n_mem * member_h + n_buf * line_h)
         x = int(w - 20 - pw) if is_npc else 20
-        y = 20
+        if y_start is not None:
+            y = y_start
+        else:
+            y = getattr(self, "_hud_y", int(h * 0.14)) + 12
         rect = pygame.Rect(x, y, pw, ph)
 
         panel = pygame.Surface(rect.size, pygame.SRCALPHA)
@@ -832,19 +918,69 @@ class BattleSystem:
             screen.blit(cd_txt, (cd_x, info_y))
 
         # Baris konfigurasi tahap 3 (H): anggota + efek angka (maks 5 baris).
+        # Layout dirapikan: SEMUA teks rata kiri sejajar dengan baris
+        # Potion/efek; ikon item berdiri di kolom KANAN panel (lebar tetap)
+        # sehingga baris peran/item tidak lagi tampak menjorok acak.
         by = info_y + small.get_height() + 6
+        inner_w = pw - 32
         if self.hud.visible:
             for m in members[:2]:
-                surf = self._fit_text(small, m, TEXT, pw - 32)
-                screen.blit(surf, (inner_l, by))
-                by += line_h
+                raw = str(m)
+                if "[" in raw and "]" in raw:
+                    # Sisi NPC: "Role [Item]" -> peran + item dipisah warna.
+                    role_txt = display_role(raw.split("[")[0].strip())
+                    item_txt = raw.split("[")[1].split("]")[0]
+                    if item_txt == "NONE":
+                        item_txt = ""
+                elif raw.strip() == "tanpa item":
+                    role_txt, item_txt = "tanpa item", ""
+                else:
+                    # Sisi player: daftar item loadout (tanpa peran).
+                    role_txt, item_txt = "", raw.strip()
+                icon = self._icon_small(item_txt) if item_txt else None
+                icon_w = (icon.get_width() + 8) if icon is not None else 0
+                avail = inner_w - icon_w
+                parts = []
+                if role_txt:
+                    parts.append((role_txt,
+                                  TEXT_DIM if role_txt == "tanpa item"
+                                  else TEXT))
+                if item_txt:
+                    if role_txt and role_txt != "tanpa item":
+                        parts.append((" - ", TEXT_DIM))
+                    parts.append((item_txt, GOLD))
+                plain = "".join(t for t, _c in parts)
+                if small.size(plain)[0] <= avail:
+                    x_acc = inner_l
+                    for t, c in parts:
+                        surf = small.render(t, True, c)
+                        screen.blit(surf, (x_acc, by))
+                        x_acc += surf.get_width()
+                else:  # terlalu panjang: potong sebagai satu warna
+                    screen.blit(self._fit_text(small, plain, TEXT, avail),
+                                (inner_l, by))
+                if icon is not None:
+                    # Ikon item rata kanan (kolom tetap) di tengah baris,
+                    # dengan alas lembut agar ikon gelap tetap terbaca.
+                    icon_rect = icon.get_rect(
+                        midright=(inner_r, by + small.get_height() // 2))
+                    slot_bg = pygame.Surface(
+                        (icon.get_width() + 8, icon.get_height() + 8),
+                        pygame.SRCALPHA)
+                    pygame.draw.rect(slot_bg, (255, 255, 255, 22),
+                                     slot_bg.get_rect(), border_radius=6)
+                    pygame.draw.rect(slot_bg, (255, 255, 255, 40),
+                                     slot_bg.get_rect(), 1, border_radius=6)
+                    screen.blit(slot_bg, (icon_rect.x - 4, icon_rect.y - 4))
+                    screen.blit(icon, icon_rect)
+                by += member_h
             for line, col in blines[:3]:
-                surf = self._fit_text(small, line, col, pw - 32)
+                surf = self._fit_text(small, line, col, inner_w)
                 screen.blit(surf, (inner_l, by))
                 by += line_h
             if buff is None and not members:
                 surf = self._fit_text(small, "polos (tanpa buff) [H]",
-                                      TEXT_DIM, pw - 32)
+                                      TEXT_DIM, inner_w)
                 screen.blit(surf, (inner_l, by))
 
     def _draw_action_menu(self, screen: pygame.Surface, w: int, h: int) -> None:
@@ -978,8 +1114,9 @@ class BattleSystem:
         """Overlay layar hasil duel.
 
         Layar ini tidak pernah menutup sendiri: hasil menang/kalah/seri tetap
-        terpasang sampai pemain menekan Enter (atau ESC) untuk kembali ke
-        overworld. ``result_timer`` hanya dipakai untuk animasi fade-in.
+        terpasang sampai pemain menekan Enter (atau ESC). Di duel antrean,
+        Enter membuka layar hasil + musuh berikutnya; di duel biasa, Enter
+        kembali ke overworld. ``result_timer`` hanya animasi fade-in.
         """
         t = max(0.0, min(1.0, (RESULT_DELAY - self.result_timer) / 0.4))
 
@@ -988,12 +1125,18 @@ class BattleSystem:
         screen.blit(veil, (0, 0))
 
         big = self._get_font(w // 26)
-        if self.winner == "player":
+        queue_mode = bool(self.duel_label)
+        if self.fled:
+            text, col = "KAMU KABUR", TEXT_DIM
+            sub = "Meninggalkan duel sebelum selesai"
+        elif self.winner == "player":
             text, col = "KAMU MENANG!", (140, 240, 170)
-            sub = "Musuh tumbang - HP dipulihkan penuh"
+            sub = ("Musuh tumbang - lanjut ke musuh berikutnya" if queue_mode
+                   else "Musuh tumbang - HP dipulihkan penuh")
         elif self.winner == "npc":
             text, col = "KAMU KALAH...", (240, 120, 120)
-            sub = "HP dipulihkan penuh saat kembali"
+            sub = ("Kamu tumbang - pertemuan antrean berakhir" if queue_mode
+                   else "HP dipulihkan penuh saat kembali")
         else:
             text, col = "SERI", GOLD
             sub = "Duel berakhir imbang"
@@ -1007,6 +1150,7 @@ class BattleSystem:
         screen.blit(s2, (w // 2 - s2.get_width() // 2, int(h * 0.38) + surf.get_height() + 10))
 
         hint = self._get_font(w // 84).render(
-            "Tekan Enter untuk kembali ke overworld", True, TEXT_DIM
+            "Tekan Enter untuk lihat hasil & lanjut" if queue_mode
+            else "Tekan Enter untuk kembali ke overworld", True, TEXT_DIM
         )
         screen.blit(hint, (w // 2 - hint.get_width() // 2, int(h * 0.38) + surf.get_height() + s2.get_height() + 22))

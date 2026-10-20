@@ -103,7 +103,8 @@ def test_buff_sampai_ke_battle():
     assert len(summary.lines()) >= 3, summary.lines()
     battle = BattleSystem(player_hp=100, npc_buff=summary.buff,
                           npc_squad=STRONG)
-    assert battle.npc_max_hp == 70 + summary.buff.hp
+    from game.ambush.enemy_queue import ENEMY_BASE_HP
+    assert battle.npc_max_hp == ENEMY_BASE_HP + summary.buff.hp
     assert type(battle.ai).__name__ == "BuffAwareAI"
     assert any("Buff:" in text for text, _ in battle.log)
     stats = battle.ai.think(battle.state, run_baseline=False)

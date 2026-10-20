@@ -88,12 +88,14 @@ _ITEM_OPTIONS = [it for it in ITEM_TABLE]
 
 def neighbours(queue: EnemyQueue, wins: int, budget: int,
                cfg: AmbushConfig,
+               avoid_roles: Tuple[str, ...] = (),
                ) -> Tuple[List[Tuple[EnemyQueue, Move]],
                           List[Tuple[Move, str]]]:
     """Semua neighbour VALID (+kind/detail) dan penolakan (+alasan).
 
     k dijaga 2..kmax oleh konstruksi + check; kanonis (padat-kiri) selalu
-    terjaga sehingga tukar-urutan selalu antar slot aktif.
+    terjaga sehingga tukar-urutan selalu antar slot aktif. avoid_roles =
+    peran pertemuan sebelumnya yang tak boleh diulang (variasi).
     """
     valid: Dict[tuple, Tuple[EnemyQueue, Move]] = {}
     rejected: List[Tuple[Move, str]] = []
@@ -102,7 +104,7 @@ def neighbours(queue: EnemyQueue, wins: int, budget: int,
         key = cand.key()
         if key in valid or key == queue.key():
             return
-        bad = check_queue(cand, wins, budget, cfg)
+        bad = check_queue(cand, wins, budget, cfg, avoid_roles)
         if bad:
             rejected.append((move, bad[0]))
             return
@@ -172,7 +174,7 @@ def _emit(tracer, kind: str, **data):
 def hill_climb_q(start: EnemyQueue, evaluator, target: float, wins: int,
                  budget: int, cfg: AmbushConfig, sideways_limit=None,
                  max_iters=None, time_limit=None, tracer=None,
-                 prefilter=None, prefilter_top=None):
+                 prefilter=None, prefilter_top=None, avoid_roles=()):
     """Steepest-ascent antrean (generator). Lihat modul Tabel 3 fase 2."""
     if sideways_limit is None:
         sideways_limit = cfg.hc_sideways
@@ -207,7 +209,7 @@ def hill_climb_q(start: EnemyQueue, evaluator, target: float, wins: int,
     while stop == "iter_limit" and it < max_iters \
             and time.perf_counter() - t0 < time_limit:
         it += 1
-        nbs, rej = neighbours(cur, wins, budget, cfg)
+        nbs, rej = neighbours(cur, wins, budget, cfg, avoid_roles)
         rejected_total += len(rej)
         if prefilter is not None and len(nbs) > prefilter_top:
             nbs = sorted(nbs, key=lambda t: difficulty_gap(
@@ -310,7 +312,8 @@ def random_restart_q(initial_fn, evaluator, target: float, wins: int,
 def simulated_annealing_q(start: EnemyQueue, evaluator, target: float,
                           wins: int, budget: int, cfg: AmbushConfig,
                           t0=None, cooling=None, tmin=None, max_iters=None,
-                          time_limit=None, seed: int = 0, tracer=None):
+                          time_limit=None, seed: int = 0, tracer=None,
+                          avoid_roles=()):
     """SA antrean: neighbour acak, terima buruk dgn e^(deltaE/T). Generator."""
     if t0 is None:
         t0 = cfg.sa_t0
@@ -348,7 +351,7 @@ def simulated_annealing_q(start: EnemyQueue, evaluator, target: float,
             stop = "cooled"
             break
         it += 1
-        nbs, rej = neighbours(cur, wins, budget, cfg)
+        nbs, rej = neighbours(cur, wins, budget, cfg, avoid_roles)
         rejected_total += len(rej)
         if not nbs:
             stop = "no_valid_neighbour"
@@ -424,16 +427,36 @@ def decode_queue(chrom, cfg: AmbushConfig) -> EnemyQueue:
     return _EQ(slots=tuple(slots))
 
 
+def _free_role(used, avoid,
+               prev_role: Optional[str] = None) -> Optional[str]:
+    """Peran termurah yang belum dipakai, tak dipantang, dan tetap sah.
+
+    Diuji dari yang termurah (Minion) ke termahal. Boss tidak pernah
+    dipilih di sini - pemanggil yang memutuskan pemakaian Boss (aturan
+    Boss-terakhir). Return None bila semua kandidat terpakai/dipantang.
+    """
+    for role in ("Minion", "Warrior", "Archer", "Healer", "Mage", "Tank"):
+        if role in used or role in avoid:
+            continue
+        if prev_role in ("Healer", "Tank") and role in ("Healer", "Tank"):
+            continue
+        return role
+    return None
+
+
 def repair_queue(queue: EnemyQueue, wins: int, budget: int,
-                 cfg: AmbushConfig) -> EnemyQueue:
+                 cfg: AmbushConfig,
+                 avoid_roles: Tuple[str, ...] = ()) -> EnemyQueue:
     """Proyeksi deterministik ke antrean feasible terdekat (repair=True).
 
-    Urutan: item tanpa peran (tak mungkin di sini) -> Healer kedua+ kosong
-    -> pasangan inkompatibel jadi NONE -> Fang ganda NONE-kan -> Boss
-    bukan-terakhir didemosikan ke Warrior -> putuskan adjacency defensif
-    (demote yang belakangan jadi Warrior) -> padatkan -> pangkas budget
-    dari belakang -> isi min-2 dari depan (Warrior).
+    Urutan: item tanpa peran (tak mungkin di sini) -> Healer kedua+ ganti
+    peran bebas -> pasangan inkompatibel jadi NONE -> Fang ganda NONE-kan
+    -> Boss bukan-terakhir didemosikan -> putuskan adjacency defensif
+    (demote yang belakangan) -> peran duplikat/pertemuan-lalu diganti
+    peran bebas -> padatkan -> pangkas budget dari belakang -> isi min-2
+    dari depan (peran bebas termurah).
     """
+    avoid = tuple(avoid_roles or ())
     slots = [EnemySlot(s.role, s.item) for s in queue.slots]
     out_r, out_i = [], []
     for s in slots:
@@ -442,15 +465,27 @@ def repair_queue(queue: EnemyQueue, wins: int, budget: int,
             it = EMPTY
         out_r.append(r)
         out_i.append(it)
-    # Healer kedua+ -> Minion (bukan kosong: jaga k).
+
+    def demote(i: int, role: str) -> None:
+        """Ganti peran slot i; item dilepas bila tak kompatibel."""
+        out_r[i] = role
+        if (out_i[i] != EMPTY
+                and role not in ITEM_TABLE[out_i[i]].allowed_roles):
+            out_i[i] = EMPTY
+
+    def fresh(i: int, prev_role: Optional[str] = None) -> None:
+        """Slot i -> peran termurah yang belum dipakai (bukan pantangan)."""
+        used = {r for j, r in enumerate(out_r) if j != i and r != EMPTY}
+        role = (_free_role(used, avoid, prev_role)
+                or _free_role(used, (), prev_role) or "Minion")
+        demote(i, role)
+
+    # Healer kedua+ -> peran baru (bukan kosong: jaga k).
     seen_healer = False
     for i, r in enumerate(out_r):
         if r == "Healer":
             if seen_healer:
-                out_r[i] = "Minion"
-                if out_i[i] != EMPTY and "Minion" not in ITEM_TABLE[
-                        out_i[i]].allowed_roles:
-                    out_i[i] = EMPTY
+                fresh(i)
             seen_healer = True
     # Fang ganda -> NONE-kan yang belakangan.
     seen_fang = False
@@ -459,25 +494,29 @@ def repair_queue(queue: EnemyQueue, wins: int, budget: int,
             if seen_fang:
                 out_i[i] = EMPTY
             seen_fang = True
-    # Boss bukan-terakhir -> Warrior (alternatif: pindah ke akhir; demote
+    # Boss bukan-terakhir -> demote (alternatif: pindah ke akhir; demote
     # dipilih karena murah dan menjaga k).
     for i, r in enumerate(out_r):
         if r == BOSS and (i != len(out_r) - 1 or wins < cfg.boss_min_wins):
-            out_r[i] = "Warrior"
-            if out_i[i] != EMPTY and "Warrior" not in ITEM_TABLE[
-                    out_i[i]].allowed_roles:
-                out_i[i] = EMPTY
-    # Adjacency defensif: demote yang belakangan jadi Warrior.
+            fresh(i)
+    # Adjacency defensif: demote yang belakangan.
     defensive = {"Healer", "Tank"}
     for i in range(len(out_r) - 1):
         if out_r[i] in defensive and out_r[i + 1] in defensive:
-            out_r[i + 1] = "Warrior"
-            if out_i[i + 1] != EMPTY and "Warrior" not in ITEM_TABLE[
-                    out_i[i + 1]].allowed_roles:
-                out_i[i + 1] = EMPTY
+            fresh(i + 1, prev_role=out_r[i])
+    # Peran duplikat dalam satu pertandingan / peran pertemuan sebelumnya
+    # -> peran bebas termurah (aturan variasi permintaan pemain).
+    for i, r in enumerate(out_r):
+        if r == EMPTY:
+            continue
+        if r in out_r[:i] or r in avoid:
+            fresh(i)
     members = [(r, it) for r, it in zip(out_r, out_i) if r != EMPTY]
     while len(members) < cfg.min_enemies:
-        members.append(("Warrior", EMPTY))
+        used = {r for r, _it in members}
+        role = (_free_role(used, avoid)
+                or _free_role(used, ()) or "Warrior")
+        members.append((role, EMPTY))
     while len(members) > cfg.min_enemies - 1:
         cand = EnemyQueue(slots=tuple(EnemySlot(r, it) for r, it in members))
         if cand.total_cost() <= budget or len(members) <= cfg.min_enemies:
@@ -499,7 +538,8 @@ def _random_queue(rng: random.Random, cfg: AmbushConfig) -> EnemyQueue:
 def genetic_q(seeds: List[EnemyQueue], evaluator, target: float, wins: int,
               budget: int, cfg: AmbushConfig, pop_size=None, generations=None,
               cx_prob=None, mut_prob=None, tour_size=None, penalty=None,
-              repair=None, seed: int = 0, time_limit=None, tracer=None):
+              repair=None, seed: int = 0, time_limit=None, tracer=None,
+              avoid_roles: Tuple[str, ...] = ()):
     """GA antrean berurutan (generator). Fitness = -gap [- penalti]."""
     if pop_size is None:
         pop_size = cfg.ga_pop
@@ -523,10 +563,12 @@ def genetic_q(seeds: List[EnemyQueue], evaluator, target: float, wins: int,
     def fitness_of(chrom):
         squad = decode_queue(chrom, cfg)
         if repair:
-            squad = repair_queue(squad, wins, budget, cfg)
+            # Repair = proyeksi; queue hasil proyeksi dianggap feasible
+            # (perilaku lama). Validasi akhir tetap di director.
+            squad = repair_queue(squad, wins, budget, cfg, avoid_roles)
             nviol = 0
         else:
-            nviol = len(check_queue(squad, wins, budget, cfg))
+            nviol = len(check_queue(squad, wins, budget, cfg, avoid_roles))
         gap = difficulty_gap(evaluator.evaluate(squad), target)
         return (-gap - penalty * nviol, gap, nviol, squad)
 
@@ -535,7 +577,7 @@ def genetic_q(seeds: List[EnemyQueue], evaluator, target: float, wins: int,
     while len(pop) < pop_size and tries < pop_size * 50:
         tries += 1
         cand = _random_queue(rng, cfg)
-        if repair or is_queue_valid(cand, wins, budget, cfg):
+        if repair or is_queue_valid(cand, wins, budget, cfg, avoid_roles):
             pop.append(encode_queue(cand, cfg))
     while len(pop) < pop_size:
         pop.append(encode_queue(seeds[0], cfg))

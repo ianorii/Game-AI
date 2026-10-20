@@ -11,6 +11,7 @@ import pygame
 from game.ambush.buff import summarize_squad
 from game.ambush.config import AmbushConfig
 from game.ambush.trace import TraceBuffer
+from game.ambush.types import display_role
 
 GREEN = (140, 240, 170)
 RED = (240, 120, 120)
@@ -422,8 +423,9 @@ class AmbushDebugOverlay:
         for tag, qq in (("seed", v.get("seed_queue")),
                         ("akhir", v.get("final_queue"))):
             if qq is not None:
+                _order = ">".join(display_role(s.role) for s in qq.slots)
                 R.append(("LS", tag,
-                          f"{qq.order_str()} "
+                          f"{_order} "
                           f"cost={qq.total_cost()}/{v.get('budget', '?')}",
                           TEXT))
         R.append(("LS", "ringan/sim",
@@ -449,7 +451,7 @@ class AmbushDebugOverlay:
                 if r == "NONE":
                     continue
                 R.append(("LS", f"#{i + 1}",
-                          f"{r} [{it}]", TEXT))
+                          f"{display_role(r)} [{it}]", TEXT))
             for line in v.get("buff_lines", [])[:4]:
                 R.append(("LS", "", f"  * {line}", GREEN))
         cmp_ = v.get("compare")

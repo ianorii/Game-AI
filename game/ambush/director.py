@@ -12,7 +12,7 @@ untuk satu potongan blocking.
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from game.ambush.buff import Buff, plan_duels
 from game.ambush.config import AmbushConfig
@@ -140,7 +140,8 @@ class QueueDirectorMixin:
     def _queue_seeds(self, wins: int, budget: int):
         cfg = self.cfg
         flags = cfg.csp_flags()
-        problem = squad_problem(wins, budget, cfg, **flags)
+        problem = squad_problem(wins, budget, cfg,
+                                avoid_roles=self.avoid_roles, **flags)
         squads: List[EnemyQueue] = []
         for s in range(cfg.dir_seeds):
             solver = CSPSolver(
@@ -159,7 +160,8 @@ class QueueDirectorMixin:
         """Versi generator (yield event CSP) untuk mode slow/step."""
         cfg = self.cfg
         flags = cfg.csp_flags()
-        problem = squad_problem(wins, budget, cfg, **flags)
+        problem = squad_problem(wins, budget, cfg,
+                                avoid_roles=self.avoid_roles, **flags)
         squads: List[EnemyQueue] = []
         for s in range(cfg.dir_seeds):
             solver = CSPSolver(
@@ -177,6 +179,52 @@ class QueueDirectorMixin:
                    "solutions": len(squads)}
         return squads
 
+    def _uses_old_roles(self, queue: Optional[EnemyQueue]) -> bool:
+        """True bila antrean masih memakai peran pertemuan sebelumnya."""
+        if queue is None or not self.avoid_roles:
+            return False
+        return any(s.role in self.avoid_roles for s in queue.slots)
+
+    def _avoid_winner(self, winner: EnemyQueue, wins: int,
+                      budget: int) -> EnemyQueue:
+        """Ganti pemenang LS bila ia mengulang peran pertemuan sebelumnya.
+
+        Variasi antar-pertemuan bersifat best-effort (permintaan pemain):
+        pemenang LS dipakai bila sudah bebas; kalau tidak, pakai start/seed
+        CSP yang bebas; bila semuanya memakai peran lama, kandidat valid
+        apa adanya tetap dipakai supaya duel tidak berubah jadi "duel
+        polos".
+        """
+        if not self._uses_old_roles(winner):
+            return winner
+        for cand in (self.last_queue_start, *self.last_queue_seeds):
+            if self._uses_old_roles(cand):
+                continue
+            if is_queue_valid(cand, wins, budget, self.cfg):
+                return cand
+        return winner
+
+    def _emergency_queue(self, cfg: AmbushConfig) -> EnemyQueue:
+        """Antrean darurat: peran termurah yang beda & belum dipakai.
+
+        Dipakai bila CSP tak menemukan solusi sama sekali (tak terjadi di
+        60/60 uji). Tetap menghormati aturan antrean: peran musuh saling
+        berbeda dan tidak mengulang peran pertemuan sebelumnya.
+        """
+        from game.ambush.enemy_queue import EnemySlot
+        picked: List[str] = []
+        for avoid in (self.avoid_roles, ()):
+            for role in ("Minion", "Warrior", "Archer", "Healer", "Mage",
+                         "Tank"):
+                if role in avoid or role in picked:
+                    continue
+                picked.append(role)
+                if len(picked) >= cfg.min_enemies:
+                    break
+            if len(picked) >= cfg.min_enemies:
+                break
+        return EnemyQueue(slots=tuple(EnemySlot(r, EMPTY) for r in picked))
+
     def _pick_queue_start(self, squads: List[EnemyQueue],
                           light, target: float, demo: bool):
         gaps = [(difficulty_gap(light.evaluate(sq), target), sq)
@@ -192,7 +240,7 @@ class QueueDirectorMixin:
     def _run_q_ls(self, start, squads, light, prefilter, wins, budget,
                   target):
         cfg, t = self.cfg, self.tracer
-        kw = dict(tracer=t)
+        kw = dict(tracer=t, avoid_roles=self.avoid_roles)
         if self.ls_algo == "hill_climbing":
             return hill_climb_q(start, light, target, wins, budget, cfg,
                                 prefilter=prefilter, **kw)
@@ -216,10 +264,8 @@ class QueueDirectorMixin:
         target, requested, capped = cap_target(cfg, target)
         budget = cfg.budget_q_for(target)
         squads = self._queue_seeds(wins, budget)
-        if not squads:  # darurat (tak terjadi di 60/60 uji): Warrior x2
-            from game.ambush.enemy_queue import EnemySlot
-            squads = [EnemyQueue(slots=(EnemySlot("Warrior", EMPTY),
-                                        EnemySlot("Warrior", EMPTY)))]
+        if not squads:  # darurat (tak terjadi di 60/60 uji)
+            squads = [self._emergency_queue(cfg)]
         light = _queue_light(cfg, player, self.base_seed)
         prefilter = _queue_prefilter(cfg, player)
         seed_gap, start, seed_mode = self._pick_queue_start(
@@ -231,6 +277,7 @@ class QueueDirectorMixin:
         winner = res.best
         if not is_queue_valid(winner, wins, budget, cfg):
             winner = start
+        winner = self._avoid_winner(winner, wins, budget)
         sim = ChainSim(cfg, player, seed=self.base_seed,
                        games=cfg.chain_rerank_games)
         result = self._finalize_queue(winner, res, wins, budget, target,
@@ -263,9 +310,7 @@ class QueueDirectorMixin:
         except StopIteration as done:
             squads = done.value or []
         if not squads:
-            from game.ambush.enemy_queue import EnemySlot
-            squads = [EnemyQueue(slots=(EnemySlot("Warrior", EMPTY),
-                                        EnemySlot("Warrior", EMPTY)))]
+            squads = [self._emergency_queue(cfg)]
         self.last_queue_seeds = list(squads)
         light = _queue_light(cfg, player, self.base_seed)
         prefilter = _queue_prefilter(cfg, player)
@@ -292,6 +337,7 @@ class QueueDirectorMixin:
         winner = res.best
         if not is_queue_valid(winner, wins, budget, cfg):
             winner = start
+        winner = self._avoid_winner(winner, wins, budget)
         sim = ChainSim(cfg, player, seed=self.base_seed,
                        games=cfg.chain_rerank_games)
         result = self._finalize_queue(winner, res, wins, budget, target,
@@ -318,6 +364,20 @@ class QueueDirectorMixin:
         # Rerank: top-M versi ringan dinilai ulang sim penuh; final =
         # gap_full terkecil (fallback: pemenang LS -> seed bila invalid).
         cands = [(g, qq) for g, qq in (res.topm or [(res.best_gap, winner)])]
+        # Variasi antar-pertemuan: bila ADA kandidat yang bebas peran
+        # pertemuan sebelumnya, rerank hanya di antara kandidat itu.
+        # (Best-effort: tanpa kandidat bebas, kandidat valid apa adanya
+        # tetap dipakai agar duel tidak berubah jadi "duel polos".)
+        if self.avoid_roles:
+            free = [(g, qq) for g, qq in cands if not self._uses_old_roles(qq)]
+            if free:
+                cands = free
+            else:
+                fallback = self.last_queue_start
+                if (fallback is not None
+                        and not self._uses_old_roles(fallback)
+                        and is_queue_valid(fallback, wins, budget, cfg)):
+                    cands = [(res.best_gap, fallback)]
         scored = []
         for _g_light, qq in cands[:max(1, cfg.rerank_M)]:
             full = sim.evaluate(qq)
@@ -335,7 +395,11 @@ class QueueDirectorMixin:
             winner = res.best
             if not is_queue_valid(winner, wins, budget, cfg):
                 # start dijamin valid (seed CSP); disimpan pemanggil.
-                pass
+                if (self.last_queue_start is not None and is_queue_valid(
+                        self.last_queue_start, wins, budget, cfg)):
+                    winner = self.last_queue_start
+        if self.avoid_roles and self._uses_old_roles(winner):
+            winner = self._avoid_winner(winner, wins, budget)
         difficulty = light.evaluate(winner)
         gap = difficulty_gap(difficulty, target)
         verified = is_queue_valid(winner, wins, budget, cfg)
@@ -397,6 +461,7 @@ class AmbushDirector(QueueDirectorMixin):
         ls_algo: str = "random_restart",
         base_seed: int = 0,
         player_loadout=None,
+        avoid_roles: Tuple[str, ...] = (),
     ):
         if ls_algo not in LS_ALGOS:
             raise ValueError(f"ls_algo harus salah satu {LS_ALGOS}")
@@ -408,11 +473,18 @@ class AmbushDirector(QueueDirectorMixin):
         self.ls_algo = ls_algo
         self.base_seed = base_seed
         self.player_loadout = player_loadout
+        # Peran musuh pertemuan sebelumnya (variasi antar-pertemuan).
+        self.avoid_roles: Tuple[str, ...] = tuple(avoid_roles or ())
         if (player_loadout is not None
                 and hasattr(self.heuristic, "set_player")):
             self.heuristic.set_player(player_loadout)
         self.last_result: Optional[DirectorResult] = None
         self.last_seeds: List[SquadConfig] = []  # seed CSP run terakhir
+        # Jalur antrean (diisi ulang tiap run; dipakai variasi antar-pertemuan
+        # + overlay/compare panel).
+        self.last_queue_start: Optional[EnemyQueue] = None
+        self.last_queue_seeds: List[EnemyQueue] = []
+        self.last_queue_result: Optional[QueueDirectorResult] = None
 
     # -- blocking (instant gameplay + eksperimen) ----------------------
     def plan(self, wins: int, target: float) -> DirectorResult:

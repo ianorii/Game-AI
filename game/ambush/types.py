@@ -15,13 +15,36 @@ MINION = "Minion"  # peran lemah KHUSUS SEQUENTIAL (tak ada di domain BUFF)
 HEALER = "Healer"
 FANG = "Dragon Fang"  # satu-satunya item legendary (AllDifferent global)
 
+#: Nama tampilan role di UI, disesuaikan dengan daftar aset
+#: assets/images/08_karakter (nama setelah awalan "karakter_").
+#: Nama internal tetap dipakai untuk logika CSP/buff/tes; hanya tampilan
+#: di layar yang memakai nama aset. "Minion" tidak punya aset sendiri dan
+#: dipetakan ke "Blacksmith" (satu-satunya aset yang tersisa).
+ROLE_DISPLAY: Dict[str, str] = {
+    "Warrior": "Knight",
+    "Archer": "Archer",
+    "Mage": "Mage",
+    "Healer": "Spellcaster",
+    "Tank": "Explorer",
+    "Boss": "Boss",
+    MINION: "Blacksmith",
+    EMPTY: "NONE",
+}
+
+
+def display_role(role: str) -> str:
+    """Nama tampilan role sesuai aset 08_karakter (fallback: role apa adanya)."""
+    return ROLE_DISPLAY.get(role, role)
+
 
 @dataclass(frozen=True)
 class RoleSpec:
     """Satu archetype NPC: kontribusi buff + biaya power untuk constraint."""
 
     name: str
-    hp: int = 0       # bonus max-HP NPC lead
+    hp: int = 0       # bonus max-HP; 0 untuk semua peran KECUALI Boss
+                      # (AMANDEMEN-3: musuh mulai 100 HP seperti pemain;
+                      #  AMANDEMEN-4: Boss 150 HP)
     atk: int = 0      # bonus damage ATTACK
     spec: int = 0     # bonus damage SPECIAL
     regen: int = 0    # HP pulih tiap giliran NPC
@@ -64,22 +87,26 @@ ITEM_ALLOWED: Dict[str, Tuple[str, ...]] = {
 
 
 ROLE_TABLE: Dict[str, RoleSpec] = {
-    # Minion: peran lemah KHUSUS SEQUENTIAL (FINAL M3, dari data Fase 3-ulang:
-    # jangkauan terbaik tanpa duel trivial).
-    # Arti angka = DELTA dari stat dasar duel (musuh 100 HP, damage 15-20
-    # rata2 17.5): hp-50 -> 50 HP (-50%), atk-9 -> damage ~8.5 (-50%,
-    # roll min 15-9=6>0). Rata-rata -29 HP player per duel (min -24):
-    # TETAP berbahaya. Cost 1, non-defensif, item bebas kecuali Fang.
-    MINION: RoleSpec(MINION, hp=-50, atk=-9, cost=1),
-    "Warrior": RoleSpec("Warrior", hp=10, atk=2, cost=3),  # Tahap-A R3
-    "Archer": RoleSpec("Archer", hp=6, atk=3, chip=1, cost=3),  # Tahap-A R3
-    "Mage": RoleSpec("Mage", hp=2, atk=1, spec=7, weaken=0.10,  # Tahap-A R3
+    # AMANDEMEN-3 (permintaan pemain): SEMUA musuh mulai di 100 HP - sama
+    # dengan pemain - jadi bonus HP peran dinolkan (hp=0 semua). Identitas
+    # peran sekarang murni dari serangan/spesial/regen/armor/chip/weaken:
+    # Minion tetap lemah (atk-9 -> damage ~8.5 vs 17.5 rata2), Healer regen+2,
+    # Archer chip+1, Mage spec+7 & weaken 10%, Tank/Boss armor, dst.
+    # HP musuh kini SATU angka: ENEMY_BASE_HP = 100 (lihat enemy_queue.py).
+    # AMANDEMEN-4 (permintaan pemain: "sampai melawan boss yang hpnya 150"):
+    # Boss satu-satunya peran ber-HP lebih: 100 + 50 = 150 HP maks. Angka ini
+    # tetap lewat satu jalur enemy_max_hp() sehingga sim == battle == HUD ==
+    # panel transisi (tidak ada perhitungan paralel).
+    MINION: RoleSpec(MINION, atk=-9, cost=1),
+    "Warrior": RoleSpec("Warrior", atk=2, cost=3),  # Tahap-A R3
+    "Archer": RoleSpec("Archer", atk=3, chip=1, cost=3),  # Tahap-A R3
+    "Mage": RoleSpec("Mage", atk=1, spec=7, weaken=0.10,  # Tahap-A R3
                      cost=4),
-    "Healer": RoleSpec("Healer", hp=-15, atk=1, regen=2,  # Tahap-A R3
+    "Healer": RoleSpec("Healer", atk=1, regen=2,  # Tahap-A R3
                        cost=3),
-    "Tank": RoleSpec("Tank", hp=4, atk=2, armor=0.05,  # Tahap-A R3
+    "Tank": RoleSpec("Tank", atk=2, armor=0.05,  # Tahap-A R3
                      cost=4),
-    "Boss": RoleSpec("Boss", hp=6, atk=2, spec=4, armor=0.05,  # rantai-Boss
+    "Boss": RoleSpec("Boss", hp=50, atk=2, spec=4, armor=0.05,  # rantai-Boss
                      cost=7),
     EMPTY: RoleSpec(EMPTY),
 }

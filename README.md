@@ -153,7 +153,9 @@ python3 experiments/screens.py            # screenshot docs/screens/
 - **Rest & potion+1 tak berpengaruh** pada jangkauan (terukur ~nol).
 - **Potion player diisi penuh tiap ganti lawan** (`refill_potions_each_duel`,
   berbeda dari rencana awal "terbawa"; sim == driver via `carry_potions()`,
-  ada tesnya). Darah dasar musuh 70 (`ENEMY_BASE_HP`, player tetap 100).
+  ada tesnya). HP musuh: semua 100 HP — sama dengan pemain (Amandemen-3,
+  `ENEMY_BASE_HP`), Boss 150 HP (Amandemen-4); angka 70 + delta peran adalah
+  riwayat terukur di `docs/balance_TahapA.md`.
 - **Bias Healer** (−0.55 heuristik, −0.07 ringan): regen+potion musuh
   sulit dimodelkan murah.
 - **Perjalanan keputusan**: label biner jenuh → progres; bug rest

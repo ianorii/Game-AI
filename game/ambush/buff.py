@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from typing import List, Optional, Tuple
 
 from game.ambush.config import AmbushConfig
-from game.ambush.types import EMPTY, ITEM_TABLE, ROLE_TABLE, SquadConfig
+from game.ambush.types import EMPTY, ITEM_TABLE, ROLE_TABLE, SquadConfig, display_role
 
 
 @dataclass(frozen=True)
@@ -58,19 +58,31 @@ class BuffSummary:
     members: Tuple[MemberContrib, ...]
 
     def lines(self) -> List[str]:
-        """Baris human-readable buff AKTIF (non-nol) untuk HUD/overlay."""
+        """Baris human-readable buff AKTIF (non-nol) untuk HUD/overlay.
+
+        Kalimat pemain: "Tahan 10% damage", "Damage pasti 1 tiap ronde",
+        dst. (bukan singkatan teknis seperti "dmg diterima"/"chip").
+        """
         buff = self.buff
         out = []
         if buff.hp:
-            out.append(f"+{buff.hp} Max HP musuh")
-        if buff.atk or buff.spec:
-            out.append(f"+{buff.atk} ATK / +{buff.spec} SPECIAL musuh")
+            out.append(f"Darah maks musuh {buff.hp:+d}")
+        # Hanya tampilkan stat yang benar-benar aktif (hindari "+0").
+        if buff.atk and buff.spec:
+            out.append(f"Serangan {buff.atk:+d} / spesial {buff.spec:+d} musuh")
+        elif buff.atk:
+            out.append(f"Serangan {buff.atk:+d} musuh")
+        elif buff.spec:
+            out.append(f"Spesial {buff.spec:+d} musuh")
         for stat, fmt in (
-            ("armor", lambda m: f"{m.role}: -{m.armor * 100:.0f}% damage "
-                               f"diterima"),
-            ("regen", lambda m: f"{m.role}: +{m.regen:.0f} HP/giliran"),
-            ("chip", lambda m: f"{m.role}: {m.chip:.0f} chip damage/ronde"),
-            ("weaken", lambda m: f"{m.role}: heal player -{m.weaken * 100:.0f}%"),
+            ("armor", lambda m: f"{display_role(m.role)}: tahan "
+                               f"{m.armor * 100:.0f}% damage"),
+            ("regen", lambda m: f"{display_role(m.role)}: "
+                               f"pulih {m.regen:.0f} HP tiap giliran"),
+            ("chip", lambda m: f"{display_role(m.role)}: "
+                              f"damage pasti {m.chip:.0f} tiap ronde"),
+            ("weaken", lambda m: f"{display_role(m.role)}: "
+                                f"heal pemain -{m.weaken * 100:.0f}%"),
         ):
             top = self._top(stat)
             if top is not None and getattr(top, stat) > 0:

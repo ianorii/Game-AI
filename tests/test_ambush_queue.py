@@ -35,7 +35,7 @@ def test_config_defaults():
     assert CFG.mode == "SEQUENTIAL"
     assert CFG.min_enemies == 2 and CFG.kmax == 4
     assert CFG.rest_heal_pct == 0.15  # Diagnosis disetujui
-    assert CFG.enemy_base_hp == 70  # darah dasar musuh (player tetap 100)
+    assert CFG.enemy_base_hp == 100  # AMANDEMEN-3: semua musuh 100 HP
     assert CFG.refill_potions_each_duel is True  # heal penuh tiap lawan
     assert CFG.governor_max_target == 0.80  # plafon opsi C (.40-.80)
     assert CFG.npc_potions_carry is False
@@ -55,20 +55,22 @@ def test_balance_freeze():
     menggeser default diam-diam (hanya bug nyata / uji main manual).
     """
     from game.ambush.types import ITEM_TABLE, ROLE_TABLE
+    # AMANDEMEN-3/4 (CSP-Jaka, permintaan pemain terbaru): semua musuh
+    # 100 HP (hp peran dinolkan), Boss +50 -> 150; base 70 adalah riwayat.
     assert (CFG.rest_heal_pct, CFG.npc_starting_potions,
             CFG.enemy_base_hp, CFG.refill_potions_each_duel) == \
-        (0.15, 1, 70, True)
+        (0.15, 1, 100, True)
     assert (CFG.gov_min, CFG.governor_max_target) == (0.40, 0.80)
     assert (CFG.base_q, CFG.budget_q_scale) == (8, 8)
     assert CFG.boss_min_wins == 3
     locked_roles = {
-        "Minion": (-50, -9, 0, 0, 0.0, 0, 0.0, 1),
-        "Warrior": (10, 2, 0, 0, 0.0, 0, 0.0, 3),
-        "Archer": (6, 3, 0, 0, 0.0, 1, 0.0, 3),
-        "Mage": (2, 1, 7, 0, 0.0, 0, 0.10, 4),
-        "Healer": (-15, 1, 0, 2, 0.0, 0, 0.0, 3),
-        "Tank": (4, 2, 0, 0, 0.05, 0, 0.0, 4),
-        "Boss": (6, 2, 4, 0, 0.05, 0, 0.0, 7),
+        "Minion": (0, -9, 0, 0, 0.0, 0, 0.0, 1),
+        "Warrior": (0, 2, 0, 0, 0.0, 0, 0.0, 3),
+        "Archer": (0, 3, 0, 0, 0.0, 1, 0.0, 3),
+        "Mage": (0, 1, 7, 0, 0.0, 0, 0.10, 4),
+        "Healer": (0, 1, 0, 2, 0.0, 0, 0.0, 3),
+        "Tank": (0, 2, 0, 0, 0.05, 0, 0.0, 4),
+        "Boss": (50, 2, 4, 0, 0.05, 0, 0.0, 7),  # 100+50 = 150 HP
     }
     for name, (hp, atk, spec, regen, armor, chip, weaken, cost) in \
             locked_roles.items():
@@ -120,7 +122,9 @@ def test_single_source_numbers():
     slot = EnemySlot("Tank", "Heavy Shield")
     buff = slot_to_buff(slot, CFG)
     assert isinstance(buff, Buff)
-    assert buff.hp == 4 and abs(buff.armor - 0.15) < 1e-9  # Tahap-A FINAL
+    # AMANDEMEN-3: semua musuh 100 HP -> buff.hp peran selalu 0; identitas
+    # Tank sekarang dari armor (role 0.05 + Hefty Shield 0.10 = 0.15).
+    assert buff.hp == 0 and abs(buff.armor - 0.15) < 1e-9
     # Sama persis bila dihitung dua kali (HUD == battle == sim).
     assert slot_to_buff(slot, CFG) == buff
     buffs = queue_to_buffs(q(("Tank", "Heavy Shield"),
@@ -190,7 +194,8 @@ def test_csp_min_two_active():
     one = _assign(["Warrior", EMPTY, EMPTY, EMPTY], [EMPTY] * 4)
     assert any("minimal 2" in v for v in check(
         one, 0, 99, CFG, queue_rules=True, min_active=2))
-    two = _assign(["Warrior", "Warrior", EMPTY, EMPTY], [EMPTY] * 4)
+    # 2 aktif (peran berbeda: aturan "musuh saling berbeda") tetap valid.
+    two = _assign(["Warrior", "Archer", EMPTY, EMPTY], [EMPTY] * 4)
     assert not check(two, 0, 99, CFG, queue_rules=True, min_active=2)
     # Mode BUFF lama: 1 anggota tetap valid.
     assert not check(one, 0, 99, CFG)
@@ -222,10 +227,14 @@ def test_ac3_boss_last_prunes():
     prob = _qprob(wins=9)
     prob.domains = dict(prob.domains)
     prob.domains["ROLE_1"] = ["Boss", "Warrior"]
-    prob.domains["ROLE_2"] = ["Warrior"]
+    # ROLE_2 = Archer (bukan Warrior): aturan "peran saling berbeda" aktif,
+    # jadi pasangan Warrior-Warrior tak lagi jadi solusi - fokus tes ini
+    # tetap pruning Boss-terakhir oleh AC-3.
+    prob.domains["ROLE_2"] = ["Archer"]
     sol, stats = CSPSolver(prob).solve()
     assert stats["pruned"] >= 1
     assert sol is not None and sol["ROLE_1"] == "Warrior"
+    assert sol["ROLE_2"] == "Archer"
 
 
 def test_degree_positive_queue():
@@ -543,8 +552,12 @@ def test_enemy_scale_sequential_only():
     slot = EnemySlot("Tank", "Heavy Shield")
     seq = replace(CFG, enemy_stat_scale=0.8)
     buff_mode = replace(CFG, mode="BUFF", enemy_stat_scale=0.8)
-    assert scaled_enemy_buff(slot, seq).hp == 3  # Tahap-A: int(4 x 0.8)
-    assert scaled_enemy_buff(slot, buff_mode).hp == 4  # Tahap-A, diabaikan
+    # AMANDEMEN-3: hp peran 0, jadi bukti skala pakai armor Tank+Shield
+    # (0.15 -> 0.12 saat diskala 0.8) - HP tak lagi bisa jadi bukti.
+    assert abs(scaled_enemy_buff(slot, seq).armor - 0.12) < 1e-9
+    assert abs(scaled_enemy_buff(slot, buff_mode).armor - 0.15) < 1e-9
+    assert scaled_enemy_buff(slot, seq).hp == 0
+    assert scaled_enemy_buff(slot, buff_mode).hp == 0
     squad = SquadConfig(roles=("Tank", "NONE", "NONE", "NONE"),
                         items=("Heavy Shield", "NONE", "NONE", "NONE"))
     assert squad_to_buff(squad, seq) == squad_to_buff(squad, CFG)
@@ -604,7 +617,9 @@ def test_minion_rules_and_display():
     slot = EnemySlot("Minion", "Iron Sword")
     assert slot.cost() == 2  # 1 + 1
     buff = slot_to_buff(slot, CFG)
-    assert buff.hp == -50 and buff.atk == -7  # M3: delta tampil di HUD
+    # AMANDEMEN-3: hp peran 0 (semua musuh 100 HP); kelemahan Minion tinggal
+    # dari serangan: atk -9 + Iron Sword +2 = -7 (delta tampil di HUD).
+    assert buff.hp == 0 and buff.atk == -7
     assert slot.role == "Minion"  # nama jelas, tanpa aset baru
 
 
@@ -829,6 +844,122 @@ def test_queue_director_verified():
     assert c.seed_mode == "RANDOM (demo)"
 
 
+def _q(*pairs):
+    from game.ambush.enemy_queue import EnemyQueue, EnemySlot
+    return EnemyQueue(slots=tuple(EnemySlot(r, i) for r, i in pairs))
+
+
+def test_queue_tanpa_musuh_sama():
+    """Satu pertandingan: peran musuh wajib saling berbeda (permintaan
+    pemain 'jangan ada musuh yang sama')."""
+    from game.ambush.constraints import check
+    from game.ambush.csp_solver import CSPSolver, squad_problem
+    from game.ambush.enemy_queue import check_queue, queue_from_assign
+    dup = _q(("Minion", EMPTY), ("Minion", EMPTY))
+    assert any("dua kali" in v for v in check_queue(dup, 0, 99, CFG))
+    assert any("berbeda" in v for v in check(
+        _assign(["Minion", "Minion", EMPTY, EMPTY], [EMPTY] * 4),
+        0, 99, CFG, queue_rules=True, min_active=2))
+    ok = _q(("Minion", EMPTY), ("Archer", EMPTY))
+    assert check_queue(ok, 0, 99, CFG) == []
+    # Mode BUFF lama tak berubah (duplikat peran masih sah).
+    assert not check(_assign(["Tank", "Tank", EMPTY, EMPTY], [EMPTY] * 4),
+                     0, 99, CFG)
+    # Solusi CSP mode antrean selalu bebas duplikat (fuzz 12 seed).
+    for seed in range(12):
+        prob = squad_problem(0, CFG.budget_q_for(0.5), CFG,
+                             **CFG.csp_flags())
+        sol, _stats = CSPSolver(prob, seed=seed).solve()
+        assert sol is not None, seed
+        qq = queue_from_assign(sol, CFG)
+        roles = [s.role for s in qq.slots]
+        assert len(set(roles)) == len(roles), (seed, qq.order_str())
+
+
+def test_queue_variasi_antar_pertemuan():
+    """Pertemuan berikutnya tak memakai peran pertemuan sebelumnya."""
+    from game.ambush.director import AmbushDirector
+    from game.ambush.governor import DifficultyGovernor
+    from game.ambush.player_loadout import PlayerLoadout
+    pl = PlayerLoadout(items=("Iron Sword", "Heavy Shield"))
+    avoid = ("Minion", "Mage")
+    for seed in (1, 2, 3, 4):
+        d = AmbushDirector(CFG, DifficultyGovernor(CFG), base_seed=seed,
+                           ls_algo="hill_climbing", avoid_roles=avoid)
+        res = d.plan_queue(0, 0.5, pl)
+        roles = {s.role for s in res.queue.slots}
+        assert res.verified is True
+        assert not roles & set(avoid), (seed, res.queue.order_str())
+        assert len(roles) == res.queue.k()  # tanpa duplikat juga
+
+
+def test_neighbours_dan_repair_hormati_pantangan():
+    """Neighbour LS & repair tak melanggar pantangan/duplikat peran."""
+    from game.ambush.queue_search import neighbours, repair_queue
+    budget = CFG.budget_q_for(0.5)
+    start = _q(("Minion", EMPTY), ("Archer", EMPTY))
+    nbs, rej = neighbours(start, 0, budget, CFG, ("Minion",))
+    assert nbs and rej
+    for nb, _move in nbs:
+        assert all(s.role != "Minion" for s in nb.slots)
+    # Tanpa pantangan Minion tetap boleh muncul sebagai neighbour.
+    nbs2, _rej2 = neighbours(start, 0, budget, CFG)
+    assert any(any(s.role == "Minion" for s in nb.slots)
+               for nb, _move in nbs2)
+    dup = _q(("Minion", EMPTY), ("Minion", EMPTY))
+    out = repair_queue(dup, 0, budget, CFG)
+    roles = [s.role for s in out.slots]
+    assert len(set(roles)) == len(roles), out.order_str()
+    out2 = repair_queue(dup, 0, budget, CFG, ("Minion",))
+    roles2 = [s.role for s in out2.slots]
+    assert "Minion" not in roles2 and len(set(roles2)) == len(roles2)
+
+
+def test_siap_keeps_demo_pump_mode():
+    """Enter (SIAP) menuntaskan run tanpa memaksa pump_mode 'instant'.
+
+    Regresi permintaan pemain: dulu satu Enter membuat animasi demo
+    (slow/step) hilang permanen di pertemuan-pertemuan berikutnya.
+    """
+    import os
+    os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
+    import pygame
+    pygame.init()
+    import main as game_main
+
+    def _state(pump):
+        return {
+            "pump_mode": pump,
+            "ambush_cfg": CFG,
+            "mode": "PREP_NPC_CSP",
+            "toast": None,
+            "director": {
+                "gen": iter([{"phase": "csp", "seed": 0},
+                             {"phase": "done"}]),
+                "finished": False,
+                "step_once": False,
+                "phase_label": "CSP",
+                "phase_cat": "csp",
+                "status": "berjalan",
+                "seed_gap": "",
+                "hold_until": 0.0,
+            },
+        }
+
+    state = _state("slow")
+    assert game_main.pump_director(state, instant=True) is True
+    assert state["director"]["finished"] is True
+    assert state["pump_mode"] == "slow"  # demo tetap tampil di pertemuan berikutnya
+    from unittest import mock
+    calls = []
+    state = _state("step")
+    with mock.patch.object(game_main, "finish_director",
+                           lambda *a, **k: calls.append("finish")):
+        game_main.handle_director_key(pygame.K_RETURN, None, None, None, state)
+    assert calls == ["finish"]
+    assert state["pump_mode"] == "step"
+
+
 
 def _qrun(k=3, hp=100, potions=3):
     from game.ambush.buff import Buff
@@ -844,10 +975,10 @@ def _qrun(k=3, hp=100, potions=3):
 def test_queue_run_flow():
     """ENEMY_1 -> transisi -> ENEMY_2 ...; menang/kalah tercatat benar."""
     run = _qrun(k=3)
-    assert run.duel_label() == "MUSUH 1/3"
+    assert run.duel_label() == "DUEL 1 DARI 3"
     assert run.record(62, 2, True) == "next"  # APPLY rest di sini (+15)
     assert (run.idx, run.hp, run.potions) == (1, 77, 3)  # potion isi penuh
-    assert run.duel_label() == "MUSUH 2/3"
+    assert run.duel_label() == "DUEL 2 DARI 3"
     assert run.record(40, 1, True) == "next"  # 40+15=55
     assert run.hp == 55
     assert run.record(0, 0, False) == "failed"
@@ -938,11 +1069,12 @@ def test_headless_full_queue_uses_slot_buff():
     buffs = [slot_to_buff(s, CFG) for s in queue.slots]
     first = BattleSystem(player_hp=62, npc_buff=buffs[0],
                          player_potions=2, npc_potions=3,
-                         duel_label="MUSUH 1/2")
-    assert first.npc_max_hp == 70 + buffs[0].hp
+                         duel_label="DUEL 1 DARI 2")
+    from game.ambush.enemy_queue import ENEMY_BASE_HP
+    assert first.npc_max_hp == ENEMY_BASE_HP + buffs[0].hp
     assert first.state.player_hp == 62 and first.state.player_potions == 2
     assert first.state.npc_potions == 3
-    assert first.duel_label == "MUSUH 1/2"
+    assert first.duel_label == "DUEL 1 DARI 2"
 
 
 
@@ -974,7 +1106,12 @@ def test_autoplay_reproducible():
 
 
 def test_transition_draw():
-    """Layar transisi tergambar tanpa error (headless)."""
+    """Layar hasil/transisi tergambar tanpa error (headless).
+
+    Regresi permintaan pemain: baris "Kamu masuk duel berikutnya dengan HP
+    ..." TIDAK ada lagi (tiap duel antrean selalu mulai darah penuh), jadi
+    draw_transition tak menerima hp_next/pot_next/heal.
+    """
     import os
     os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
     import pygame
@@ -982,8 +1119,104 @@ def test_transition_draw():
     from game.ambush.ui.transition import draw_transition
     screen = pygame.display.set_mode((800, 600))
     font = pygame.font.SysFont("consolas", 14)
-    draw_transition(screen, font, 2, 3, "Tank", "Heavy Shield", 62, 100,
-                    2, 1.5)
+    import inspect
+    params = inspect.signature(draw_transition).parameters
+    assert "hp_next" not in params and "pot_next" not in params
+    assert "heal" not in params  # baris "masuk duel berikutnya" dihapus
+    # Kasus 1: ada musuh berikutnya (hasil duel menang).
+    draw_transition(
+        screen, font, duel_no=1, k=3, result="menang",
+        prev_role="Tank", prev_item="Heavy Shield", hp_after=62, cap=100,
+        potions=2, next_role="Mage", next_item="Healing Charm", foe_hp=100,
+        foe_lines=["Serangan +1, spesial +7", "Tahan damage 10%"])
+    # Kasus 2: pertemuan berakhir (kalah = tidak ada blok berikutnya).
+    draw_transition(
+        screen, font, duel_no=2, k=3, result="kalah",
+        prev_role="Mage", prev_item="NONE", hp_after=0, cap=100, potions=1,
+        finished=True)
+    # Kasus 3: antrean tuntas (menang semua).
+    draw_transition(
+        screen, font, duel_no=3, k=3, result="menang",
+        prev_role="Boss", prev_item="Dragon Fang", hp_after=41, cap=100,
+        potions=3, finished=True)
+
+
+def test_transition_tidak_lanjut_otomatis():
+    """Regresi permintaan pemain: layar transisi menunggu Enter, bukan timer.
+
+    advance_queue() hanya membuka layar (mode TRANSITION + hasil tersimpan);
+    TIDAK ada jalur waktu yang memulai duel berikutnya. Duel berikutnya baru
+    jalan saat advance_transition() dipanggil (Enter/Space).
+    """
+    import os
+    os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
+    import pygame
+    pygame.init()
+    from types import SimpleNamespace
+    import main as game_main
+    from game.ambush.enemy_queue import EnemyQueue, EnemySlot
+    from game.ambush.flow.queue_driver import QueueRun
+
+    cfg = CFG
+    queue = EnemyQueue(slots=(EnemySlot("Tank", "NONE"),
+                              EnemySlot("Mage", "NONE")))
+    run = QueueRun(queue=queue, buffs=[], target=0.5, pred_light=0.5,
+                   pred_full=None, hp=100, potions=3, cap=100, cfg=cfg)
+    state = {"queue_run": run, "battle": None, "transition_result": None,
+             "mode": "BATTLE", "npc_sprites": {}, "npc_sprite_base": None}
+    calls = {"start": 0, "exit": 0, "won": None}
+    old_start, old_exit = game_main.start_queue_duel, game_main.exit_queue_battle
+    try:
+        game_main.start_queue_duel = lambda *a, **k: calls.update(
+            start=calls["start"] + 1)
+        game_main.exit_queue_battle = lambda st, p, n, g, won: calls.update(
+            exit=calls["exit"] + 1, won=won)
+
+        battle = SimpleNamespace(winner="player", fled=False,
+                                 state=SimpleNamespace(player_hp=62,
+                                                       player_potions=2))
+        state["battle"] = battle
+        game_main.advance_queue(state, None, None, None)
+        # Layar terbuka dan MENUNGGU: tidak ada apa pun yang jalan sendiri.
+        assert state["mode"] == "TRANSITION", state["mode"]
+        assert state["transition_result"]["status"] == "next"
+        assert calls["start"] == 0 and calls["exit"] == 0
+        # Beberapa "frame" berjalan (waktu lewat) -> tetap menunggu Enter.
+        for _ in range(120):
+            assert state["mode"] == "TRANSITION"
+        assert calls["start"] == 0 and calls["exit"] == 0
+        # Wiring: event Enter di jalur utama sampai ke advance_transition().
+        old_adv = game_main.advance_transition
+        hit = {"n": 0}
+
+        def _fake_adv(*a, **k):
+            hit["n"] += 1
+
+        game_main.advance_transition = _fake_adv
+        try:
+            pygame.event.post(pygame.event.Event(pygame.KEYDOWN,
+                                                 key=pygame.K_RETURN))
+            ok = game_main.handle_events(None, None, None, None, None, state)
+            assert ok is True and hit["n"] == 1, (ok, hit)
+        finally:
+            game_main.advance_transition = old_adv
+        # Enter memulai duel berikutnya (bukan auto).
+        game_main.advance_transition(state, None, None, None)
+        assert calls["start"] == 1 and calls["exit"] == 0
+
+        # Duel terakhir kalah -> layar penutup muncul; Enter menutup pertemuan.
+        state["battle"] = SimpleNamespace(
+            winner="npc", fled=False,
+            state=SimpleNamespace(player_hp=0, player_potions=1))
+        game_main.advance_queue(state, None, None, None)
+        assert state["mode"] == "TRANSITION"
+        assert state["transition_result"]["status"] == "failed"
+        assert calls["exit"] == 0
+        game_main.advance_transition(state, None, None, None)
+        assert calls["exit"] == 1 and calls["won"] is False
+    finally:
+        game_main.start_queue_duel = old_start
+        game_main.exit_queue_battle = old_exit
 
 
 
@@ -1021,7 +1254,7 @@ def _headless_battle(queue, hp=100, potions=3, size=(1280, 720)):
                          player_buff=loadout_to_buff(pl, CFG),
                          player_loadout=pl, target=0.5, sim_rate="0.5",
                          player_potions=potions, npc_potions=3,
-                         duel_label=f"MUSUH {i + 1}/{len(buffs)}",
+                         duel_label=f"DUEL {i + 1} DARI {len(buffs)}",
                          queue_view={"order": [(s.role, s.item)
                                                for s in queue.slots],
                                      "idx": i,
@@ -1044,7 +1277,8 @@ def test_hud_numbers_equal_battle():
             assert b.npc_buff == buff == slot_to_buff(slot, CFG)
             lines = buff_lines_short(buff, "npc")
             assert lines  # tak kosong
-            assert b.npc_max_hp == 70 + buff.hp
+            from game.ambush.enemy_queue import ENEMY_BASE_HP
+            assert b.npc_max_hp == ENEMY_BASE_HP + buff.hp
 
 
 def test_render_two_sizes_k_range():
@@ -1229,19 +1463,23 @@ def test_policies_attack_and_legal():
 def test_conserve_veto_binds():
     """Hemat-baru BERBEDA dari greedy via play() konteks-antrean.
 
-    Konteks duel awal (duels_left=3, bukan terakhir): Mage memakai potion di
-    greedy tapi ditahan hemat -> plies berbeda, hasil sama (1.0). Mekanisme
-    veto sendiri diuji unit di test_hemat_veto_queue_binding (tak tergantung
-    stat); sel ini hanya membuktikan veto MENGUBAH jalannya duel nyata.
+    Konteks duel awal (duels_left=3, bukan terakhir): Minion memakai potion
+    di greedy tapi ditahan hemat -> plies/HP-hilang berbeda, hasil sama
+    (1.0). Mekanisme veto sendiri diuji unit di test_hemat_veto_queue_binding
+    (tak tergantung stat); sel ini hanya membuktikan veto MENGUBAH jalannya
+    duel nyata.
+    CATATAN AMANDEMEN-3: HP musuh seragam 100 mengubah lintasan duel, jadi
+    konteks bukti dimutakhirkan (Minion seed=20) agar veto tetap terlihat
+    mengubah jalannya duel nyata.
     """
     import sys as _sys
     _sys.path.insert(0, str(Path("experiments").resolve()))
     from balance_baseline import play
     from game.ambush.player_loadout import PlayerLoadout
     pl = PlayerLoadout(items=("Iron Sword", "Heavy Shield"))
-    kw = dict(seed=5, games=6, cfg=CFG, duels_left=3, duel_last=False)
-    g = play("Mage", "NONE", pl, "greedy", **kw)
-    h = play("Mage", "NONE", pl, "hemat", **kw)
+    kw = dict(seed=20, games=6, cfg=CFG, duels_left=3, duel_last=False)
+    g = play("Minion", "NONE", pl, "greedy", **kw)
+    h = play("Minion", "NONE", pl, "hemat", **kw)
     assert g != h  # veto mengubah jalannya duel
     assert g[0] == h[0]  # hasil menang sama (bukan sulap)
 
@@ -1410,31 +1648,48 @@ def test_rest_driver_sim_same_value():
     assert run.record(42, 2, True) == "next" and run.hp == 57  # 42+15
 
 
-def test_enemy_base_hp_70():
-    """Darah dasar musuh 70 (player tetap 100): satu jalur enemy_max_hp."""
+def test_enemy_base_hp_100():
+    """Darah dasar musuh 100 = pemain (AMANDEMEN-3) + Boss 150 (AMANDEMEN-4).
+
+    Setiap musuh baru selalu mulai di HP maks penuh (base + buff.hp) dan HP
+    saat duel turun normal tanpa clamp bawah (regresi bug "HP beku di 80").
+    Permintaan pemain terbaru: "sampai melawan boss yang hpnya 150" - Boss
+    satu-satunya peran ber-bonus HP (+50), peran lain tetap 100.
+    """
     from battle_system import BattleSystem
     from game.ambush.buff import Buff
     from game.ambush.enemy_queue import (ENEMY_BASE_HP, EnemySlot,
                                          enemy_max_hp, slot_to_buff)
     from game.ambush.player_loadout import PlayerLoadout
-    assert ENEMY_BASE_HP == 70 and CFG.enemy_base_hp == 70
-    assert enemy_max_hp(Buff()) == 70
-    for role in ("Warrior", "Tank", "Healer", "Archer", "Mage", "Boss",
-                 "Minion"):
+    assert ENEMY_BASE_HP == 100 and CFG.enemy_base_hp == 100
+    assert enemy_max_hp(Buff()) == 100
+    for role in ("Warrior", "Tank", "Healer", "Archer", "Mage", "Minion"):
         eb = slot_to_buff(EnemySlot(role, "NONE"), CFG)
-        assert enemy_max_hp(eb, CFG.enemy_base_hp) == max(
-            1, 70 + eb.hp), role
+        assert eb.hp == 0, role  # AMANDEMEN-3: tanpa bonus HP peran
+        assert enemy_max_hp(eb, CFG.enemy_base_hp) == 100, role
+    # AMANDEMEN-4: Boss 150 HP (satu jalur enemy_max_hp -> sim == battle).
+    boss = slot_to_buff(EnemySlot("Boss", "NONE"), CFG)
+    assert boss.hp == 50
+    assert enemy_max_hp(boss, CFG.enemy_base_hp) == 150
+    b_boss = BattleSystem(player_hp=100, npc_buff=boss,
+                          player_potions=3, npc_potions=2)
+    assert b_boss.npc_max_hp == 150 and b_boss.state.npc_hp == 150
     assert enemy_max_hp(slot_to_buff(EnemySlot("Minion", "NONE"), CFG)) \
-        == 20  # 70-50: lemah tapi tetap dilawan
+        == 100  # semua musuh lain 100 HP; Minion tetap lemah dari atk-9
     pl = PlayerLoadout(items=("Iron Sword", "Heavy Shield"))
     b = BattleSystem(player_hp=100,
                      npc_buff=slot_to_buff(EnemySlot("Warrior", "NONE"),
                                            CFG),
                      player_potions=3, npc_potions=2)
-    assert b.npc_max_hp == 70 + 10 and b.player_max_hp == 100
-    assert b.state.npc_hp == 80 and b.state.player_hp == 100
-    polo = BattleSystem(player_hp=100)  # duel polos: musuh juga 70
-    assert polo.state.npc_hp == 70 and polo.state.player_hp == 100
+    assert b.npc_max_hp == 100 and b.player_max_hp == 100
+    assert b.state.npc_hp == 100 and b.state.player_hp == 100
+    polo = BattleSystem(player_hp=100)  # duel polos: musuh juga 100
+    assert polo.state.npc_hp == 100 and polo.state.player_hp == 100
+    # HP bisa turun di bawah 80 (tanpa clamp lama) dan musuh tetap bisa
+    # dikalahkan: giliran NPC TIDAK boleh mengembalikan HP ke 80.
+    b.state.npc_hp = 45
+    b._resolve(is_npc=True, action="DEFEND")
+    assert b.state.npc_hp == 45, b.state.npc_hp
 
 
 def test_potion_refill_each_duel():
@@ -1452,17 +1707,94 @@ def test_potion_refill_each_duel():
     assert carry_potions(1, replace(
         CFG, refill_potions_each_duel=False)) == 1  # murni terbawa bila mati
     pl = PlayerLoadout(items=("Iron Sword", "Heavy Shield"))
-    run = QueueRun(queue=q(("Boss", EMPTY), ("Warrior", EMPTY)), buffs=[],
+    run = QueueRun(queue=q(("Warrior", EMPTY), ("Boss", EMPTY)), buffs=[],
                    target=0.5, pred_light=0.5, pred_full=None, hp=79,
                    potions=2, cap=100, cfg=CFG)
     assert run.record(79, 1, True) == "next" and run.potions == POTION_LIMIT
-    qb = EnemyQueue(slots=(EnemySlot("Boss", "NONE"),
-                           EnemySlot("Warrior", "NONE")))
+    # Boss selalu di slot TERAKHIR (aturan antrean) dan 150 HP membuat sampel
+    # "Boss di duel-1" tak andal; urutan Warrior->Boss menjaga fokus tes:
+    # titik masuk duel-2 tetap membawa potion penuh.
+    qb = EnemyQueue(slots=(EnemySlot("Warrior", "NONE"),
+                           EnemySlot("Boss", "NONE")))
     for ev in (ChainLightSim(CFG, pl, seed=5, games=1),
                ChainSim(CFG, pl, seed=5, games=1)):
         ev.evaluate(qb)
         assert ev.last_entries[1][1] == POTION_LIMIT, ev.last_entries
 
+
+
+class _FakeMapPeta:
+    """GameMap minimal (grid kosong) untuk uji formasi musuh di peta."""
+
+    def __init__(self):
+        from game.map import COLS, ROWS
+        self._grid = [[0] * COLS for _ in range(ROWS)]
+
+    def get_grid(self):
+        return self._grid
+
+    def is_walkable(self, r, c):
+        return (0 <= r < len(self._grid) and 0 <= c < len(self._grid[0])
+                and self._grid[r][c] == 0)
+
+    def is_valid(self, r, c):
+        return 0 <= r < len(self._grid) and 0 <= c < len(self._grid[0])
+
+    def get_asset(self, key):
+        return None
+
+
+def test_peta_karakter_boss_tunggal():
+    """Regresi permintaan pemain: yang mengejar di peta = karakter Boss saja.
+
+    "kembali seperti semula tapi ganti jadi karakter boss": satu sprite
+    (karakter Boss), bukan formasi. Anak buahnya baru "dipanggil" saat battle
+    mode setelah CSP + local search menyusun antrean; karena itu jumlah/jenis
+    antrean tidak digambar di peta, dan Boss hanya ikut jadi lawan bila
+    pencarian menempatkannya di slot aktif terakhir (wins >= boss_min_wins) -
+    bukan dijadwalkan tetap.
+    """
+    import os
+    os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
+    import pygame
+    pygame.init()
+    from types import SimpleNamespace
+    import main as game_main
+    from npc import NPC
+
+    surf = {}
+    for role in ("Warrior", "Boss"):
+        s = pygame.Surface((20, 30), pygame.SRCALPHA)
+        s.fill((10, 200, 10))
+        surf[role] = s
+    state = {
+        "npc_sprites": surf, "npc_sprite_base": surf["Warrior"],
+        "toast": None, "status": "",
+        "defeated_enemy_positions": [],
+        "enemy_spawned": False, "spawn_timer": 0.0,
+        "mode": "OVERWORLD", "settings_menu": SimpleNamespace(visible=False),
+        "edit_mode": False, "queue_run": None, "director": None,
+        "ambush_cfg": CFG, "governor": None,
+    }
+    npc = NPC(5, 5, surf["Warrior"], "jaka")
+    game_map = _FakeMapPeta()
+    player = SimpleNamespace(row=30, col=40)
+
+    game_main.spawn_enemy(game_map, player, npc, state)
+    assert state["enemy_spawned"] is True
+    assert npc.sprite is surf["Boss"]    # karakter Boss, satu sprite saja
+    assert npc.name == "Boss"
+    assert "Boss muncul" in state["toast"]["text"]
+    assert "anak buahnya" in state["toast"]["text"]  # dipanggil saat battle
+    assert (npc.row, npc.col) != (player.row, player.col)
+
+    # Tanpa aset Boss: fallback sprite dasar (tidak crash).
+    state2 = dict(state, npc_sprites={"Warrior": surf["Warrior"]},
+                  enemy_spawned=False, toast=None)
+    npc2 = NPC(5, 5, surf["Warrior"], "jaka")
+    game_main.spawn_enemy(game_map, player, npc2, state2)
+    assert npc2.sprite is surf["Warrior"]
+    assert npc2.name == "Boss"
 
 
 if __name__ == "__main__":

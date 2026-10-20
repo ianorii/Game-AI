@@ -3,8 +3,10 @@
 X: ROLE_1..ROLE_k, ITEM_1..ITEM_k (k = cfg.kmax).
 D: D(ROLE_1) memuat Boss; D(ROLE_2..k) tanpa Boss (domain tiap slot beda);
    D(ITEM_i) = semua item + NONE.
-C: unary (Boss perlu wins; NONE menular role->item), biner (maks 1 Healer;
-   pasangan role-item terlarang; slot kosong tidak di tengah), global
+C: unary (Boss perlu wins; NONE menular role->item; pantangan peran
+   pertemuan sebelumnya), biner (maks 1 Healer; pasangan role-item
+   terlarang; slot kosong tidak di tengah; peran musuh saling berbeda;
+   Boss terakhir + defensif tak berturutan di mode antrean), global
    (Dragon Fang <= 1; total power <= budget).
 
 Fungsi check() hanya menilai variabel yang SUDAH ter-assign sehingga bisa
@@ -12,7 +14,7 @@ dipakai untuk partial assignment saat backtracking maupun neighbour LS.
 """
 from __future__ import annotations
 
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 from game.ambush.config import AmbushConfig
 from game.ambush.types import BOSS, EMPTY, HEALER, ITEM_TABLE, MINION, ROLE_TABLE
@@ -114,15 +116,19 @@ def partial_cost(assign: Dict[str, str]) -> int:
 def check(
     assign: Dict[str, str], wins: int, budget: int, cfg: AmbushConfig,
     queue_rules: bool = False, min_active: int = 1,
+    avoid_roles: Tuple[str, ...] = (),
 ) -> List[str]:
     """Kembalikan daftar pelanggaran untuk (partial) assignment. Kosong = konsisten.
 
     Args:
         queue_rules: True = aturan antrean duel berurutan (Boss terakhir,
-            larangan defensif berturutan). False = aturan BUFF lama.
-            Default False agar jalur BUFF/tahap lama tidak berubah.
+            larangan defensif berturutan, peran musuh saling berbeda).
+            False = aturan BUFF lama. Default False agar jalur BUFF/tahap
+            lama tidak berubah.
         min_active: minimal slot ROLE non-NONE saat semua ROLE terisi
             (1 = mode BUFF, 2 = mode antrean SEQUENTIAL).
+        avoid_roles: peran musuh pertemuan sebelumnya (variasi antar
+            pertemuan; hanya berlaku di mode antrean).
     """
     bad: List[str] = []
     roles = {v: a for v, a in assign.items() if v.startswith(ROLE_PREFIX)}
@@ -181,6 +187,20 @@ def check(
                 bad.append(f"{a}-{b} berturutan di ROLE_{i}/ROLE_{i + 1} "
                            f"(defensif ganda)")
                 break
+        # Antrean: SETIAP musuh dalam satu pertandingan harus berbeda
+        # (permintaan pemain: jangan ada musuh yang sama muncul dua kali).
+        # Dinilai pada ROLE yang sudah ter-assign (partial pun terpangkas).
+        seen_roles = [v for v in roles.values() if v != EMPTY]
+        if len(set(seen_roles)) != len(seen_roles):
+            bad.append("peran musuh harus saling berbeda dalam satu antrean")
+        # Antrean: variasi antar-pertemuan - peran pertemuan sebelumnya
+        # tidak dipakai lagi bila memungkinkan (best-effort: CSP
+        # mempruning sejak dini; pemilihan akhir tetap punya cadangan).
+        if avoid_roles:
+            repeated = sorted({v for v in seen_roles if v in avoid_roles})
+            if repeated:
+                bad.append("peran pertemuan sebelumnya masih dipakai "
+                           f"({', '.join(repeated)})")
 
     # Biner: pasangan role-item harus kompatibel (matriks ITEM_ALLOWED).
     # Matriks ini yang mengikat graph: tiap ITEM terhubung ke ROLE slotnya
