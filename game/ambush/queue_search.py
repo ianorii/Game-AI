@@ -232,6 +232,10 @@ def hill_climb_q(start: EnemyQueue, evaluator, target: float, wins: int,
         scored.sort(key=lambda t: t[0])
         top_gap, top_diff, top_nb, top_move = scored[0]
         took = {"kind": top_move[0], "detail": top_move[1], "gap": top_gap}
+        # Gap SEBELUM langkah ini: `current` di bawah sudah diperbarui ke
+        # nilai baru, jadi narasi overlay butuh nilai lama agar tidak
+        # selalu tampil "X->X".
+        prev_gap = cur_gap
         if top_gap < cur_gap - EPS:
             cur, cur_gap, cur_diff = top_nb, top_gap, top_diff
         elif top_gap <= cur_gap + EPS and sideways_left > 0:
@@ -252,7 +256,8 @@ def hill_climb_q(start: EnemyQueue, evaluator, target: float, wins: int,
         yield _emit(tracer, "ls_iter", algo="hill_climbing", it=it,
                     current=cur_gap, best=best_gap, evaluated=len(nbs),
                     rejected=len(rej), sideways_left=sideways_left,
-                    k=cur.k(), took=took, rejected_sample=rej_sample)
+                    k=cur.k(), took=took, prev=prev_gap,
+                    rejected_sample=rej_sample)
         if best_gap <= cfg.target_tol:
             stop = "target"
             break

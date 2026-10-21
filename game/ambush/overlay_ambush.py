@@ -93,7 +93,7 @@ def _narrate(e: dict):
             return (f"LS iter {e.get('it')}: {_f(e.get('current'))} buntu "
                     f"(tolak_CSP {rej})", RED)
         return (f"LS {took.get('kind')} {took.get('detail')}: "
-                f"{_f(e.get('current'))}->"
+                f"{_f(e.get('prev', e.get('current')))}->"
                 f"{_f(took.get('gap'))} diterima", GREEN)
     if kind == "ls_sa":
         ok = e.get("accepted")
@@ -201,6 +201,7 @@ def build_view(tracer: TraceBuffer, ctx: dict) -> dict:
         "ls_algo": ctx.get("ls_algo", "-"),
         "target": ctx.get("target", 0.0),
         "target_label": ctx.get("target_label", ""),
+        "target_tol": ctx.get("target_tol", 0.02),
         "seed_mode": ctx.get("seed_mode", ""),
         "pump": ctx.get("pump", "instant"),
         "toggles": ctx.get("toggles", {}),
@@ -479,31 +480,40 @@ class AmbushDebugOverlay:
 
     def _sparkline(self, panel: pygame.Surface, v: dict,
                    rect: pygame.Rect) -> None:
-        """Grafik gap per iterasi + garis target & toleransi."""
+        """Grafik gap per iterasi + garis toleransi (gap <= tol = target).
+
+        Sumbu-Y adalah GAP (|difficulty - target|), bukan difficulty. Karena
+        itu garis acuan yang benar adalah toleransi gap, BUKAN target
+        difficulty: nilai target (mis. 0.500) bisa jauh di atas gap maksimum
+        dan dulu tergambar keluar kotak (garis kuning melintang di tengah
+        teks overlay). Garis acuan kini selalu dijepit di dalam kotak.
+        """
         hist = v["history"]
         if rect.height < 24 or not hist:
             return
         pygame.draw.rect(panel, (30, 36, 50), rect, border_radius=4)
         gaps = [float(h[2]) for h in hist]
-        lo, hi = 0.0, max(max(gaps), 0.05)
+        try:
+            tol = float(v.get("target_tol", 0.02) or 0.02)
+        except (TypeError, ValueError):
+            tol = 0.02
+        # Sertakan toleransi dalam skala agar garis acuan tak pernah keluar
+        # kotak (dulu hi = max(gap) saja, target 0.5 -> ty negatif).
+        hi = max(max(gaps), tol * 1.5, 0.05)
         n = len(gaps)
         prev = None
         for i, g in enumerate(gaps):
             x = rect.x + int(i / max(1, n - 1) * (rect.width - 4)) + 2
             y = rect.y + rect.height - 3 - int(
-                (g - lo) / (hi - lo) * (rect.height - 6))
+                (g - 0.0) / (hi - 0.0) * (rect.height - 6))
             if prev is not None:
                 pygame.draw.line(panel, GREEN, prev, (x, y), 2)
             prev = (x, y)
-        tol = v.get("target_tol", 0.02)
-        for frac, col in ((v.get("target", 0.0), YELLOW),
-                          (tol, DIM)):
-            try:
-                ty = rect.y + rect.height - 3 - int(
-                    float(frac) / (hi - lo) * (rect.height - 6))
-            except (TypeError, ValueError):
-                continue
-            pygame.draw.line(panel, col, (rect.x + 2, ty),
+        if tol > 0:
+            ty = rect.y + rect.height - 3 - int(
+                tol / (hi - 0.0) * (rect.height - 6))
+            ty = max(rect.top + 1, min(rect.bottom - 2, ty))
+            pygame.draw.line(panel, DIM, (rect.x + 2, ty),
                              (rect.right - 2, ty), 1)
 
 
