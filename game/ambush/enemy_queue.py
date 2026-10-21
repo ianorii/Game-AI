@@ -23,17 +23,15 @@ from game.ambush.types import BOSS, EMPTY, HEALER, ITEM_TABLE, ROLE_TABLE
 #: tidak ada clamp minimum (satu-satunya angka dasar sisi musuh; sim, battle
 #: nyata, dan HUD wajib lewat enemy_max_hp()).
 #:
-#: AMANDEMEN-3 (permintaan pemain): SEMUA musuh mulai 100 HP — sama dengan
-#: pemain. Bonus HP peran dinolkan di ROLE_TABLE, jadi buff.hp = 0 untuk
-#: semua musuh kecuali Boss dan enemy_max_hp() = 100. (AMANDEMEN-1
-#: sebelumnya menurunkan nilai ini 100 -> 70.) Mengubahnya berarti mengubah
+#: AMANDEMEN-5 (permintaan pemain: "darah dari musuhnya jangan disamain sama
+#: darah player"): base TIDAK lagi 100. Nilai 70 + bonus HP peran di
+#: ROLE_TABLE (Minion 60, Warrior/Archer/Tank/Healer 70, Mage 80, Boss
+#: 70+80=150) membuat HP musuh tersebar dan TIDAK ADA yang menyamai 100
+#: milik player. Riwayat: AMANDEMEN-1 70 -> AMANDEMEN-3 dipaksa 100 (semua
+#: musuh 100, bonus HP peran dinolkan) -> AMANDEMEN-4 Boss +50 (150) ->
+#: AMANDEMEN-5 kembali 70 + bonus peran. Mengubahnya berarti mengubah
 #: keseimbangan yang diukur di docs/balance_TahapA.md.
-#:
-#: AMANDEMEN-4 (permintaan pemain: "sampai melawan boss yang hpnya 150"):
-#: Boss kini ber-bonus hp +50 di ROLE_TABLE sehingga HP maksnya 150; peran
-#: lain tetap 100. Angka 150 muncul otomatis di sim/battle/HUD/panel karena
-#: semuanya memanggil enemy_max_hp() (ENEMY_BASE_HP tidak berubah).
-ENEMY_BASE_HP = 100
+ENEMY_BASE_HP = 70
 
 #: Peran defensif: dua berurutan dilarang (aturan adjacency, Fase 2 CSP).
 #: Alasan: dua duel defensif berturut-turut membuat antrean membosankan

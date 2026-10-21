@@ -42,9 +42,9 @@ class RoleSpec:
     """Satu archetype NPC: kontribusi buff + biaya power untuk constraint."""
 
     name: str
-    hp: int = 0       # bonus max-HP; 0 untuk semua peran KECUALI Boss
-                      # (AMANDEMEN-3: musuh mulai 100 HP seperti pemain;
-                      #  AMANDEMEN-4: Boss 150 HP)
+    hp: int = 0       # bonus max-HP di atas ENEMY_BASE_HP (70). SEMUA peran
+                      # punya nilai agar tak ada musuh ber-HP 100 seperti
+                      # player (AMANDEMEN-5). Boss +80 -> 150 HP.
     atk: int = 0      # bonus damage ATTACK
     spec: int = 0     # bonus damage SPECIAL
     regen: int = 0    # HP pulih tiap giliran NPC
@@ -87,26 +87,24 @@ ITEM_ALLOWED: Dict[str, Tuple[str, ...]] = {
 
 
 ROLE_TABLE: Dict[str, RoleSpec] = {
-    # AMANDEMEN-3 (permintaan pemain): SEMUA musuh mulai di 100 HP - sama
-    # dengan pemain - jadi bonus HP peran dinolkan (hp=0 semua). Identitas
-    # peran sekarang murni dari serangan/spesial/regen/armor/chip/weaken:
-    # Minion tetap lemah (atk-9 -> damage ~8.5 vs 17.5 rata2), Healer regen+2,
-    # Archer chip+1, Mage spec+7 & weaken 10%, Tank/Boss armor, dst.
-    # HP musuh kini SATU angka: ENEMY_BASE_HP = 100 (lihat enemy_queue.py).
-    # AMANDEMEN-4 (permintaan pemain: "sampai melawan boss yang hpnya 150"):
-    # Boss satu-satunya peran ber-HP lebih: 100 + 50 = 150 HP maks. Angka ini
-    # tetap lewat satu jalur enemy_max_hp() sehingga sim == battle == HUD ==
-    # panel transisi (tidak ada perhitungan paralel).
-    MINION: RoleSpec(MINION, atk=-9, cost=1),
-    "Warrior": RoleSpec("Warrior", atk=2, cost=3),  # Tahap-A R3
-    "Archer": RoleSpec("Archer", atk=3, chip=1, cost=3),  # Tahap-A R3
-    "Mage": RoleSpec("Mage", atk=1, spec=7, weaken=0.10,  # Tahap-A R3
+    # AMANDEMEN-5 (permintaan pemain: "darah dari musuhnya jangan disamain
+    # sama darah player"): base musuh 70 (bukan 100) + bonus HP peran,
+    # sehingga HP MAKS tiap peran BERBEDA-BEDA dan tak ada yang 100:
+    #   Minion 60 | Warrior/Archer/Tank/Healer 70 | Mage 80 | Boss 150.
+    # Identitas peran kini HP + serangan/spesial/regen/armor/chip/weaken.
+    # HP musuh lewat SATU jalur enemy_max_hp() (sim == battle == HUD).
+    # Riwayat: AMANDEMEN-3 sempat menolkan hp peran (semua musuh 100),
+    # AMANDEMEN-4 menambah Boss +50 -> 150.
+    MINION: RoleSpec(MINION, hp=-10, atk=-9, cost=1),    # 70-10 = 60
+    "Warrior": RoleSpec("Warrior", atk=2, cost=3),        # 70
+    "Archer": RoleSpec("Archer", atk=3, chip=1, cost=3),  # 70
+    "Mage": RoleSpec("Mage", hp=10, atk=1, spec=7, weaken=0.10,  # 80
                      cost=4),
-    "Healer": RoleSpec("Healer", atk=1, regen=2,  # Tahap-A R3
+    "Healer": RoleSpec("Healer", atk=1, regen=2,  # 70
                        cost=3),
-    "Tank": RoleSpec("Tank", atk=2, armor=0.05,  # Tahap-A R3
+    "Tank": RoleSpec("Tank", atk=2, armor=0.05,  # 70
                      cost=4),
-    "Boss": RoleSpec("Boss", hp=50, atk=2, spec=4, armor=0.05,  # rantai-Boss
+    "Boss": RoleSpec("Boss", hp=80, atk=2, spec=4, armor=0.05,  # 150
                      cost=7),
     EMPTY: RoleSpec(EMPTY),
 }

@@ -36,12 +36,15 @@ class AmbushConfig:
                                      # (default False = musuh segar)
     npc_starting_potions: int = 1  # potion awal TIAP musuh (anti-stall rantai;
                                    # player & POTION_LIMIT tak tersentuh)
-    enemy_base_hp: int = 100  # HP dasar musuh (cermin ENEMY_BASE_HP di
-                              # enemy_queue; player tetap 100 tahap 2).
-                              # AMANDEMEN-3 (permintaan pemain): SEMUA musuh
-                              # mulai 100 HP - sama dengan pemain - dan bonus
-                              # HP peran dinolkan di ROLE_TABLE, jadi
-                              # enemy_max_hp() selalu 100.
+    enemy_base_hp: int = 70  # HP dasar musuh (cermin ENEMY_BASE_HP di
+                              # enemy_queue). SENGAJA BUKAN 100: permintaan
+                              # pemain "darah musuh jangan disamain sama
+                              # darah player". Player tetap 100 (tahap 2,
+                              # MAX_HP, tak tersentuh angka ini).
+                              # Ditambah bonus HP peran di ROLE_TABLE
+                              # (Minion 60, Warrior/Archer/Tank/Healer 70,
+                              # Mage 80, Boss +80 -> 150), sehingga
+                              # TIDAK ada peran yang HP-nya 100.
                               # HP maks musuh = base + buff.hp lewat
                               # enemy_max_hp() (sim == battle == HUD).
                               # Setiap musuh baru SELALU mulai di HP maks

@@ -29,10 +29,11 @@ from fit_queue import sample_queues  # noqa: E402
 
 CFG = AmbushConfig()
 CANDIDATES = {
-    # Delta dari stat dasar duel (musuh 100 HP, damage 15-20 rata2 17.5).
-    # M1: pembanding (stat dasar). M2: HP -30% (100->70), ATK -40%
-    #   (17.5->10.5, delta -7). M3: HP -50% (->50), ATK -50% (delta -9;
-    #   roll min 15-9=6>0, tetap berbahaya).
+    # Delta dari stat dasar duel (damage 15-20 rata2 17.5).
+    # M1: pembanding (stat dasar). M2: HP -30 (ATK -7).
+    # M3: HP -50 (ATK -9; roll min 15-9=6>0, tetap berbahaya).
+    # Catatan: CANDIDATES ini disapu lewat override ROLE_TABLE["Minion"]
+    # RELATIF terhadap ENEMY_BASE_HP yang berlaku (kini 70).
     "M1": RoleSpec(MINION, hp=0, atk=0, cost=1),
     "M2": RoleSpec(MINION, hp=-30, atk=-7, cost=1),
     "M3": RoleSpec(MINION, hp=-50, atk=-9, cost=1),

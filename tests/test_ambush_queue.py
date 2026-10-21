@@ -35,7 +35,7 @@ def test_config_defaults():
     assert CFG.mode == "SEQUENTIAL"
     assert CFG.min_enemies == 2 and CFG.kmax == 4
     assert CFG.rest_heal_pct == 0.15  # Diagnosis disetujui
-    assert CFG.enemy_base_hp == 100  # AMANDEMEN-3: semua musuh 100 HP
+    assert CFG.enemy_base_hp == 70  # AMANDEMEN-5: musuh BUKAN 100 (= player)
     assert CFG.refill_potions_each_duel is True  # heal penuh tiap lawan
     assert CFG.governor_max_target == 0.80  # plafon opsi C (.40-.80)
     assert CFG.npc_potions_carry is False
@@ -55,22 +55,23 @@ def test_balance_freeze():
     menggeser default diam-diam (hanya bug nyata / uji main manual).
     """
     from game.ambush.types import ITEM_TABLE, ROLE_TABLE
-    # AMANDEMEN-3/4 (CSP-Jaka, permintaan pemain terbaru): semua musuh
-    # 100 HP (hp peran dinolkan), Boss +50 -> 150; base 70 adalah riwayat.
+    # AMANDEMEN-5 (permintaan pemain: "darah musuh jangan disamain sama
+    # darah player"): base musuh 70 + bonus HP peran (Minion 60, Mage 80,
+    # Boss 150); base 100 adalah riwayat AMANDEMEN-3.
     assert (CFG.rest_heal_pct, CFG.npc_starting_potions,
             CFG.enemy_base_hp, CFG.refill_potions_each_duel) == \
-        (0.15, 1, 100, True)
+        (0.15, 1, 70, True)
     assert (CFG.gov_min, CFG.governor_max_target) == (0.40, 0.80)
     assert (CFG.base_q, CFG.budget_q_scale) == (8, 8)
     assert CFG.boss_min_wins == 3
     locked_roles = {
-        "Minion": (0, -9, 0, 0, 0.0, 0, 0.0, 1),
+        "Minion": (-10, -9, 0, 0, 0.0, 0, 0.0, 1),
         "Warrior": (0, 2, 0, 0, 0.0, 0, 0.0, 3),
         "Archer": (0, 3, 0, 0, 0.0, 1, 0.0, 3),
-        "Mage": (0, 1, 7, 0, 0.0, 0, 0.10, 4),
+        "Mage": (10, 1, 7, 0, 0.0, 0, 0.10, 4),
         "Healer": (0, 1, 0, 2, 0.0, 0, 0.0, 3),
         "Tank": (0, 2, 0, 0, 0.05, 0, 0.0, 4),
-        "Boss": (50, 2, 4, 0, 0.05, 0, 0.0, 7),  # 100+50 = 150 HP
+        "Boss": (80, 2, 4, 0, 0.05, 0, 0.0, 7),  # 70+80 = 150 HP
     }
     for name, (hp, atk, spec, regen, armor, chip, weaken, cost) in \
             locked_roles.items():
@@ -122,8 +123,8 @@ def test_single_source_numbers():
     slot = EnemySlot("Tank", "Heavy Shield")
     buff = slot_to_buff(slot, CFG)
     assert isinstance(buff, Buff)
-    # AMANDEMEN-3: semua musuh 100 HP -> buff.hp peran selalu 0; identitas
-    # Tank sekarang dari armor (role 0.05 + Hefty Shield 0.10 = 0.15).
+    # AMANDEMEN-5: hp peran aktif lagi (base 70 + delta). Tank hp=0 -> 70 HP;
+    # identitas Tank juga dari armor (role 0.05 + Hefty Shield 0.10 = 0.15).
     assert buff.hp == 0 and abs(buff.armor - 0.15) < 1e-9
     # Sama persis bila dihitung dua kali (HUD == battle == sim).
     assert slot_to_buff(slot, CFG) == buff
@@ -491,11 +492,13 @@ def test_progress_objective_bounds_shift():
     strong = PlayerLoadout(items=("Dragon Fang", "Heavy Shield"))
     q = EnemyQueue(slots=(EnemySlot("Warrior", "NONE"),
                           EnemySlot("Archer", "NONE")))
-    sims = [ChainSim(CFG, pl, seed=5, games=2).evaluate(q)
+    sims = [ChainSim(CFG, pl, seed=3, games=4).evaluate(q)
             for pl in (weak, mid, strong)]
     assert all(0.0 <= v <= 1.0 for v in sims), sims
     # Lemah >= sedang (kuat tak diurutkan: Fang Tahap-A (1/1) memukul lebih
     # lemah dari Sword (2/0) sehingga label "kuat" basi untuk offense).
+    # CATATAN AMANDEMEN-5: HP musuh tak lagi seragam 100 (Warrior/Archer 70,
+    # lebih cepat tumbang), jadi seed/jumlah game bukti dimutakhirkan.
     assert sims[0] >= sims[1], sims
     heurs = [ChainHeuristic(CFG, pl).evaluate(q) for pl in (weak, mid, strong)]
     assert all(0.0 <= v <= 1.0 for v in heurs)
@@ -574,8 +577,10 @@ def test_potion_bonus_default_zero():
 def test_potion_bonus_reaches_duel():
     """Plumbing potion: refill vs terbawa -> duel-2 masuk bawa 3 potion.
 
-    Antrean Mage-Boss menghabiskan 1 potion di duel-1 (seed tetap):
+    Antrean Mage-Boss menghabiskan 1 potion di duel-1 (seed 1):
     tanpa refill duel-2 masuk bawa 2; dengan refill default bawa 3 penuh.
+    (Seed bukti dimutakhirkan pada AMANDEMEN-5: HP musuh tak lagi seragam
+    100 sehingga konsumsi potion duel-1 bergeser.)
     """
     from dataclasses import replace
     from game.ambush.chain_eval import ChainSim
@@ -584,10 +589,10 @@ def test_potion_bonus_reaches_duel():
     pl = PlayerLoadout(items=("Iron Sword", "Heavy Shield"))
     q = EnemyQueue(slots=(EnemySlot("Mage", "NONE"),
                           EnemySlot("Boss", "NONE")))
-    e0 = ChainSim(replace(CFG, refill_potions_each_duel=False), pl, seed=5,
+    e0 = ChainSim(replace(CFG, refill_potions_each_duel=False), pl, seed=1,
                   games=1)
     e0.evaluate(q)
-    eR = ChainSim(CFG, pl, seed=5, games=1)
+    eR = ChainSim(CFG, pl, seed=1, games=1)
     eR.evaluate(q)
     assert e0.last_entries[1][1] == 2, e0.last_entries  # terbawa (habis 1)
     assert eR.last_entries[1][1] == 3, eR.last_entries  # isi penuh
@@ -617,9 +622,9 @@ def test_minion_rules_and_display():
     slot = EnemySlot("Minion", "Iron Sword")
     assert slot.cost() == 2  # 1 + 1
     buff = slot_to_buff(slot, CFG)
-    # AMANDEMEN-3: hp peran 0 (semua musuh 100 HP); kelemahan Minion tinggal
-    # dari serangan: atk -9 + Iron Sword +2 = -7 (delta tampil di HUD).
-    assert buff.hp == 0 and buff.atk == -7
+    # AMANDEMEN-5: Minion 60 HP (base 70 - 10); kelemahan Minion juga dari
+    # serangan: atk -9 + Iron Sword +2 = -7 (delta tampil di HUD).
+    assert buff.hp == -10 and buff.atk == -7
     assert slot.role == "Minion"  # nama jelas, tanpa aset baru
 
 
@@ -1005,6 +1010,44 @@ def test_queue_run_rest_uses_helper():
         assert spy.call_args[0][:2] == (62, 100)
 
 
+def test_start_queue_duel_membawa_hp():
+    """REG RESI: start_queue_duel memakai run.hp (HP terbawa), bukan MAX_HP.
+
+    Bug lama: player_hp=MAX_HP membuat darah balik 100 tiap musuh berikutnya
+    dalam satu antrean, padahal run.hp sudah dihitung apply_rest.
+    """
+    from types import SimpleNamespace
+    import main as game_main
+
+    run = _qrun(k=3, hp=55)          # duel ke-2 mulai dengan sisa HP 55
+    run.hp, run.potions = 77, 2      # hasil rest + carry_potions
+    captured = {}
+
+    class FakeBattle:
+        def __init__(self, **kw):
+            captured.update(kw)
+
+    state = {
+        "queue_run": run, "director_result": None, "ai_depth": 3,
+        "player_buff": None, "player_loadout": None,
+        "ambush_cfg": CFG,
+        "npc_sprites": {}, "npc_sprite_base": None,
+    }
+    player = SimpleNamespace(sprite=None, row=0, col=0)
+    npc = SimpleNamespace(sprite=None, row=1, col=1, follow=True, path=[1])
+    game_map = SimpleNamespace(get_asset=lambda _name: object())
+    old = game_main.BattleSystem
+    game_main.BattleSystem = FakeBattle
+    try:
+        game_main.start_queue_duel(state, player, npc, game_map)
+    finally:
+        game_main.BattleSystem = old
+
+    assert captured["player_hp"] == 77
+    assert captured["player_potions"] == 2
+    assert state["mode"] == "BATTLE"
+
+
 def test_governor_progress_binary():
     """Governor menerima progres + biner + duel_gagal_ke."""
     from game.ambush.governor import DifficultyGovernor
@@ -1108,9 +1151,10 @@ def test_autoplay_reproducible():
 def test_transition_draw():
     """Layar hasil/transisi tergambar tanpa error (headless).
 
-    Regresi permintaan pemain: baris "Kamu masuk duel berikutnya dengan HP
-    ..." TIDAK ada lagi (tiap duel antrean selalu mulai darah penuh), jadi
-    draw_transition tak menerima hp_next/pot_next/heal.
+    Baris "Kamu masuk duel berikutnya dengan HP ..." tampil lagi lewat
+    hp_next/pot_next karena darah MEMANG terbawa antar-duel (start_queue_duel:
+    player_hp=run.hp, hasil apply_rest di QueueRun.record) — bukan dipaksa
+    penuh 100 seperti dulu.
     """
     import os
     os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
@@ -1121,14 +1165,21 @@ def test_transition_draw():
     font = pygame.font.SysFont("consolas", 14)
     import inspect
     params = inspect.signature(draw_transition).parameters
-    assert "hp_next" not in params and "pot_next" not in params
-    assert "heal" not in params  # baris "masuk duel berikutnya" dihapus
-    # Kasus 1: ada musuh berikutnya (hasil duel menang).
+    assert "hp_next" in params and "pot_next" in params
+    assert "rest_heal" in params  # tambahan istirahat antar-duel
+    # Kasus 1: ada musuh berikutnya (hasil duel menang) + HP terbawa.
+    draw_transition(
+        screen, font, duel_no=1, k=3, result="menang",
+        prev_role="Tank", prev_item="Heavy Shield", hp_after=62, cap=100,
+        potions=2, next_role="Mage", next_item="Healing Charm",
+        hp_next=77, pot_next=3, rest_heal=15, foe_hp=100,
+        foe_lines=["Serangan +1, spesial +7", "Tahan damage 10%"])
+    # Kasus 1b: tanpa info terbawa (None) tetap aman digambar.
     draw_transition(
         screen, font, duel_no=1, k=3, result="menang",
         prev_role="Tank", prev_item="Heavy Shield", hp_after=62, cap=100,
         potions=2, next_role="Mage", next_item="Healing Charm", foe_hp=100,
-        foe_lines=["Serangan +1, spesial +7", "Tahan damage 10%"])
+        foe_lines=["Serangan +1, spesial +7"])
     # Kasus 2: pertemuan berakhir (kalah = tidak ada blok berikutnya).
     draw_transition(
         screen, font, duel_no=2, k=3, result="kalah",
@@ -1468,9 +1519,9 @@ def test_conserve_veto_binds():
     (1.0). Mekanisme veto sendiri diuji unit di test_hemat_veto_queue_binding
     (tak tergantung stat); sel ini hanya membuktikan veto MENGUBAH jalannya
     duel nyata.
-    CATATAN AMANDEMEN-3: HP musuh seragam 100 mengubah lintasan duel, jadi
-    konteks bukti dimutakhirkan (Minion seed=20) agar veto tetap terlihat
-    mengubah jalannya duel nyata.
+    CATATAN AMANDEMEN-5: HP musuh tak lagi 100 (Minion 60) sehingga lintasan
+    duel Minion kembali sama untuk greedy/hemat; bukti veto kini memakai
+    Warrior (HP 70) yang lintasannya tetap berbeda.
     """
     import sys as _sys
     _sys.path.insert(0, str(Path("experiments").resolve()))
@@ -1478,8 +1529,8 @@ def test_conserve_veto_binds():
     from game.ambush.player_loadout import PlayerLoadout
     pl = PlayerLoadout(items=("Iron Sword", "Heavy Shield"))
     kw = dict(seed=20, games=6, cfg=CFG, duels_left=3, duel_last=False)
-    g = play("Minion", "NONE", pl, "greedy", **kw)
-    h = play("Minion", "NONE", pl, "hemat", **kw)
+    g = play("Warrior", "NONE", pl, "greedy", **kw)
+    h = play("Warrior", "NONE", pl, "hemat", **kw)
     assert g != h  # veto mengubah jalannya duel
     assert g[0] == h[0]  # hasil menang sama (bukan sulap)
 
@@ -1649,42 +1700,48 @@ def test_rest_driver_sim_same_value():
 
 
 def test_enemy_base_hp_100():
-    """Darah dasar musuh 100 = pemain (AMANDEMEN-3) + Boss 150 (AMANDEMEN-4).
+    """HP musuh BUKAN 100 (AMANDEMEN-5) + Boss 150.
 
-    Setiap musuh baru selalu mulai di HP maks penuh (base + buff.hp) dan HP
-    saat duel turun normal tanpa clamp bawah (regresi bug "HP beku di 80").
-    Permintaan pemain terbaru: "sampai melawan boss yang hpnya 150" - Boss
-    satu-satunya peran ber-bonus HP (+50), peran lain tetap 100.
+    Permintaan pemain: "darah dari musuhnya jangan disamain sama darah
+    player". Base musuh 70 + bonus HP peran -> Minion 60, Mage 80, peran
+    lainnya 70, Boss 150; TIDAK ada peran yang HP maksnya 100 (= player).
+    Setiap musuh baru mulai di HP maks penuh (base + buff.hp) dan HP saat
+    duel turun normal tanpa clamp bawah (regresi bug "HP beku di 80").
     """
     from battle_system import BattleSystem
     from game.ambush.buff import Buff
     from game.ambush.enemy_queue import (ENEMY_BASE_HP, EnemySlot,
                                          enemy_max_hp, slot_to_buff)
     from game.ambush.player_loadout import PlayerLoadout
-    assert ENEMY_BASE_HP == 100 and CFG.enemy_base_hp == 100
-    assert enemy_max_hp(Buff()) == 100
-    for role in ("Warrior", "Tank", "Healer", "Archer", "Mage", "Minion"):
+    assert ENEMY_BASE_HP == 70 and CFG.enemy_base_hp == 70
+    assert enemy_max_hp(Buff()) == 70
+    hp_roles = {
+        "Minion": 60, "Warrior": 70, "Archer": 70, "Mage": 80,
+        "Healer": 70, "Tank": 70,
+    }
+    for role, want in hp_roles.items():
         eb = slot_to_buff(EnemySlot(role, "NONE"), CFG)
-        assert eb.hp == 0, role  # AMANDEMEN-3: tanpa bonus HP peran
-        assert enemy_max_hp(eb, CFG.enemy_base_hp) == 100, role
-    # AMANDEMEN-4: Boss 150 HP (satu jalur enemy_max_hp -> sim == battle).
+        assert enemy_max_hp(eb, CFG.enemy_base_hp) == want, role
+        assert want != 100, role  # tak ada musuh ber-HP sama dengan player
+    # Boss 150 HP (tetap lewat satu jalur enemy_max_hp -> sim == battle).
     boss = slot_to_buff(EnemySlot("Boss", "NONE"), CFG)
-    assert boss.hp == 50
+    assert boss.hp == 80
     assert enemy_max_hp(boss, CFG.enemy_base_hp) == 150
     b_boss = BattleSystem(player_hp=100, npc_buff=boss,
                           player_potions=3, npc_potions=2)
     assert b_boss.npc_max_hp == 150 and b_boss.state.npc_hp == 150
     assert enemy_max_hp(slot_to_buff(EnemySlot("Minion", "NONE"), CFG)) \
-        == 100  # semua musuh lain 100 HP; Minion tetap lemah dari atk-9
+        == 60  # Minion paling lemah: 60 HP, dan tetap lemah dari atk-9
     pl = PlayerLoadout(items=("Iron Sword", "Heavy Shield"))
     b = BattleSystem(player_hp=100,
                      npc_buff=slot_to_buff(EnemySlot("Warrior", "NONE"),
                                            CFG),
                      player_potions=3, npc_potions=2)
-    assert b.npc_max_hp == 100 and b.player_max_hp == 100
-    assert b.state.npc_hp == 100 and b.state.player_hp == 100
-    polo = BattleSystem(player_hp=100)  # duel polos: musuh juga 100
-    assert polo.state.npc_hp == 100 and polo.state.player_hp == 100
+    # Musuh Warrior 70 HP != player 100 HP (AMANDEMEN-5).
+    assert b.npc_max_hp == 70 and b.player_max_hp == 100
+    assert b.state.npc_hp == 70 and b.state.player_hp == 100
+    polo = BattleSystem(player_hp=100)  # duel polos: musuh = ENEMY_BASE_HP
+    assert polo.state.npc_hp == 70 and polo.state.player_hp == 100
     # HP bisa turun di bawah 80 (tanpa clamp lama) dan musuh tetap bisa
     # dikalahkan: giliran NPC TIDAK boleh mengembalikan HP ke 80.
     b.state.npc_hp = 45
@@ -1742,6 +1799,39 @@ class _FakeMapPeta:
 
     def get_asset(self, key):
         return None
+
+
+def test_transition_membawa_hp_end_to_end():
+    """End-to-end: HP terbawa dari duel 1 ke duel 2 lewat jalur game nyata.
+
+    Rantai: QueueRun.record (apply_rest) -> advance_transition ->
+    start_queue_duel -> BattleSystem. Angka HP di layar transisi harus sama
+    dengan HP yang benar-benar dipakai duel berikutnya.
+    """
+    from types import SimpleNamespace
+    import main as game_main
+    from battle_system import BattleSystem
+
+    run = _qrun(k=2, hp=100)
+    assert run.record(60, 2, True) == "next"
+    assert run.hp == 75  # 60 + rest 15% dari 100
+
+    state = {
+        "queue_run": run, "director_result": None, "ai_depth": 3,
+        "player_buff": None, "player_loadout": None, "ambush_cfg": CFG,
+        "npc_sprites": {}, "npc_sprite_base": None,
+        "transition_result": {"status": "next", "won": False},
+        "mode": "TRANSITION",
+    }
+    player = SimpleNamespace(sprite=None, row=0, col=0)
+    npc = SimpleNamespace(sprite=None, row=1, col=1, follow=True, path=[1])
+    game_map = SimpleNamespace(get_asset=lambda _name: object())
+
+    game_main.advance_transition(state, player, npc, game_map)
+    battle = state["battle"]
+    assert isinstance(battle, BattleSystem)
+    assert battle.state.player_hp == 75      # bukan 100 lagi
+    assert battle.state.player_potions == 3  # refill potion tetap berlaku
 
 
 def test_peta_karakter_boss_tunggal():

@@ -1303,7 +1303,9 @@ def start_queue_duel(state, player, npc, game_map, npc_sprite=None):
     state["battle"] = BattleSystem(
         player_sprite=player.sprite,
         npc_sprite=npc_sprite if npc_sprite is not None else npc.sprite,
-        player_hp=MAX_HP,  # Setiap duel antrean selalu mulai dengan darah penuh (100)
+        # HP terbawa antar-duel: run.hp sudah dihitung QueueRun.record()
+        # lewat apply_rest (sisa HP + istirahat), sama dengan simulator.
+        player_hp=run.hp,
         depth=state.get("ai_depth", DEFAULT_DEPTH),
         player_name="Player",
         npc_name=(f"{display_role(run.current_slot().role)} "
@@ -2043,6 +2045,12 @@ async def main():
                 potions=(rec.pot_after if rec is not None else 0),
                 next_role=(slot.role if is_next else None),
                 next_item=(slot.item if is_next else None),
+                # HP/potion yang benar-benar dipakai duel berikutnya:
+                # run.hp = hasil apply_rest (sisa HP + istirahat antar-duel).
+                hp_next=(run.hp if is_next else None),
+                pot_next=(run.potions if is_next else None),
+                rest_heal=(max(0, run.hp - rec.hp_after)
+                           if is_next and rec is not None else 0),
                 foe_hp=(foe_hp if is_next else None),
                 foe_lines=(foe_lines if is_next else None),
                 finished=not is_next,

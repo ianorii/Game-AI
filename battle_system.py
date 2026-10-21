@@ -538,9 +538,9 @@ class BattleSystem:
 
         # Catatan: TIDAK ada lagi clamp "HP NPC minimum 80". Clamp lama
         # membuat HP musuh membeku di 80 setiap giliran NPC sehingga musuh
-        # praktis tidak bisa dikalahkan. HP musuh kini bebas turun sampai 0;
-        # yang tetap adalah HP MAKS tiap lawan baru = 100 (ENEMY_BASE_HP,
-        # AMANDEMEN-3: semua musuh 100 HP sama dengan pemain; buff.hp = 0).
+        # praktis tidak bisa dikalahkan. HP musuh kini bebas turun sampai 0.
+        # HP MAKS tiap lawan baru = ENEMY_BASE_HP + buff.hp (AMANDEMEN-5:
+        # base 70 + bonus HP peran; tak ada musuh yang 100 seperti player).
 
         if self.state.is_terminal():
             self._enter_result()

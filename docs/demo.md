@@ -41,9 +41,9 @@ Siapkan: `python main.py`, musuh sudah muncul (tunggu ~8 dtk), F3 siap.
   Sudah kalah: ..."). Menangkan duel (atau mainkan), lalu saksikan **LAYAR
   HASIL** ("HASIL DUEL 1/k — MENANG", lawan tadi, sisa HP, dan musuh
   berikutnya + efeknya). Layar ini **menunggu Enter** (tidak lanjut otomatis).
-  Baris "kamu masuk duel berikutnya dengan HP …" **sudah dihapus** karena
-  tiap duel antrean selalu mulai dengan darah penuh (refill potion + rest
-  15%). Tekan H untuk HUD.
+  Baris "kamu masuk duel berikutnya dengan HP …" tampil lagi dan angkanya
+  **nyata**: darah terbawa antar-duel (sisa HP + istirahat 15%), potion ikut
+  terbawa — sama dengan simulator. Tekan H untuk HUD.
 - Tunjuk log pemicu buff ("Healer NPC memulihkan 2 HP") + panel berkedip.
 - Menang semua → "ANTREAN TUNTAS!"; kalah → "PERTEMUAN BERAKHIR" (keduanya
   menunggu Enter lalu kembali ke EXPLORE). `data/battle_result.csv` bertambah

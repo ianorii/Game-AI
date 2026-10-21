@@ -128,8 +128,8 @@ def test_neighbors_cover_constraints():
 
 
 def test_buff_diminishing_returns():
-    # AMANDEMEN-3: hp peran 0 (semua musuh 100 HP), jadi bukti diminishing
-    # memakai atk: Warrior lead +2 penuh; di slot 2 faktor 1/3 -> +1.
+    # AMANDEMEN-5: hp peran Warrior tetap 0 (Warrior 70 HP = base), jadi
+    # bukti diminishing memakai atk: Warrior lead +2 penuh; slot 2 -> +1.
     one = squad_to_buff(squad(["Warrior"], [EMPTY]), CFG)
     assert one.atk == 2  # slot lead berkontribusi penuh
     # Anggota yang sama di slot 2 berkontribusi lebih kecil dari slot 1.
@@ -137,7 +137,7 @@ def test_buff_diminishing_returns():
         SquadConfig(roles=(EMPTY, "Warrior", EMPTY),
                     items=(EMPTY, EMPTY, EMPTY)), CFG)
     assert 0 < late.atk < one.atk
-    assert one.hp == 0 and late.hp == 0  # semua musuh 100 HP
+    assert one.hp == 0 and late.hp == 0  # Warrior: tanpa bonus HP (base 70)
 
 
 def test_heuristic_range_and_monotonic():

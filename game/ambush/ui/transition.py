@@ -9,9 +9,11 @@ Isi panel (kalimat pemain, tanpa singkatan teknis):
 PENTING: panel ini TIDAK lanjut otomatis (dulu jeda 1.5 dtk). Timer/Enter
 ditangani main.py: Enter memulai duel berikutnya atau menutup pertemuan.
 
-Catatan permintaan pemain: baris "Kamu masuk duel berikutnya dengan HP ..."
-DIHAPUS karena tiap duel antrean selalu dimulai dengan darah penuh (lihat
-start_queue_duel: player_hp=MAX_HP), jadi angka itu menyesatkan pemain.
+Catatan: baris "Kamu masuk duel berikutnya dengan HP ..." ditampilkan lagi
+dengan hp_next/pot_next (lihat main.py). Darah MEMANG terbawa antar-duel
+(start_queue_duel: player_hp=run.hp, hasil apply_rest di QueueRun.record),
+jadi angka di baris itu nyata, bukan angka menyesatkan seperti dulu saat
+tiap duel masih dipaksa mulai dengan darah penuh (player_hp=MAX_HP).
 """
 from __future__ import annotations
 
@@ -65,6 +67,9 @@ def draw_transition(
     potions: int = 0,
     next_role: Optional[str] = None,
     next_item: Optional[str] = None,
+    hp_next: Optional[int] = None,
+    pot_next: Optional[int] = None,
+    rest_heal: int = 0,
     foe_hp: Optional[int] = None,
     foe_lines: Optional[Sequence[str]] = None,
     finished: bool = False,
@@ -76,6 +81,8 @@ def draw_transition(
         duel_no: nomor duel yang BARU selesai (1..k).
         result: hasil duel terakhir ("menang"/"kalah"/"kabur") -> lencana.
         hp_after/potions: sisa HP/potion pemain setelah duel (dari catatan).
+        hp_next/pot_next: HP & potion yang DIPAKAI duel berikutnya (terbawa
+            lewat apply_rest); rest_heal = tambahan heal istirahat antar-duel.
         next_role/next_item: musuh berikutnya (None bila pertemuan berakhir).
         finished: True bila pertemuan berakhir (menang semua / kalah / kabur).
     """
@@ -116,6 +123,17 @@ def draw_transition(
         if next_item and next_item != "NONE":
             segs.append((f" [{next_item}]", EDGE))
         rows.append((0, segs))
+        if hp_next is not None:
+            # HP terbawa: nyata dipakai di duel berikutnya (bukan angka
+            # rekap saja), makanya baris ini boleh tampil lagi.
+            nsegs: List[Seg] = [("Kamu masuk duel berikutnya dengan HP ", DIM),
+                                (f"{hp_next}/{cap}", TEXT)]
+            if rest_heal > 0:
+                nsegs.append((f" (istirahat +{rest_heal})", GREEN))
+            nsegs.append((f"    Potion "
+                          f"{pot_next if pot_next is not None else potions}",
+                          DIM))
+            rows.append((0, nsegs))
         if foe_hp is not None:
             rows.append((0, [("HP musuh: ", DIM),
                              (f"{foe_hp}/{foe_hp}", TEXT),

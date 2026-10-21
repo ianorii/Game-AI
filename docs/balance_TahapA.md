@@ -24,11 +24,23 @@
 > konteks bukti tes disesuaikan (`test_conserve_veto_binds` kini Minion
 > seed=20) agar veto hemat tetap terbukti mengubah jalannya duel nyata.
 > AMANDEMEN-4 (permintaan pemain "sampai melawan boss yang hpnya 150"):
-> Boss kembali punya bonus HP di ROLE_TABLE (hp=50) di atas `ENEMY_BASE_HP`
-> 100 sehingga `enemy_max_hp` Boss = **150**; peran lain tetap 100 (sama
-> dengan pemain). "Melawan Boss" tetap murni hasil pencarian CSP+local
-> search (syarat: wins >= `boss_min_wins` dan hanya slot aktif terakhir) -
-> Boss TIDAK dijadwalkan di akhir; uji 96 rencana murni (wins 3/5/10 x
+> Boss kembali punya bonus HP di ROLE_TABLE di atas `ENEMY_BASE_HP`
+> sehingga `enemy_max_hp` Boss = **150**.
+> AMANDEMEN-5 (permintaan pemain "darah dari musuhnya jangan disamain sama
+> darah player"): `ENEMY_BASE_HP`/`cfg.enemy_base_hp` = **70** + bonus HP
+> peran aktif lagi (Minion -10 -> 60, Mage +10 -> 80, Boss +80 -> 150;
+> Warrior/Archer/Tank/Healer tetap base 70). Tak ada musuh ber-HP 100
+> seperti player. Base 100 (Amandemen-3) dan base-70 tanpa delta
+> (Amandemen-1) menjadi RIWAYAT. Tabel keseimbangan di bawah diukur pada
+> base 70 + delta HP peran, jadi arahnya kembali relevan, tetapi angka
+> pastinya berubah karena Amandemen-5 memakai delta peran yang berbeda
+> (Minion -10 vs dulu -50, Mage +10 vs dulu +2, Boss +80 vs dulu +6) dan
+> HP player kini terbawa antar-duel (bukan dipaksa 100 tiap duel).
+> Konteks bukti tes yang bergantung stat: `test_conserve_veto_binds` kini
+> Warrior (Minion kembali tak mengubah lintasan), seed bukti potion dan
+> progres disesuaikan.
+> AMANDEMEN-4 (lanjutan): Boss TIDAK dijadwalkan di akhir; uji 96 rencana
+> murni (wins 3/5/10 x
 > target 0.5/0.75/0.9 x 4 seed) menunjukkan pencarian tak pernah memilihnya
 > (biaya peran 7 selalu kalah anggaran / pencarian berhenti saat target
 > tercapai), jadi pertemuan ber-Boss jarang - konsekuensi mekanisme
