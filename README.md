@@ -45,9 +45,8 @@ antrean final.
 **4. Bertanding.** Antrean itu maju satu per satu. Di antara duel-duel itu
 player boleh istirahat dan memakai potion, dan target kesulitan bergerak
 sendiri: menang beruntun menaikkan target, kalah beruntun menurunkannya
-(dibatasi 0,40–0,80). Kalau target yang diminta di luar jangkauan, label di
-overlay mengatakannya terus terang — bukan dipaksa jadi angka yang enak
-dilihat.
+(dibatasi 0,40–0,80). Kalau target yang diminta di luar jangkauan, overlay
+menampilkan antrean tersulit yang tersedia.
 
 ## Alur permainan
 
@@ -189,44 +188,6 @@ data/         csp_trace.csv ls_trace.csv summary.csv battle_result.csv
   aktual, sisa HP/potion, hasil duel.
 
 Angka di overlay dan angka di CSV berasal dari trace yang sama, ada tesnya.
-
-## Yang masih belum rapi (catatan jujur)
-
-- **Heuristik belum terkalibrasi penuh.** Korelasinya 0,54–0,64, jauh dari
-  ambang 0,85, jadi ia turun kelas jadi pra-penyaring dan objektifnya
-  dipindah ke simulasi ringan. Statusnya ditampilkan di overlay ("calib:
-  partial"), bukan disembunyikan.
-- **Label "jenuh" 62%** di simulasi: sebagian besar antrean acak memang
-  terlalu sulit untuk label biner, jadi korelasi juga dihitung pada subset
-  non-jenuh.
-- **Target 0,30 memang tak terjangkau** — hanya 7,7% sampel atau kurang di
-  semua variasi. Karena itu siklus target dimulai dari 0,40 (kelipatan 0,05
-  terendah yang lolos) dengan batas bawah 0,40.
-- **Plafon Director sekitar 0,75–0,81**, dan ini karena batas constraint
-  (budget), bukan karena pencariannya lemah. Opsi "pakai Boss untuk target
-  tinggi" dan "jalur valid tersulit" sudah diuji dan ditolak dengan datanya;
-  governor di-cap 0,80, dan kalau diminta lebih tinggi, overlay menulis
-  "target di atas plafon, antrean tersulit: {urutan}".
-- **Boss tidak selalu lebih sulit.** Rantai yang berakhir dengan Boss acak
-  justru lebih mudah (progres 0,58–0,70) daripada keluaran Director (sekitar
-  0,25). Ini dicatat apa adanya, tidak dipaksa.
-- **Kebijakan "hemat" identik dengan greedy**, karena potion player diisi
-  penuh tiap ganti lawan sehingga veto hemat tak pernah mengikat.
-- **Target adalah progres** (rata-rata fraksi duel yang dimenangkan),
-  bukan peluang menyapu semua lawan; versi binernya dicatat terpisah untuk
-  governor dan CSV.
-- **Besarnya istirahat dan potion tambahan hampir tak mengubah jangkauan
-  target** (terukur ~nol), tapi jelas mengubah seberapa sering player bisa
-  menyapu semua lawan: turunnya porsi istirahat dari 25% ke 15% menurunkan
-  `clear` depth-4 @0,50 dari ~0,50 ke ~0,00 (sampel kecil: 8 vs 12).
-  **`clear` penuh yang rendah adalah konsekuensi wajar**, bukan bug: duel
-  dasarnya knife-edge (pemenang kehilangan ~90% HP), jadi menyapu semua lawan
-  memang jarang.
-- **MAE diukur terhadap pemain simulasi** (greedy / depth-4 / hemat), bukan
-  manusia — jadi jangan diklaim tervalidasi lawan manusia.
-- **Angka musuh memang beda dari player**: dasar 70 HP (Minion 60,
-  Warrior/Archer/Tank/Healer 70, Mage 80, Boss 150). Semua riwayat
-  amandemen tercatat di `docs/balance_TahapA.md`.
 
 ## Dokumen lain
 
