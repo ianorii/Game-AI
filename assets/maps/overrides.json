@@ -1,0 +1,19 @@
+{
+  "force_walk": [
+    {
+      "x": 2528,
+      "y": 480,
+      "w": 32,
+      "h": 288,
+      "note": "lorong gerbang benteng kuno tembus ke halaman core"
+    },
+    {
+      "x": 2400,
+      "y": 768,
+      "w": 64,
+      "h": 96,
+      "note": "sambungan jembatan pulau timur ke pantai"
+    }
+  ],
+  "force_block": []
+}

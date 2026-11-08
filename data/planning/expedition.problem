@@ -1,0 +1,162 @@
+(define (problem expedition-starter)
+  (:domain dungeon-expedition)
+
+  (:objects
+    spawn shop workshop bed farm gate chicken_coop cow_pasture river_fishing forest_wood quarry_rock boss - location
+    plot0 plot1 - plot
+    n0 n1 n2 n3 - count
+    sword_basic weapon_dagger weapon_axe fire_staff cloth_armor armor_leather armor_iron - item
+    c0 c1 c2 c3 c4 c5 c6 c7 c8 c9 c10 c11 c12 c13 c14 c15 c16 c17 c18 c19 c20 c21 c22 c23 c24 c25 c26 c27 c28 c29 c30 c31 c32 c33 c34 c35 c36 c37 c38 c39 c40 c41 c42 c43 c44 c45 c46 c47 c48 c49 c50 c51 c52 c53 c54 c55 c56 c57 c58 c59 c60 - coin
+  )
+
+  (:init
+    ;; State Awal Hero Game Baru
+    (at spawn)
+    (hp_full)
+    (gate_locked)
+    (has sword_basic)
+    (has cloth_armor)
+    (equipped_weapon sword_basic)
+    (equipped_armor cloth_armor)
+    (equipped_ok)
+    (coins c20)
+    (has_n potion n0)
+
+    ;; Valid CSP Loadouts
+    (valid_loadout sword_basic cloth_armor)
+    (valid_loadout weapon_dagger armor_leather)
+    (valid_loadout weapon_axe armor_iron)
+    (valid_loadout fire_staff armor_leather)
+
+    ;; Ready Loadouts dari readiness.json (hero win rate >= 50%)
+    (ready_loadout fire_staff armor_leather n1)
+    (ready_loadout fire_staff armor_leather n2)
+    (ready_loadout fire_staff armor_leather n3)
+    (ready_loadout weapon_axe armor_iron n1)
+    (ready_loadout weapon_axe armor_iron n2)
+    (ready_loadout weapon_axe armor_iron n3)
+
+    ;; Ladang Kosong Siap Tanam
+    (plot_empty plot0)
+    (plot_empty plot1)
+
+    ;; Tingkat Hitungan Diskret
+    (next_count n0 n1)
+    (next_count n1 n2)
+    (next_count n2 n3)
+
+        ;; earn_egg
+    (earn_egg c0 c6) (earn_egg c1 c7) (earn_egg c2 c8) (earn_egg c3 c9) (earn_egg c4 c10) (earn_egg c5 c11) (earn_egg c6 c12) (earn_egg c7 c13) (earn_egg c8 c14) (earn_egg c9 c15) (earn_egg c10 c16) (earn_egg c11 c17) (earn_egg c12 c18) (earn_egg c13 c19) (earn_egg c14 c20) (earn_egg c15 c21) (earn_egg c16 c22) (earn_egg c17 c23) (earn_egg c18 c24) (earn_egg c19 c25) (earn_egg c20 c26) (earn_egg c21 c27) (earn_egg c22 c28) (earn_egg c23 c29) (earn_egg c24 c30) (earn_egg c25 c31) (earn_egg c26 c32) (earn_egg c27 c33) (earn_egg c28 c34) (earn_egg c29 c35) (earn_egg c30 c36) (earn_egg c31 c37) (earn_egg c32 c38) (earn_egg c33 c39) (earn_egg c34 c40) (earn_egg c35 c41) (earn_egg c36 c42) (earn_egg c37 c43) (earn_egg c38 c44) (earn_egg c39 c45) (earn_egg c40 c46) (earn_egg c41 c47) (earn_egg c42 c48) (earn_egg c43 c49) (earn_egg c44 c50) (earn_egg c45 c51) (earn_egg c46 c52) (earn_egg c47 c53) (earn_egg c48 c54) (earn_egg c49 c55) (earn_egg c50 c56) (earn_egg c51 c57) (earn_egg c52 c58) (earn_egg c53 c59) (earn_egg c54 c60)
+
+    ;; earn_fish
+    (earn_fish c0 c15) (earn_fish c1 c16) (earn_fish c2 c17) (earn_fish c3 c18) (earn_fish c4 c19) (earn_fish c5 c20) (earn_fish c6 c21) (earn_fish c7 c22) (earn_fish c8 c23) (earn_fish c9 c24) (earn_fish c10 c25) (earn_fish c11 c26) (earn_fish c12 c27) (earn_fish c13 c28) (earn_fish c14 c29) (earn_fish c15 c30) (earn_fish c16 c31) (earn_fish c17 c32) (earn_fish c18 c33) (earn_fish c19 c34) (earn_fish c20 c35) (earn_fish c21 c36) (earn_fish c22 c37) (earn_fish c23 c38) (earn_fish c24 c39) (earn_fish c25 c40) (earn_fish c26 c41) (earn_fish c27 c42) (earn_fish c28 c43) (earn_fish c29 c44) (earn_fish c30 c45) (earn_fish c31 c46) (earn_fish c32 c47) (earn_fish c33 c48) (earn_fish c34 c49) (earn_fish c35 c50) (earn_fish c36 c51) (earn_fish c37 c52) (earn_fish c38 c53) (earn_fish c39 c54) (earn_fish c40 c55) (earn_fish c41 c56) (earn_fish c42 c57) (earn_fish c43 c58) (earn_fish c44 c59) (earn_fish c45 c60)
+
+    ;; earn_milk
+    (earn_milk c0 c12) (earn_milk c1 c13) (earn_milk c2 c14) (earn_milk c3 c15) (earn_milk c4 c16) (earn_milk c5 c17) (earn_milk c6 c18) (earn_milk c7 c19) (earn_milk c8 c20) (earn_milk c9 c21) (earn_milk c10 c22) (earn_milk c11 c23) (earn_milk c12 c24) (earn_milk c13 c25) (earn_milk c14 c26) (earn_milk c15 c27) (earn_milk c16 c28) (earn_milk c17 c29) (earn_milk c18 c30) (earn_milk c19 c31) (earn_milk c20 c32) (earn_milk c21 c33) (earn_milk c22 c34) (earn_milk c23 c35) (earn_milk c24 c36) (earn_milk c25 c37) (earn_milk c26 c38) (earn_milk c27 c39) (earn_milk c28 c40) (earn_milk c29 c41) (earn_milk c30 c42) (earn_milk c31 c43) (earn_milk c32 c44) (earn_milk c33 c45) (earn_milk c34 c46) (earn_milk c35 c47) (earn_milk c36 c48) (earn_milk c37 c49) (earn_milk c38 c50) (earn_milk c39 c51) (earn_milk c40 c52) (earn_milk c41 c53) (earn_milk c42 c54) (earn_milk c43 c55) (earn_milk c44 c56) (earn_milk c45 c57) (earn_milk c46 c58) (earn_milk c47 c59) (earn_milk c48 c60)
+
+    ;; earn_radish
+    (earn_radish c0 c10) (earn_radish c1 c11) (earn_radish c2 c12) (earn_radish c3 c13) (earn_radish c4 c14) (earn_radish c5 c15) (earn_radish c6 c16) (earn_radish c7 c17) (earn_radish c8 c18) (earn_radish c9 c19) (earn_radish c10 c20) (earn_radish c11 c21) (earn_radish c12 c22) (earn_radish c13 c23) (earn_radish c14 c24) (earn_radish c15 c25) (earn_radish c16 c26) (earn_radish c17 c27) (earn_radish c18 c28) (earn_radish c19 c29) (earn_radish c20 c30) (earn_radish c21 c31) (earn_radish c22 c32) (earn_radish c23 c33) (earn_radish c24 c34) (earn_radish c25 c35) (earn_radish c26 c36) (earn_radish c27 c37) (earn_radish c28 c38) (earn_radish c29 c39) (earn_radish c30 c40) (earn_radish c31 c41) (earn_radish c32 c42) (earn_radish c33 c43) (earn_radish c34 c44) (earn_radish c35 c45) (earn_radish c36 c46) (earn_radish c37 c47) (earn_radish c38 c48) (earn_radish c39 c49) (earn_radish c40 c50) (earn_radish c41 c51) (earn_radish c42 c52) (earn_radish c43 c53) (earn_radish c44 c54) (earn_radish c45 c55) (earn_radish c46 c56) (earn_radish c47 c57) (earn_radish c48 c58) (earn_radish c49 c59) (earn_radish c50 c60)
+
+    ;; earn_rock
+    (earn_rock c0 c5) (earn_rock c1 c6) (earn_rock c2 c7) (earn_rock c3 c8) (earn_rock c4 c9) (earn_rock c5 c10) (earn_rock c6 c11) (earn_rock c7 c12) (earn_rock c8 c13) (earn_rock c9 c14) (earn_rock c10 c15) (earn_rock c11 c16) (earn_rock c12 c17) (earn_rock c13 c18) (earn_rock c14 c19) (earn_rock c15 c20) (earn_rock c16 c21) (earn_rock c17 c22) (earn_rock c18 c23) (earn_rock c19 c24) (earn_rock c20 c25) (earn_rock c21 c26) (earn_rock c22 c27) (earn_rock c23 c28) (earn_rock c24 c29) (earn_rock c25 c30) (earn_rock c26 c31) (earn_rock c27 c32) (earn_rock c28 c33) (earn_rock c29 c34) (earn_rock c30 c35) (earn_rock c31 c36) (earn_rock c32 c37) (earn_rock c33 c38) (earn_rock c34 c39) (earn_rock c35 c40) (earn_rock c36 c41) (earn_rock c37 c42) (earn_rock c38 c43) (earn_rock c39 c44) (earn_rock c40 c45) (earn_rock c41 c46) (earn_rock c42 c47) (earn_rock c43 c48) (earn_rock c44 c49) (earn_rock c45 c50) (earn_rock c46 c51) (earn_rock c47 c52) (earn_rock c48 c53) (earn_rock c49 c54) (earn_rock c50 c55) (earn_rock c51 c56) (earn_rock c52 c57) (earn_rock c53 c58) (earn_rock c54 c59) (earn_rock c55 c60)
+
+    ;; earn_wood
+    (earn_wood c0 c5) (earn_wood c1 c6) (earn_wood c2 c7) (earn_wood c3 c8) (earn_wood c4 c9) (earn_wood c5 c10) (earn_wood c6 c11) (earn_wood c7 c12) (earn_wood c8 c13) (earn_wood c9 c14) (earn_wood c10 c15) (earn_wood c11 c16) (earn_wood c12 c17) (earn_wood c13 c18) (earn_wood c14 c19) (earn_wood c15 c20) (earn_wood c16 c21) (earn_wood c17 c22) (earn_wood c18 c23) (earn_wood c19 c24) (earn_wood c20 c25) (earn_wood c21 c26) (earn_wood c22 c27) (earn_wood c23 c28) (earn_wood c24 c29) (earn_wood c25 c30) (earn_wood c26 c31) (earn_wood c27 c32) (earn_wood c28 c33) (earn_wood c29 c34) (earn_wood c30 c35) (earn_wood c31 c36) (earn_wood c32 c37) (earn_wood c33 c38) (earn_wood c34 c39) (earn_wood c35 c40) (earn_wood c36 c41) (earn_wood c37 c42) (earn_wood c38 c43) (earn_wood c39 c44) (earn_wood c40 c45) (earn_wood c41 c46) (earn_wood c42 c47) (earn_wood c43 c48) (earn_wood c44 c49) (earn_wood c45 c50) (earn_wood c46 c51) (earn_wood c47 c52) (earn_wood c48 c53) (earn_wood c49 c54) (earn_wood c50 c55) (earn_wood c51 c56) (earn_wood c52 c57) (earn_wood c53 c58) (earn_wood c54 c59) (earn_wood c55 c60)
+
+    ;; pay_armor_iron
+    (pay_armor_iron c45 c0) (pay_armor_iron c46 c1) (pay_armor_iron c47 c2) (pay_armor_iron c48 c3) (pay_armor_iron c49 c4) (pay_armor_iron c50 c5) (pay_armor_iron c51 c6) (pay_armor_iron c52 c7) (pay_armor_iron c53 c8) (pay_armor_iron c54 c9) (pay_armor_iron c55 c10) (pay_armor_iron c56 c11) (pay_armor_iron c57 c12) (pay_armor_iron c58 c13) (pay_armor_iron c59 c14) (pay_armor_iron c60 c15)
+
+    ;; pay_armor_leather
+    (pay_armor_leather c20 c0) (pay_armor_leather c21 c1) (pay_armor_leather c22 c2) (pay_armor_leather c23 c3) (pay_armor_leather c24 c4) (pay_armor_leather c25 c5) (pay_armor_leather c26 c6) (pay_armor_leather c27 c7) (pay_armor_leather c28 c8) (pay_armor_leather c29 c9) (pay_armor_leather c30 c10) (pay_armor_leather c31 c11) (pay_armor_leather c32 c12) (pay_armor_leather c33 c13) (pay_armor_leather c34 c14) (pay_armor_leather c35 c15) (pay_armor_leather c36 c16) (pay_armor_leather c37 c17) (pay_armor_leather c38 c18) (pay_armor_leather c39 c19) (pay_armor_leather c40 c20) (pay_armor_leather c41 c21) (pay_armor_leather c42 c22) (pay_armor_leather c43 c23) (pay_armor_leather c44 c24) (pay_armor_leather c45 c25) (pay_armor_leather c46 c26) (pay_armor_leather c47 c27) (pay_armor_leather c48 c28) (pay_armor_leather c49 c29) (pay_armor_leather c50 c30) (pay_armor_leather c51 c31) (pay_armor_leather c52 c32) (pay_armor_leather c53 c33) (pay_armor_leather c54 c34) (pay_armor_leather c55 c35) (pay_armor_leather c56 c36) (pay_armor_leather c57 c37) (pay_armor_leather c58 c38) (pay_armor_leather c59 c39) (pay_armor_leather c60 c40)
+
+    ;; pay_bottle
+    (pay_bottle c8 c0) (pay_bottle c9 c1) (pay_bottle c10 c2) (pay_bottle c11 c3) (pay_bottle c12 c4) (pay_bottle c13 c5) (pay_bottle c14 c6) (pay_bottle c15 c7) (pay_bottle c16 c8) (pay_bottle c17 c9) (pay_bottle c18 c10) (pay_bottle c19 c11) (pay_bottle c20 c12) (pay_bottle c21 c13) (pay_bottle c22 c14) (pay_bottle c23 c15) (pay_bottle c24 c16) (pay_bottle c25 c17) (pay_bottle c26 c18) (pay_bottle c27 c19) (pay_bottle c28 c20) (pay_bottle c29 c21) (pay_bottle c30 c22) (pay_bottle c31 c23) (pay_bottle c32 c24) (pay_bottle c33 c25) (pay_bottle c34 c26) (pay_bottle c35 c27) (pay_bottle c36 c28) (pay_bottle c37 c29) (pay_bottle c38 c30) (pay_bottle c39 c31) (pay_bottle c40 c32) (pay_bottle c41 c33) (pay_bottle c42 c34) (pay_bottle c43 c35) (pay_bottle c44 c36) (pay_bottle c45 c37) (pay_bottle c46 c38) (pay_bottle c47 c39) (pay_bottle c48 c40) (pay_bottle c49 c41) (pay_bottle c50 c42) (pay_bottle c51 c43) (pay_bottle c52 c44) (pay_bottle c53 c45) (pay_bottle c54 c46) (pay_bottle c55 c47) (pay_bottle c56 c48) (pay_bottle c57 c49) (pay_bottle c58 c50) (pay_bottle c59 c51) (pay_bottle c60 c52)
+
+    ;; pay_fire_staff
+    (pay_fire_staff c40 c0) (pay_fire_staff c41 c1) (pay_fire_staff c42 c2) (pay_fire_staff c43 c3) (pay_fire_staff c44 c4) (pay_fire_staff c45 c5) (pay_fire_staff c46 c6) (pay_fire_staff c47 c7) (pay_fire_staff c48 c8) (pay_fire_staff c49 c9) (pay_fire_staff c50 c10) (pay_fire_staff c51 c11) (pay_fire_staff c52 c12) (pay_fire_staff c53 c13) (pay_fire_staff c54 c14) (pay_fire_staff c55 c15) (pay_fire_staff c56 c16) (pay_fire_staff c57 c17) (pay_fire_staff c58 c18) (pay_fire_staff c59 c19) (pay_fire_staff c60 c20)
+
+    ;; pay_seed
+    (pay_seed c5 c0) (pay_seed c6 c1) (pay_seed c7 c2) (pay_seed c8 c3) (pay_seed c9 c4) (pay_seed c10 c5) (pay_seed c11 c6) (pay_seed c12 c7) (pay_seed c13 c8) (pay_seed c14 c9) (pay_seed c15 c10) (pay_seed c16 c11) (pay_seed c17 c12) (pay_seed c18 c13) (pay_seed c19 c14) (pay_seed c20 c15) (pay_seed c21 c16) (pay_seed c22 c17) (pay_seed c23 c18) (pay_seed c24 c19) (pay_seed c25 c20) (pay_seed c26 c21) (pay_seed c27 c22) (pay_seed c28 c23) (pay_seed c29 c24) (pay_seed c30 c25) (pay_seed c31 c26) (pay_seed c32 c27) (pay_seed c33 c28) (pay_seed c34 c29) (pay_seed c35 c30) (pay_seed c36 c31) (pay_seed c37 c32) (pay_seed c38 c33) (pay_seed c39 c34) (pay_seed c40 c35) (pay_seed c41 c36) (pay_seed c42 c37) (pay_seed c43 c38) (pay_seed c44 c39) (pay_seed c45 c40) (pay_seed c46 c41) (pay_seed c47 c42) (pay_seed c48 c43) (pay_seed c49 c44) (pay_seed c50 c45) (pay_seed c51 c46) (pay_seed c52 c47) (pay_seed c53 c48) (pay_seed c54 c49) (pay_seed c55 c50) (pay_seed c56 c51) (pay_seed c57 c52) (pay_seed c58 c53) (pay_seed c59 c54) (pay_seed c60 c55)
+
+    ;; pay_weapon_axe
+    (pay_weapon_axe c35 c0) (pay_weapon_axe c36 c1) (pay_weapon_axe c37 c2) (pay_weapon_axe c38 c3) (pay_weapon_axe c39 c4) (pay_weapon_axe c40 c5) (pay_weapon_axe c41 c6) (pay_weapon_axe c42 c7) (pay_weapon_axe c43 c8) (pay_weapon_axe c44 c9) (pay_weapon_axe c45 c10) (pay_weapon_axe c46 c11) (pay_weapon_axe c47 c12) (pay_weapon_axe c48 c13) (pay_weapon_axe c49 c14) (pay_weapon_axe c50 c15) (pay_weapon_axe c51 c16) (pay_weapon_axe c52 c17) (pay_weapon_axe c53 c18) (pay_weapon_axe c54 c19) (pay_weapon_axe c55 c20) (pay_weapon_axe c56 c21) (pay_weapon_axe c57 c22) (pay_weapon_axe c58 c23) (pay_weapon_axe c59 c24) (pay_weapon_axe c60 c25)
+
+    ;; pay_weapon_dagger
+    (pay_weapon_dagger c25 c0) (pay_weapon_dagger c26 c1) (pay_weapon_dagger c27 c2) (pay_weapon_dagger c28 c3) (pay_weapon_dagger c29 c4) (pay_weapon_dagger c30 c5) (pay_weapon_dagger c31 c6) (pay_weapon_dagger c32 c7) (pay_weapon_dagger c33 c8) (pay_weapon_dagger c34 c9) (pay_weapon_dagger c35 c10) (pay_weapon_dagger c36 c11) (pay_weapon_dagger c37 c12) (pay_weapon_dagger c38 c13) (pay_weapon_dagger c39 c14) (pay_weapon_dagger c40 c15) (pay_weapon_dagger c41 c16) (pay_weapon_dagger c42 c17) (pay_weapon_dagger c43 c18) (pay_weapon_dagger c44 c19) (pay_weapon_dagger c45 c20) (pay_weapon_dagger c46 c21) (pay_weapon_dagger c47 c22) (pay_weapon_dagger c48 c23) (pay_weapon_dagger c49 c24) (pay_weapon_dagger c50 c25) (pay_weapon_dagger c51 c26) (pay_weapon_dagger c52 c27) (pay_weapon_dagger c53 c28) (pay_weapon_dagger c54 c29) (pay_weapon_dagger c55 c30) (pay_weapon_dagger c56 c31) (pay_weapon_dagger c57 c32) (pay_weapon_dagger c58 c33) (pay_weapon_dagger c59 c34) (pay_weapon_dagger c60 c35)
+
+    ;; Konektivitas Area Desa (Dua Arah)
+    (connected spawn shop) (connected shop spawn)
+    (connected spawn workshop) (connected workshop spawn)
+    (connected spawn bed) (connected bed spawn)
+    (connected spawn farm) (connected farm spawn)
+    (connected spawn gate) (connected gate spawn)
+    (connected spawn chicken_coop) (connected chicken_coop spawn)
+    (connected spawn cow_pasture) (connected cow_pasture spawn)
+    (connected spawn river_fishing) (connected river_fishing spawn)
+    (connected spawn forest_wood) (connected forest_wood spawn)
+    (connected spawn quarry_rock) (connected quarry_rock spawn)
+
+    (connected shop workshop) (connected workshop shop)
+    (connected shop farm) (connected farm shop)
+    (connected shop gate) (connected gate shop)
+    (connected shop chicken_coop) (connected chicken_coop shop)
+    (connected shop cow_pasture) (connected cow_pasture shop)
+    (connected shop river_fishing) (connected river_fishing shop)
+    (connected shop forest_wood) (connected forest_wood shop)
+    (connected shop quarry_rock) (connected quarry_rock shop)
+    (connected shop bed) (connected bed shop)
+
+    (connected workshop farm) (connected farm workshop)
+    (connected workshop gate) (connected gate workshop)
+    (connected workshop forest_wood) (connected forest_wood workshop)
+    (connected workshop quarry_rock) (connected quarry_rock workshop)
+    (connected workshop chicken_coop) (connected chicken_coop workshop)
+    (connected workshop cow_pasture) (connected cow_pasture workshop)
+    (connected workshop river_fishing) (connected river_fishing workshop)
+    (connected workshop bed) (connected bed workshop)
+
+    (connected farm chicken_coop) (connected chicken_coop farm)
+    (connected farm cow_pasture) (connected cow_pasture farm)
+    (connected farm river_fishing) (connected river_fishing farm)
+    (connected farm forest_wood) (connected forest_wood farm)
+    (connected farm quarry_rock) (connected quarry_rock farm)
+    (connected farm gate) (connected gate farm)
+    (connected farm bed) (connected bed farm)
+
+    (connected gate chicken_coop) (connected chicken_coop gate)
+    (connected gate cow_pasture) (connected cow_pasture gate)
+    (connected gate river_fishing) (connected river_fishing gate)
+    (connected gate forest_wood) (connected forest_wood gate)
+    (connected gate quarry_rock) (connected quarry_rock gate)
+    (connected gate bed) (connected bed gate)
+
+    (connected chicken_coop cow_pasture) (connected cow_pasture chicken_coop)
+    (connected chicken_coop river_fishing) (connected river_fishing chicken_coop)
+    (connected chicken_coop forest_wood) (connected forest_wood chicken_coop)
+    (connected chicken_coop quarry_rock) (connected quarry_rock chicken_coop)
+    (connected chicken_coop bed) (connected bed chicken_coop)
+
+    (connected cow_pasture river_fishing) (connected river_fishing cow_pasture)
+    (connected cow_pasture forest_wood) (connected forest_wood cow_pasture)
+    (connected cow_pasture quarry_rock) (connected quarry_rock cow_pasture)
+    (connected cow_pasture bed) (connected bed cow_pasture)
+
+    (connected river_fishing forest_wood) (connected forest_wood river_fishing)
+    (connected river_fishing quarry_rock) (connected quarry_rock river_fishing)
+    (connected river_fishing bed) (connected bed river_fishing)
+
+    (connected forest_wood quarry_rock) (connected quarry_rock forest_wood)
+    (connected forest_wood bed) (connected bed forest_wood)
+    (connected quarry_rock bed) (connected bed quarry_rock)
+
+    ;; Konektivitas Gerbang menuju Area Boss (Hanya lewat saat gate_open)
+    (gate_connected gate boss)
+    (gate_connected boss gate)
+  )
+
+  (:goal (and
+    (boss_defeated)
+  ))
+
+  (:metric minimize (total-time))
+)

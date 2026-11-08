@@ -1,0 +1,389 @@
+Perintah: /usr/bin/python3 -m unittest discover -s tests -v
+Waktu Eksekusi: 68.683 s
+Waktu: 2026-11-08T21:03:37.852484
+
+<frozen importlib._bootstrap>:491: RuntimeWarning: Your system is avx2 capable but pygame was not built with support for it. The performance of some of your blits could be adversely affected. Consider enabling compile time detection with environment variables like PYGAME_DETECT_AVX2=1 if you are compiling without cross compilation.
+test_caching_behavior (test_asset_catalog.TestAssetCatalog.test_caching_behavior)
+Memastikan surface di-cache di memori dan tidak dibaca ulang dari disk. ... ok
+test_crop_items_and_soil (test_asset_catalog.TestAssetCatalog.test_crop_items_and_soil)
+Memastikan item pertanian (egg, milk, seeds, crate) dan soil dapat dimuat. ... ok
+test_crops_growth_stages (test_asset_catalog.TestAssetCatalog.test_crops_growth_stages)
+Memastikan 11 tanaman memiliki seluruh tahap tumbuh 0..5. ... ok
+test_has_asset_and_list_assets (test_asset_catalog.TestAssetCatalog.test_has_asset_and_list_assets)
+Memastikan pemeriksaan has_asset dan pencarian kategori list_assets akurat. ... ok
+test_human_layers_and_hairstyles (test_asset_catalog.TestAssetCatalog.test_human_layers_and_hairstyles)
+Memastikan seluruh aksi manusia dapat memuat berbagai varian layer rambut. ... ok
+test_integer_scaling (test_asset_catalog.TestAssetCatalog.test_integer_scaling)
+Memastikan nearest-neighbor scaling menghasilkan dimensi integer yang presisi. ... ok
+test_missing_asset_warning_and_fallback (test_asset_catalog.TestAssetCatalog.test_missing_asset_warning_and_fallback)
+Memastikan aset yang hilang tidak menyebabkan crash dan mengembalikan placeholder. ... ok
+test_singleton_instance (test_asset_catalog.TestAssetCatalog.test_singleton_instance)
+Memastikan get_asset_catalog() mengembalikan instans singleton yang konsisten. ... ok
+test_strip_frame_slicing_counts (test_asset_catalog.TestAssetCatalog.test_strip_frame_slicing_counts)
+Memastikan strip _stripN.png dipotong menjadi tepat N frame horizontal. ... ok
+test_ui_icons (test_asset_catalog.TestAssetCatalog.test_ui_icons)
+Memastikan berbagai ikon antarmuka dapat dimuat dengan baik. ... ok
+test_choose_move_candidate_scores (test_battle_mode.TestAdversarialSearch.test_choose_move_candidate_scores)
+Minimax menghasilkan skor untuk semua aksi kandidat boss. ... ok
+test_boss_heal_limits (test_battle_mode.TestBattleRulesAndActions.test_boss_heal_limits)
+Boss HEAL hanya tersedia jika HP belum penuh dan sisa heal > 0 (maks 2x). ... ok
+test_boss_heavy_attack_cooldown (test_battle_mode.TestBattleRulesAndActions.test_boss_heavy_attack_cooldown)
+HEAVY ATTACK memiliki cooldown 3 giliran. ... ok
+test_boss_heavy_attack_defend_reduction (test_battle_mode.TestBattleRulesAndActions.test_boss_heavy_attack_defend_reduction)
+HEAVY ATTACK hanya dipotong 30% oleh DEFEND (bukan 60%). ... ok
+test_deterministic_search_vs_random_execution (test_battle_mode.TestBattleRulesAndActions.test_deterministic_search_vs_random_execution)
+Search deterministik (rng=None) menggunakan nilai rata-rata, sedangkan rng menghasilkan variasi. ... ok
+test_max_turns_terminal (test_battle_mode.TestBattleRulesAndActions.test_max_turns_terminal)
+Batas 50 ronde membuat pertarungan terminal dan pemenang dihitung dari % HP. ... ok
+test_player_actions_strictly_three (test_battle_mode.TestBattleRulesAndActions.test_player_actions_strictly_three)
+Player HANYA memiliki 3 aksi sah: ATTACK, POTION, DEFEND. ... ok
+test_player_defend_lasts_one_turn (test_battle_mode.TestBattleRulesAndActions.test_player_defend_lasts_one_turn)
+DEFEND mengurangi damage 60% dan hilang setelah giliran lawan selesai. ... ok
+test_potion_disabled_at_zero (test_battle_mode.TestBattleRulesAndActions.test_potion_disabled_at_zero)
+Saat potion = 0, POTION tidak boleh ada di hero_actions. ... ok
+test_potion_heals_correctly (test_battle_mode.TestBattleRulesAndActions.test_potion_heals_correctly)
+Potion memulihkan 30 HP dan mengurangi jumlah potion. ... ok
+test_no_ui_rect_overlaps (test_battle_mode.TestBattleUILayout.test_no_ui_rect_overlaps)
+Uji bahwa tidak ada komponen Rect UI yang tumpang tindih secara tidak sengaja. ... ok
+test_atomic_save_load (test_collision_editor.TestCollisionEditor.test_atomic_save_load)
+Verifikasi penyimpanan JSON atomik dan reload ke instance baru pada path terisolasi. ... ok
+test_bresenham_line_no_gaps (test_collision_editor.TestCollisionEditor.test_bresenham_line_no_gaps)
+Verifikasi algoritma Bresenham menghubungkan titik tanpa celah. ... ok
+test_bridge_block_and_reopen_scenario (test_collision_editor.TestCollisionEditor.test_bridge_block_and_reopen_scenario)
+Skenario Manual: ... ok
+test_brush_sizes (test_collision_editor.TestCollisionEditor.test_brush_sizes)
+Verifikasi kuas 1x1, 2x2, dan 3x3 menghasilkan jumlah tile yang benar. ... ok
+test_corrupt_file_resilience (test_collision_editor.TestCollisionEditor.test_corrupt_file_resilience)
+File override korup di path terisolasi tidak boleh menyebabkan crash. ... ok
+test_data_integrity_guard_active (test_collision_editor.TestCollisionEditor.test_data_integrity_guard_active)
+Memastikan data/collision_overrides.json asli tetap utuh dan valid JSON. ... ok
+test_override_walkable_blocked (test_collision_editor.TestCollisionEditor.test_override_walkable_blocked)
+Verifikasi modifikasi override mengubah is_walkable, grid, dan mask. ... ok
+test_seed_size_mismatch_validation (test_collision_editor.TestCollisionEditor.test_seed_size_mismatch_validation)
+Validasi bila ukuran peta di file terisolasi tidak cocok, override tidak diterapkan diam-diam. ... ok
+test_undo_redo (test_collision_editor.TestCollisionEditor.test_undo_redo)
+Verifikasi Undo dan Redo mengembalikan state persis. ... ok
+test_budget_constraint (test_csp_local_search.TestCSPConstraints.test_budget_constraint) ... ok
+test_defensive_item_constraint (test_csp_local_search.TestCSPConstraints.test_defensive_item_constraint) ... ok
+test_fire_staff_requires_light_armor (test_csp_local_search.TestCSPConstraints.test_fire_staff_requires_light_armor) ... ok
+test_heavy_axe_no_crit_charm_conflict (test_csp_local_search.TestCSPConstraints.test_heavy_axe_no_crit_charm_conflict) ... ok
+test_unlocked_constraint (test_csp_local_search.TestCSPConstraints.test_unlocked_constraint) ... ok
+test_weight_constraint (test_csp_local_search.TestCSPConstraints.test_weight_constraint) ... ok
+test_apply_loadout_purity_and_effects (test_csp_local_search.TestCSPSolver.test_apply_loadout_purity_and_effects) ... ok
+test_best_loadout_selection (test_csp_local_search.TestCSPSolver.test_best_loadout_selection) ... ok
+test_four_csp_variants_identical_solutions (test_csp_local_search.TestCSPSolver.test_four_csp_variants_identical_solutions)
+Verifikasi bahwa 4 varian CSP solver menghasilkan himpunan solusi identik 100%. ... ok
+test_solver_all_solutions_valid (test_csp_local_search.TestCSPSolver.test_solver_all_solutions_valid) ... ok
+test_solver_produces_valid_solution (test_csp_local_search.TestCSPSolver.test_solver_produces_valid_solution) ... ok
+test_tight_scenario_heuristics_vs_naive (test_csp_local_search.TestCSPSolver.test_tight_scenario_heuristics_vs_naive)
+Pada skenario ketat (Budget=6, Weight=6), heuristik + FC harus memangkas node & backtrack jauh lebih efisien dari naive. ... ok
+test_alpha_beta_identical_to_pure_minimax (test_csp_local_search.TestIntegration.test_alpha_beta_identical_to_pure_minimax)
+Memverifikasi Minimax murni vs Alpha-Beta menghasilkan move & skor identik 100% pada berbagai state. ... ok
+test_boss_never_chooses_illegal_moves (test_csp_local_search.TestIntegration.test_boss_never_chooses_illegal_moves)
+Boss tidak boleh memilih aksi ilegal (misal HEAL saat heal_count=0 atau HEAVY saat cooldown). ... ok
+test_boss_tactical_behavior_defend_at_critical_when_no_heals (test_csp_local_search.TestIntegration.test_boss_tactical_behavior_defend_at_critical_when_no_heals)
+Boss harus memilih DEFEND saat HP kritis lethal dan slot heal habis untuk mencegah kekalahan instan. ... ok
+test_boss_tactical_behavior_heal_at_critical (test_csp_local_search.TestIntegration.test_boss_tactical_behavior_heal_at_critical)
+Boss harus memprioritaskan HEAL saat HP-nya berada pada batas lethal damage lawan (< 21) dan memiliki heal. ... ok
+test_boss_tactical_behavior_heavy_when_vulnerable (test_csp_local_search.TestIntegration.test_boss_tactical_behavior_heavy_when_vulnerable)
+Boss harus menggunakan HEAVY_ATTACK ketika cooldown 0 dan hero tidak dalam posisi guard. ... ok
+test_difficulty_depth_configuration (test_csp_local_search.TestIntegration.test_difficulty_depth_configuration)
+Memastikan konfigurasi depth tingkat kesulitan sesuai spesifikasi. ... ok
+test_difficulty_monotonicity (test_csp_local_search.TestIntegration.test_difficulty_monotonicity)
+Memastikan tingkat kemenangan Boss monotonik: Easy < Normal < Hard. ... ok
+test_minimax_move_ordering_with_rotation_planner (test_csp_local_search.TestIntegration.test_minimax_move_ordering_with_rotation_planner) ... ok
+test_minimax_with_tuned_weights (test_csp_local_search.TestIntegration.test_minimax_with_tuned_weights) ... ok
+test_vfx_assets_disentangled (test_csp_local_search.TestIntegration.test_vfx_assets_disentangled)
+Memastikan aset hit spark dan glint VFX otentik terpisah dan dapat dimuat. ... ok
+test_adaptation_description (test_csp_local_search.TestLocalSearch.test_adaptation_description) ... ok
+test_boss_rotation_planner (test_csp_local_search.TestLocalSearch.test_boss_rotation_planner) ... ok
+test_clamp_weights (test_csp_local_search.TestLocalSearch.test_clamp_weights) ... ok
+test_fitness_evaluation_determinism (test_csp_local_search.TestLocalSearch.test_fitness_evaluation_determinism) ... ok
+test_hill_climbing_tuning (test_csp_local_search.TestLocalSearch.test_hill_climbing_tuning) ... ok
+test_opponent_model_laplace_smoothing (test_csp_local_search.TestLocalSearch.test_opponent_model_laplace_smoothing) ... ok
+test_simulated_annealing_tuning (test_csp_local_search.TestLocalSearch.test_simulated_annealing_tuning) ... ok
+test_centralized_validation_across_192_combinations (test_csp_local_search.TestPrepUIRedesign.test_centralized_validation_across_192_combinations)
+Validasi sentral: menguji seluruh 192 kombinasi domain loadout (4 x 3 x 4 x 4). ... ok
+test_get_prep_layout_rects_no_overlap (test_csp_local_search.TestPrepUIRedesign.test_get_prep_layout_rects_no_overlap)
+Memastikan fungsi get_prep_layout_rects menghasilkan panel struktural yang tidak saling tumpang tindih. ... ok
+test_battle_frames_dimensions (test_hero_sprite.TestHeroSprite.test_battle_frames_dimensions)
+Frame battle harus berukuran 196x238 (skala 7x dari crop box 28x34). ... ok
+test_caching_returns_same_objects (test_hero_sprite.TestHeroSprite.test_caching_returns_same_objects)
+Panggilan berulang harus mengembalikan objek cache yang sama tanpa re-komposisi. ... ok
+test_fallback_missing_hair (test_hero_sprite.TestHeroSprite.test_fallback_missing_hair)
+Jika hair tidak ditemukan, sistem tetap mengembalikan frame base tanpa crash. ... ok
+test_singleton_instance (test_hero_sprite.TestHeroSprite.test_singleton_instance)
+get_hero_sprite_manager() selalu mengembalikan instance singleton. ... ok
+test_slash_arc_vfx (test_hero_sprite.TestHeroSprite.test_slash_arc_vfx)
+SlashArcEffect harus beranimasi mulus dan selesai setelah durasi berlalu. ... ok
+test_world_attack_frames_zero_clipping (test_hero_sprite.TestHeroSprite.test_world_attack_frames_zero_clipping)
+Frame dunia attack harus berukuran (193, 96) dan tidak terpotong (zero clipping) pada tebasan pedang. ... ok
+test_world_frames_dimensions_and_hair (test_hero_sprite.TestHeroSprite.test_world_frames_dimensions_and_hair)
+Frame dunia harus berukuran (48, 48) dan memiliki piksel rambut merah. ... ok
+test_world_frames_foot_anchor_stability (test_hero_sprite.TestHeroSprite.test_world_frames_foot_anchor_stability)
+Anchor kaki hero di kanvas (48, 48) harus stabil dan tidak jitter antar animasi. ... ok
+test_dynamic_replanning_on_world_change (test_htn.TestHTNPlanner.test_dynamic_replanning_on_world_change)
+NPC mendeteksi intervensi dunia (tanaman dipanen manual) dan merevisi dekomposisi. ... ok
+test_farmer_dry_crop_decomposition (test_htn.TestHTNPlanner.test_farmer_dry_crop_decomposition)
+Petani memilih m_water_dry_plots saat ada tanaman kering yang butuh air. ... ok
+test_farmer_empty_plot_decomposition (test_htn.TestHTNPlanner.test_farmer_empty_plot_decomposition)
+Petani memilih m_plant_empty_plots saat ada petak kosong. ... ok
+test_farmer_mature_crop_decomposition (test_htn.TestHTNPlanner.test_farmer_mature_crop_decomposition)
+Petani memilih m_harvest_and_sell saat ada tanaman matang. ... ok
+test_farmer_night_routine (test_htn.TestHTNPlanner.test_farmer_night_routine)
+Petani memilih m_farmer_night_sleep saat malam hari. ... ok
+test_miller_active_wheat_decomposition (test_htn.TestHTNPlanner.test_miller_active_wheat_decomposition)
+Penggiling memilih m_mill_active_wheat saat persediaan gandum tersedia. ... ok
+test_miller_maintenance_decomposition (test_htn.TestHTNPlanner.test_miller_maintenance_decomposition)
+Penggiling memilih m_inspect_and_maintenance saat tidak ada gandum. ... ok
+test_parse_htn_domain (test_htn.TestHTNPlanner.test_parse_htn_domain)
+Memverifikasi parsing domain HTN npc.htn lengkap. ... ok
+test_planner_ui_layout_bounds (test_htn.TestHTNPlanner.test_planner_ui_layout_bounds)
+Memverifikasi luas panel <= 15% luas layar (1024x768) dan tidak saling tumpang tindih. ... ok
+test_01_ojek_forward_planners (test_lecture_planning.TestLecturePlanning.test_01_ojek_forward_planners)
+Seluruh algoritma forward (BFS, UCS, A*, WA*) menghasilkan rencana optimal ojek. ... ok
+test_02_ojek_state_trace_result (test_lecture_planning.TestLecturePlanning.test_02_ojek_state_trace_result)
+Trace Result(s, a) = (s - del(a)) U add(a) berjalan benar di tiap langkah. ... ok
+test_03_ojek_plan_checker_rejections (test_lecture_planning.TestLecturePlanning.test_03_ojek_plan_checker_rejections)
+Plan checker menolak Plan (a) dan Plan (b) dengan alasan precondition spesifik. ... ok
+test_04_ojek_gate_variation (test_lecture_planning.TestLecturePlanning.test_04_ojek_gate_variation)
+Variasi gerbang tertutup di kampus memaksa open-gate(kampus) sebelum masuk. ... ok
+test_05_regression_ojek_bfs_and_astar (test_lecture_planning.TestLecturePlanning.test_05_regression_ojek_bfs_and_astar)
+Backward regression BFS dan A* menyelesaikan Ojek dan lolos PlanValidator. ... ok
+test_06_regression_trace_format (test_lecture_planning.TestLecturePlanning.test_06_regression_trace_format)
+Trace backward menghasilkan struktur langkah mundur persis slide 27. ... ok
+test_07_regression_dual_goal_slide30 (test_lecture_planning.TestLecturePlanning.test_07_regression_dual_goal_slide30)
+Latihan slide 30: Goal ganda (at paket kampus) dan (motor-at rumah). ... ok
+test_08_planning_graph_mutex_slide33_35 (test_lecture_planning.TestLecturePlanning.test_08_planning_graph_mutex_slide33_35)
+Verifikasi relasi Mutex aksi persis contoh slide 33-35. ... ok
+test_09_h_level_and_graphplan (test_lecture_planning.TestLecturePlanning.test_09_h_level_and_graphplan)
+h_level bernilai 4.0 pada ojek dan GraphPlan mengekstrak rencana valid. ... ok
+test_10_detour_bridge_a_to_bridge_b (test_lecture_planning.TestLecturePlanning.test_10_detour_bridge_a_to_bridge_b)
+Skenario 2b: Jembatan A ditutup -> A* memutar lewat koridor Jembatan B (delta cost > 0). ... ok
+test_11_alternate_rock_source (test_lecture_planning.TestLecturePlanning.test_11_alternate_rock_source)
+Skenario 2c: Rute ke quarry diblokir -> Planner beralih ke mine_rock_river. ... ok
+test_12_dead_end_unsolvable_surrender (test_lecture_planning.TestLecturePlanning.test_12_dead_end_unsolvable_surrender)
+Skenario 2d: Akses ke boss terputus total -> Planner mendeteksi unsolvable dan menyerah. ... ok
+test_13_knowledge_base_new_item_data_driven (test_lecture_planning.TestLecturePlanning.test_13_knowledge_base_new_item_data_driven)
+(i) Tambah item baru lewat file data -> otomatis muncul tanpa ubah kode Python. ... ok
+test_14_knowledge_base_pddl_precondition_change (test_lecture_planning.TestLecturePlanning.test_14_knowledge_base_pddl_precondition_change)
+(ii) Ubah precondition aksi di PDDL domain -> rencana berubah tanpa ubah Python. ... ok
+test_15_knowledge_base_new_action_in_pddl (test_lecture_planning.TestLecturePlanning.test_15_knowledge_base_new_action_in_pddl)
+(iii) Tambah aksi baru di domain PDDL -> planner mengenali aksi tersebut secara otomatis. ... ok
+test_16_knowledge_base_new_weapon_item_planner_level (test_lecture_planning.TestLecturePlanning.test_16_knowledge_base_new_weapon_item_planner_level)
+(iv) Tambah item 'pedang_naga' di file data TANPA ubah kode Python -> CSP & Planner memproses buy & equip. ... ok
+test_battle_potion_count_synchronization (test_phase1a.TestBattleAndCSPOwnedIntegration.test_battle_potion_count_synchronization) ... ok
+test_csp_owned_constraint_starter_gear (test_phase1a.TestBattleAndCSPOwnedIntegration.test_csp_owned_constraint_starter_gear) ... ok
+test_csp_unowned_item_rejected (test_phase1a.TestBattleAndCSPOwnedIntegration.test_csp_unowned_item_rejected) ... ok
+test_buy_item_success_and_failure (test_phase1a.TestEconomySystem.test_buy_item_success_and_failure) ... ok
+test_sell_item_success (test_phase1a.TestEconomySystem.test_sell_item_success) ... ok
+test_planting_and_growth_stages (test_phase1a.TestFarmSystem.test_planting_and_growth_stages) ... ok
+test_six_crop_plots_initialized (test_phase1a.TestFarmSystem.test_six_crop_plots_initialized) ... ok
+test_item_stacking_limits (test_phase1a.TestInventorySystem.test_item_stacking_limits) ... ok
+test_max_12_slots_capacity (test_phase1a.TestInventorySystem.test_max_12_slots_capacity) ... ok
+test_remove_and_has_item (test_phase1a.TestInventorySystem.test_remove_and_has_item) ... ok
+test_serialization_to_from_dict (test_phase1a.TestInventorySystem.test_serialization_to_from_dict) ... ok
+test_atomic_save_and_backup_recovery (test_phase1a.TestWorldStateAndCrafting.test_atomic_save_and_backup_recovery) ... ok
+test_craft_gate_key (test_phase1a.TestWorldStateAndCrafting.test_craft_gate_key) ... ok
+test_craft_health_potion (test_phase1a.TestWorldStateAndCrafting.test_craft_health_potion) ... ok
+test_locked_gate_interaction (test_phase1a.TestWorldStateAndCrafting.test_locked_gate_interaction) ... ok
+test_rest_hero (test_phase1a.TestWorldStateAndCrafting.test_rest_hero) ... ok
+test_starter_items (test_phase1a.TestWorldStateAndCrafting.test_starter_items) ... ok
+test_01_pddl_parser_domain (test_strips_planner.TestSTRIPSPlanner.test_01_pddl_parser_domain)
+Domain PDDL berhasil diurai dengan aksi dan predikat lengkap. ... ok
+test_02_pddl_parser_problem (test_strips_planner.TestSTRIPSPlanner.test_02_pddl_parser_problem)
+Problem PDDL berhasil diurai dengan fakta awal dan sasaran. ... ok
+test_03_distance_matrix_and_invalidation (test_strips_planner.TestSTRIPSPlanner.test_03_distance_matrix_and_invalidation)
+Matriks jarak menghitung durasi A* antar lokasi dan mengosongkan cache saat invalidasi. ... ok
+test_04_grounding_and_pruning (test_strips_planner.TestSTRIPSPlanner.test_04_grounding_and_pruning)
+Grounding membatasi kombinasi aksi hanya pada relasi yang legal di peta. ... ok
+test_05_reachability_and_unsolvable_detection (test_strips_planner.TestSTRIPSPlanner.test_05_reachability_and_unsolvable_detection)
+Problem tanpa solusi terdeteksi instan via relaksasi tanpa hang. ... ok
+test_06_optimality_ucs_vs_astar_hmax (test_strips_planner.TestSTRIPSPlanner.test_06_optimality_ucs_vs_astar_hmax)
+Pada problem sub-tujuan (membuat Kunci Gerbang), UCS dan A*(h_max) ... ok
+test_07_fastforward_and_helpful_actions (test_strips_planner.TestSTRIPSPlanner.test_07_fastforward_and_helpful_actions)
+WA* dengan h_FF dan helpful actions memecahkan misi lengkap dari game baru secara cepat. ... ok
+test_08_plan_validator_catches_invalid_plan (test_strips_planner.TestSTRIPSPlanner.test_08_plan_validator_catches_invalid_plan)
+PlanValidator menolak rencana yang melompati urutan aksi atau kekurangan prasyarat. ... ok
+test_09_dynamic_problem_builder_from_world_state (test_strips_planner.TestSTRIPSPlanner.test_09_dynamic_problem_builder_from_world_state)
+Membangun problem perencanaan dari WorldState aktual dan menyelesaikannya. ... ok
+test_10_price_change_robustness_and_route_shift (test_strips_planner.TestSTRIPSPlanner.test_10_price_change_robustness_and_route_shift)
+Mengubah harga di config/Shop menghasilkan transisi koin dinamis dan mengubah rute ekspedisi. ... ok
+test_11_headless_plan_executor_real_world (test_strips_planner.TestSTRIPSPlanner.test_11_headless_plan_executor_real_world)
+PlanExecutor mengeksekusi rencana pada WorldState nyata tanpa error prasyarat. ... ok
+test_12_incremental_planner_frame_budget (test_strips_planner.TestSTRIPSPlanner.test_12_incremental_planner_frame_budget)
+IncrementalPlanner membatasi eksekusi per frame < 20 ms dan mencapai goal secara bertahap. ... ok
+test_13_plan_monitor_trigger_blocked_path (test_strips_planner.TestSTRIPSPlanner.test_13_plan_monitor_trigger_blocked_path)
+PlanMonitor mendeteksi jalur yang terblokir rintangan dan memicu replanning. ... ok
+test_14_plan_monitor_trigger_hp_low_defeat_recovery (test_strips_planner.TestSTRIPSPlanner.test_14_plan_monitor_trigger_hp_low_defeat_recovery)
+PlanMonitor mendeteksi HP kritis hero dan menolak aksi sebelum sembuh. ... ok
+test_15_plan_monitor_surrender_after_max_replans (test_strips_planner.TestSTRIPSPlanner.test_15_plan_monitor_surrender_after_max_replans)
+PlanMonitor menyerah ke kontrol manual setelah 3x replan berturut-turut gagal. ... ok
+test_16_satu_ambang_di_config (test_strips_planner.TestSTRIPSPlanner.test_16_satu_ambang_di_config)
+Poin 1 & 3: Config memiliki SATU nilai ambang jujur READY_MIN_WIN_RATE = 0.50 tanpa variabel dekoratif. ... ok
+test_17_boss_ready_derived_from_readiness_json (test_strips_planner.TestSTRIPSPlanner.test_17_boss_ready_derived_from_readiness_json)
+Poin 1 & 3: Fakta ready_loadout diturunkan secara dinamis murni dari readiness.json berdasar ambang config. ... ok
+test_18_detour_sintetis_cost_difference (test_strips_planner.TestSTRIPSPlanner.test_18_detour_sintetis_cost_difference)
+Poin 3: Rute penyeberangan sungai West Bank -> East Bank memiliki selisih biaya positif (delta_cost > 0) saat jembatan ditutup. ... ok
+test_19_pause_f10_and_wasd_stay_paused (test_strips_planner.TestSTRIPSPlanner.test_19_pause_f10_and_wasd_stay_paused)
+Poin 3 & 5: Input manual WASD menjeda Autopilot dan TETAP TERJEDA saat dilepas; resume butuh F10 eksplisit. ... ok
+test_20_p4_search_timeout_under_4s (test_strips_planner.TestSTRIPSPlanner.test_20_p4_search_timeout_under_4s)
+Poin 3 & 4: WA*(h_FF) menyelesaikan P4 di bawah batas waktu timeout realistis (<= 4.0 s). ... ok
+test_21_p4_feasible_after_coin_change_max_coins_60 (test_strips_planner.TestSTRIPSPlanner.test_21_p4_feasible_after_coin_change_max_coins_60)
+Poin 1 & 3: Dengan max_coins=60 dan ambang 0.50, P4 terbukti LAYAK (fire_staff 99.0% win rate). ... ok
+test_22_single_threshold_in_config (test_strips_planner.TestSTRIPSPlanner.test_22_single_threshold_in_config)
+Poin 6: Verifikasi ambang tunggal dan syarat wajib potion di config. ... ok
+test_23_status_label_from_single_source (test_strips_planner.TestSTRIPSPlanner.test_23_status_label_from_single_source)
+Poin 6: Label status AUTO/ADVISOR/PAUSED dikendalikan dari satu sumber tanpa teks kontradiktif. ... ok
+test_24_opening_log_disappears_after_5_seconds (test_strips_planner.TestSTRIPSPlanner.test_24_opening_log_disappears_after_5_seconds)
+Poin 6: Log pembuka otomatis tersembunyi setelah 5 detik atau saat mode planner aktif. ... ok
+test_25_potion_policy_monotonic (test_strips_planner.TestSTRIPSPlanner.test_25_potion_policy_monotonic)
+Poin 6: Monotonisitas win rate terhadap jumlah ramuan: W(k+1) >= W(k). ... ok
+test_26_gen_readiness_and_new_item_planner (test_strips_planner.TestSTRIPSPlanner.test_26_gen_readiness_and_new_item_planner)
+Poin 3 & 6: Item baru di catalog + gen_readiness -> planner buy, equip, dan fight tanpa ubah Python. ... ok
+test_27_status_label_auto_advisor_paused_single_source (test_strips_planner.TestSTRIPSPlanner.test_27_status_label_auto_advisor_paused_single_source)
+Poin 6: Label status AUTO/ADVISOR/PAUSED konsisten dari satu sumber tanpa kontradiksi. ... ok
+test_28_detour_sintetis_cost_difference_positive (test_strips_planner.TestSTRIPSPlanner.test_28_detour_sintetis_cost_difference_positive)
+Poin 6: Detour sintetis via koridor utara menghasilkan delta cost > 0 dan waypoint valid. ... ok
+test_29_planner_level_new_item_buy_equip_fight (test_strips_planner.TestSTRIPSPlanner.test_29_planner_level_new_item_buy_equip_fight)
+Poin 6: Item baru di catalog menghasilkan buy_item, equip, dan fight_boss otonom tanpa ubah Python. ... ok
+test_30_skenario_kalah_memuat_langkah_mendapatkan_potion (test_strips_planner.TestSTRIPSPlanner.test_30_skenario_kalah_memuat_langkah_mendapatkan_potion)
+Poin 6: Skenario kalah dengan potion habis memuat langkah mendapatkan potion (craft_potion) sebelum fight. ... ok
+test_31_replan_2c_reversed_river_blocked_to_quarry (test_strips_planner.TestSTRIPSPlanner.test_31_replan_2c_reversed_river_blocked_to_quarry)
+Poin 6: Replan 2c versi balik: Default batu sungai diblokir -> beralih ke quarry dengan delta cost > 0. ... ok
+test_chimney_anchors_house_containment (test_village_deco.TestVillageDecorations.test_chimney_anchors_house_containment)
+Setiap titik CHIMNEY_ANCHORS harus berada di dalam batas atap rumah asalnya. ... ok
+test_chimney_smoke_phases_and_continuous_flow (test_village_deco.TestVillageDecorations.test_chimney_smoke_phases_and_continuous_flow)
+Memastikan asap cerobong memiliki multi-instance kontinu dengan alpha lembut. ... ok
+test_flood_fill_reachability (test_village_deco.TestVillageDecorations.test_flood_fill_reachability)
+Validasi BFS Flood-fill: pemindahan kincir angin tidak merusak konektivitas ke BOSS, jembatan, dan pintu. ... ok
+test_hero_beside_tower_not_occluded_by_windmill (test_village_deco.TestVillageDecorations.test_hero_beside_tower_not_occluded_by_windmill)
+Memastikan hero yang berjalan di samping menara (y >= 448) memiliki sort_y > windmill.sort_y sehingga tidak tertutup bilah. ... ok
+test_village_decorations_manager (test_village_deco.TestVillageDecorations.test_village_decorations_manager)
+Memastikan manajer dekorasi mengelola kincir angin dan daftar cerobong lengkap. ... ok
+test_windmill_animation (test_village_deco.TestVillageDecorations.test_windmill_animation)
+Memastikan rotasi frame kincir angin berjalan dinamis dan berulang. ... ok
+test_windmill_rendered_pixels_differ_across_frames (test_village_deco.TestVillageDecorations.test_windmill_rendered_pixels_differ_across_frames)
+Membuktikan secara fisik bahwa piksel render kincir angin benar-benar berputar antar frame. ... ok
+test_windmill_tower_containment (test_village_deco.TestVillageDecorations.test_windmill_tower_containment)
+Poros hub kincir angin harus berada presisi di dalam bounding box menara. ... ok
+test_windmill_tower_hub_and_scale (test_village_deco.TestVillageDecorations.test_windmill_tower_hub_and_scale)
+Memastikan kincir angin dimuat pada titik poros menara otentik dengan skala 2x. ... ok
+test_action_result_structure (test_world_actions.TestWorldActions.test_action_result_structure) ... ok
+test_crafting_and_gate_actions (test_world_actions.TestWorldActions.test_crafting_and_gate_actions) ... ok
+test_economy_actions (test_world_actions.TestWorldActions.test_economy_actions) ... ok
+test_equip_loadout_action (test_world_actions.TestWorldActions.test_equip_loadout_action) ... ok
+test_farming_cycle_actions (test_world_actions.TestWorldActions.test_farming_cycle_actions) ... ok
+test_goto_location (test_world_actions.TestWorldActions.test_goto_location) ... ok
+test_locations_reachability_from_spawn (test_world_actions.TestWorldActions.test_locations_reachability_from_spawn)
+Memverifikasi seluruh lokasi di config.LOCATIONS dapat dicapai dari titik spawn melalui A*. ... ok
+test_mission_feasibility_two_distinct_paths (test_world_actions.TestWorldActions.test_mission_feasibility_two_distinct_paths)
+Memverifikasi kelayakan misi mencapai Boss dari state awal Game Baru (20 koin, tanpa bahan) ... ok
+test_rest_action (test_world_actions.TestWorldActions.test_rest_action) ... ok
+
+----------------------------------------------------------------------
+Ran 160 tests in 68.249s
+
+OK
+pygame 2.6.1 (SDL 2.32.72, Python 3.14.7)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+[PERINGATAN ASSET CATALOG] Asset tidak ditemukan: 'completely_invalid_asset_path.png'! Menggunakan fallback placeholder.
+[PERINGATAN ASSET CATALOG] Strip tidak ditemukan: 'invalid_strip_strip5.png'! Menggunakan fallback placeholder.
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[CollisionEditor] Berhasil memuat 1 collision override dari '/tmp/tmpblnqgc17/collision_overrides.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[CollisionEditor] Berhasil memuat 0 collision override dari '/tmp/tmpblnqgc17/collision_overrides.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[CollisionEditor] Berhasil memuat 0 collision override dari '/tmp/tmpblnqgc17/collision_overrides.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[CollisionEditor] Berhasil memuat 0 collision override dari '/tmp/tmpblnqgc17/collision_overrides.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[CollisionEditor] Berhasil memuat 0 collision override dari '/tmp/tmpblnqgc17/collision_overrides.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[CollisionEditor] Gagal membaca '/tmp/tmpblnqgc17/corrupt_overrides.json': Expecting value: line 1 column 1 (char 0). Memakai collision asli tanpa crash.
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[CollisionEditor] Berhasil memuat 0 collision override dari '/tmp/tmpblnqgc17/collision_overrides.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[CollisionEditor] Berhasil memuat 0 collision override dari '/tmp/tmpblnqgc17/collision_overrides.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[CollisionEditor] Berhasil memuat 0 collision override dari '/tmp/tmpblnqgc17/collision_overrides.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[CollisionEditor] PERINGATAN: Ukuran peta di file [10, 10] tidak cocok dengan dunia 86x48. Override diabaikan.
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[CollisionEditor] Berhasil memuat 0 collision override dari '/tmp/tmpblnqgc17/collision_overrides.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[PERINGATAN HERO SPRITE] File hair tidak ditemukan: '/mnt/kuliah/smt3/AI/DungeonGame/assets/sunnyside_world/Characters/Human/IDLE/non_existent_hair_style_xyz_idle_strip9.png'! Menampilkan hero base tanpa hair.
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[ERROR SAVEGAME] File /tmp/tmp395ibs2q/savegame.json korup (Expecting value: line 1 column 1 (char 0))! Mencoba memuat backup .bak...
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[gen_readiness] Berhasil menghasilkan /tmp/tmpengaw1l7/readiness.json (threshold=0.5, min_potions=1)
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)

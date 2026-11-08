@@ -1,0 +1,217 @@
+;;; npc.htn - Domain Hierarchical Task Network (HTN) untuk NPC Desa Sunnyside
+;;; Format: Compound Tasks, Alternative Methods dengan Preconditions, dan Primitive Operators
+
+(defdomain sunnyside_npc
+  ;; =========================================================================
+  ;; 1. OPERATOR PRIMITIF (Primitive Operators)
+  ;; =========================================================================
+  (:operator (!goto ?npc ?to)
+    :precondition ((at ?npc ?from))
+    :del ((at ?npc ?from))
+    :add ((at ?npc ?to))
+    :duration 2.0
+  )
+
+  (:operator (!harvest_crop ?npc ?plot)
+    :precondition ((at ?npc farm) (plot_mature ?plot))
+    :del ((plot_mature ?plot))
+    :add ((has_produce ?npc radish) (plot_empty ?plot))
+    :duration 1.0
+  )
+
+  (:operator (!water_crop ?npc ?plot)
+    :precondition ((at ?npc farm) (plot_dry ?plot))
+    :del ((plot_dry ?plot))
+    :add ((plot_watered ?plot))
+    :duration 1.0
+  )
+
+  (:operator (!plant_crop ?npc ?plot)
+    :precondition ((at ?npc farm) (plot_empty ?plot) (has_seed ?npc radish))
+    :del ((plot_empty ?plot) (has_seed ?npc radish))
+    :add ((plot_planted ?plot))
+    :duration 1.0
+  )
+
+  (:operator (!sell_produce ?npc)
+    :precondition ((at ?npc shop) (has_produce ?npc radish))
+    :del ((has_produce ?npc radish))
+    :add ((shop_stock_increased radish))
+    :duration 0.5
+  )
+
+  (:operator (!buy_seed ?npc)
+    :precondition ((at ?npc shop))
+    :add ((has_seed ?npc radish))
+    :duration 0.5
+  )
+
+  (:operator (!feed_animals ?npc ?animal_type)
+    :precondition ((at ?npc ?animal_loc))
+    :add ((animals_fed ?animal_type))
+    :duration 1.5
+  )
+
+  (:operator (!take_wheat ?npc)
+    :precondition ((at ?npc shop))
+    :add ((carrying ?npc wheat))
+    :duration 1.0
+  )
+
+  (:operator (!mill_wheat ?npc)
+    :precondition ((at ?npc windmill) (carrying ?npc wheat))
+    :del ((carrying ?npc wheat))
+    :add ((carrying ?npc flour) (windmill_active))
+    :duration 3.0
+  )
+
+  (:operator (!deliver_flour ?npc)
+    :precondition ((at ?npc shop) (carrying ?npc flour))
+    :del ((carrying ?npc flour))
+    :add ((shop_stock_flour))
+    :duration 1.0
+  )
+
+  (:operator (!inspect_mill ?npc)
+    :precondition ((at ?npc windmill))
+    :add ((mill_inspected))
+    :duration 2.0
+  )
+
+  (:operator (!rest ?npc ?loc)
+    :precondition ((at ?npc ?loc))
+    :add ((rested ?npc))
+    :duration 2.5
+  )
+
+  ;; =========================================================================
+  ;; 2. TUGAS MAJEMUK & METODE PETANI (Farmer Tasks & Methods)
+  ;; =========================================================================
+  ;; Task: (manage_farm ?npc)
+  ;; Memiliki 4 Metode alternatif dengan prasyarat berbeda:
+  (:method (manage_farm ?npc)
+    :name m_harvest_and_sell
+    :precondition ((has_mature_crop ?plot))
+    :subtasks (
+      (!goto ?npc farm)
+      (!harvest_crop ?npc ?plot)
+      (!goto ?npc shop)
+      (!sell_produce ?npc)
+    )
+  )
+
+  (:method (manage_farm ?npc)
+    :name m_water_dry_plots
+    :precondition ((has_dry_plot ?plot))
+    :subtasks (
+      (!goto ?npc farm)
+      (!water_crop ?npc ?plot)
+    )
+  )
+
+  (:method (manage_farm ?npc)
+    :name m_plant_empty_plots
+    :precondition ((has_empty_plot ?plot))
+    :subtasks (
+      (!goto ?npc shop)
+      (!buy_seed ?npc)
+      (!goto ?npc farm)
+      (!plant_crop ?npc ?plot)
+    )
+  )
+
+  (:method (manage_farm ?npc)
+    :name m_farm_idle_rest
+    :precondition ()
+    :subtasks (
+      (!goto ?npc bed)
+      (!rest ?npc bed)
+    )
+  )
+
+  ;; Task: (care_animals ?npc)
+  ;; Memiliki 2 Metode alternatif:
+  (:method (care_animals ?npc)
+    :name m_feed_chickens
+    :precondition ((chickens_hungry))
+    :subtasks (
+      (!goto ?npc chicken_coop)
+      (!feed_animals ?npc chickens)
+    )
+  )
+
+  (:method (care_animals ?npc)
+    :name m_feed_cows
+    :precondition ()
+    :subtasks (
+      (!goto ?npc cow_pasture)
+      (!feed_animals ?npc cows)
+    )
+  )
+
+  ;; =========================================================================
+  ;; 3. TUGAS MAJEMUK & METODE PENGGILING (Miller Tasks & Methods)
+  ;; =========================================================================
+  ;; Task: (mill_cycle ?npc)
+  ;; Memiliki 2 Metode alternatif:
+  (:method (mill_cycle ?npc)
+    :name m_mill_active_wheat
+    :precondition ((wheat_available))
+    :subtasks (
+      (!goto ?npc shop)
+      (!take_wheat ?npc)
+      (!goto ?npc windmill)
+      (!mill_wheat ?npc)
+      (!goto ?npc shop)
+      (!deliver_flour ?npc)
+    )
+  )
+
+  (:method (mill_cycle ?npc)
+    :name m_inspect_and_maintenance
+    :precondition ()
+    :subtasks (
+      (!goto ?npc windmill)
+      (!inspect_mill ?npc)
+      (!goto ?npc shop)
+    )
+  )
+
+  ;; =========================================================================
+  ;; 4. RUTINITAS HARIAN (Day-Night Routine)
+  ;; =========================================================================
+  (:method (daily_routine_farmer ?npc)
+    :name m_farmer_day_shift
+    :precondition ((is_daytime))
+    :subtasks (
+      (manage_farm ?npc)
+      (care_animals ?npc)
+    )
+  )
+
+  (:method (daily_routine_farmer ?npc)
+    :name m_farmer_night_sleep
+    :precondition ()
+    :subtasks (
+      (!goto ?npc bed)
+      (!rest ?npc bed)
+    )
+  )
+
+  (:method (daily_routine_miller ?npc)
+    :name m_miller_day_shift
+    :precondition ((is_daytime))
+    :subtasks (
+      (mill_cycle ?npc)
+    )
+  )
+
+  (:method (daily_routine_miller ?npc)
+    :name m_miller_night_sleep
+    :precondition ()
+    :subtasks (
+      (!goto ?npc bed)
+      (!rest ?npc bed)
+    )
+  )
+)

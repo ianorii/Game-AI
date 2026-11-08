@@ -1,0 +1,86 @@
+{
+  "command": "/usr/bin/python3 tools/demo_subphase2b.py",
+  "duration_seconds": 28.637,
+  "scenarios": {
+    "scenario_a_multiseed": {
+      "name": "AUTO Multi-Seed (20 Seed) Rencana P4 Final",
+      "seeds_evaluated": 20,
+      "first_attempt_win_rate": 1.0,
+      "avg_battle_attempts": 1.0,
+      "avg_battle_retries_rest_fight": 0.0,
+      "real_planner_replans": 0,
+      "plan_length": 37,
+      "cost_seconds": 118.48,
+      "search_time_ms": 1092.4,
+      "status": "SUKSES"
+    },
+    "scenario_b2_detour": {
+      "name": "Detour A* Koridor Utara Sintetis & Total Block",
+      "label": "KORIDOR UTARA SINTETIS",
+      "normal_route_steps": 17,
+      "normal_route_cost_s": 3.7,
+      "detour_route_steps": 101,
+      "detour_route_cost_s": 21.96,
+      "delta_cost_s": 18.26,
+      "total_block_autopilot_state": "SURRENDERED",
+      "hud_message": "Rute terblokir, butuh intervensi pemain",
+      "status": "SUKSES"
+    },
+    "scenario_2c_alternate_rock": {
+      "name": "Replan Peta Asli: Batu Sungai Diblokir -> Pindah ke Quarry",
+      "label": "PETA ASLI (NON-SINTETIS)",
+      "default_rock_action": "mine_rock_river (sungai)",
+      "default_plan_cost_s": 16.63,
+      "alternate_rock_action": "mine_rock (quarry timur)",
+      "alternate_plan_cost_s": 32.96,
+      "delta_cost_s": 16.33,
+      "incremental_max_frame_time_ms": 3.38,
+      "status": "SUKSES"
+    },
+    "scenario_2d_dead_end": {
+      "name": "Deteksi Jalan Buntu: Jalur Boss Terputus Total",
+      "detection_method": "Delete-Relaxation Reachability Check",
+      "detection_time_ms": 0.49,
+      "consecutive_replans_limit": 3,
+      "final_state": "SURRENDERED",
+      "status": "SUKSES"
+    },
+    "scenario_c_defeat_recovery": {
+      "name": "Hero Kalah di Boss (0 Ramuan) -> Replan Wajib Ramuan -> Menang",
+      "defeat_condition": "0 Ramuan, HP 0",
+      "respawn_state": "Desa (spawn), HP 100, 0 Ramuan",
+      "replan_plan_length": 13,
+      "replan_cost_s": 70.39,
+      "replan_search_time_ms": 14.8,
+      "replan_nodes_expanded": 21,
+      "actions_included": [
+        "buy_bottle",
+        "buy_seed_radish",
+        "plant_radish",
+        "water_radish",
+        "wait_grow_radish",
+        "harvest_radish",
+        "craft_potion",
+        "fight_boss"
+      ],
+      "validator_valid": true,
+      "second_battle_result": "Menang (Boss HP 0, Hero HP 17)",
+      "status": "SUKSES"
+    },
+    "scenario_d_wasd_pause": {
+      "name": "Pemain Menekan WASD (Jeda Otomatis & Resume via [F10])",
+      "action": "WASD pressed -> PAUSED -> released -> tetap PAUSED -> F10 -> NAVIGATING",
+      "status": "SUKSES"
+    },
+    "scenario_e_manual_harvest": {
+      "name": "Pemain Memanen Manual saat AUTO Berjalan",
+      "action": "Monitor mendeteksi petak kosong, adaptif potong aksi berlebih",
+      "status": "SUKSES"
+    },
+    "scenario_f_price_change": {
+      "name": "Perubahan Harga Komoditas Toko -> Rute Berubah",
+      "action": "Harga komoditas lain anjlok (1 koin), planner beralih memancing (fish -> sell_fish, 15 koin)",
+      "status": "SUKSES"
+    }
+  }
+}

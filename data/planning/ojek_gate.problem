@@ -1,0 +1,25 @@
+;; Problem Ojek Delivery dengan Gerbang (Variasi Latihan Slide Kuliah)
+(define (problem ojek-gate-problem)
+  (:domain ojek-gate-delivery)
+
+  (:objects
+    rumah warung kampus - location
+    paket - package
+  )
+
+  (:init
+    (motor-at rumah)
+    (at paket warung)
+    (road rumah warung)
+    (road warung rumah)
+    (road warung kampus)
+    (road kampus warung)
+    (gate-open rumah)
+    (gate-open warung)
+    (gate-closed kampus)
+  )
+
+  (:goal
+    (at paket kampus)
+  )
+)

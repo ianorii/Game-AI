@@ -1,0 +1,33 @@
+{
+  "generated_at": "2026-11-08T21:02:29.149234",
+  "git": {
+    "commit": "N/A (arsip non-git)",
+    "status": "clean"
+  },
+  "os": {
+    "system": "Linux",
+    "release": "7.2.7-arch1-1",
+    "version": "#1 SMP PREEMPT_DYNAMIC Mon, 21 Sep 2026 18:51:14 +0000",
+    "machine": "x86_64",
+    "processor": ""
+  },
+  "python": {
+    "version": "3.14.7 (main, Aug 10 2026, 07:46:56) [GCC 16.1.1 20260728]",
+    "executable": "/usr/bin/python3"
+  },
+  "pygame": {
+    "version": "2.6.1",
+    "sdl_version": "2.32.72"
+  },
+  "file_hashes_sha256": {
+    "data/catalog.json": "49fbb204ab0af7b108e402a74ddcf542a7fdc796d1080ed3e01cdd9dc1151376",
+    "data/planning/expedition.domain": "dda0e5b2c36f18ae2b60d6876dc527accf5fb9ca78bf14f65c74f71e3e378dfa",
+    "data/planning/expedition.problem": "705b610113723e10af8175054e7ea3266a6f9734ca17f2b8f14ee7e127df2db4",
+    "data/planning/ojek.domain": "6d5d2f8b0ecdf3386a568542d90c5461d867efde1baf27a56f8ea34147754883",
+    "data/planning/ojek.problem": "71fc0bbc0c5d8f45347bad8dcff66a285182b09fab48a5841ad90d831fa7bdc1",
+    "data/planning/ojek_gate.domain": "417772b71d8641b90a0aa2631f165fb8567f385c556b64a35ce4558a40cc322b",
+    "data/planning/ojek_gate.problem": "b00298a4e4301bad4e427caee62d25e79f9f7b091191c697d7e8bc5a90a8c968",
+    "data/planning/readiness.json": "767e2b9a0a55ff191fbe3b0c5e78666dabf2ab7d662373101f25bffd4d3c3ef4",
+    "assets/maps/walkable_mask.png": "5add8b5e5623287cecc23aab76313b9469a92a25dceb757a6c87e64d38c34fa6"
+  }
+}

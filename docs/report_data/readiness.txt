@@ -1,0 +1,12 @@
+MATRIKS KESIAPAN BOSS BERDASARKAN SIMULASI REALISTIS (data/planning/readiness.json)
+Total entri simulasi: 0
+Ambang Batas Kesiapan (Min Win Rate): 0.5
+Syarat Wajib Minimal Ramuan: 1 botol
+-------------------------------------------------------------------------------------
+Loadout                   | 0 Pot      | 1 Pot      | 2 Pot      | 3 Pot      | Status      
+-------------------------------------------------------------------------------------
+Starter (Pedang, Kain)    | 0.0%       | 0.0%       | 0.0%       | 0.0%       | TIDAK SIAP  
+Leather Dagger (Belati, Kulit) | 0.0%       | 0.0%       | 0.0%       | 0.0%       | TIDAK SIAP  
+Iron Axe (Kapak, Besi)    | 0.0%       | 0.0%       | 0.0%       | 0.0%       | TIDAK SIAP  
+Fire Staff (Tongkat, Kulit) | 0.0%       | 0.0%       | 0.0%       | 0.0%       | TIDAK SIAP  
+-------------------------------------------------------------------------------------

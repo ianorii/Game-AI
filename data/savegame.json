@@ -1,0 +1,104 @@
+{
+  "seed": 42,
+  "coins": 20,
+  "inventory": [
+    {
+      "item_id": "Pedang Biasa",
+      "count": 1
+    },
+    {
+      "item_id": "Kain",
+      "count": 1
+    },
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null
+  ],
+  "shop": {
+    "stock": {
+      "seeds_radish": 20,
+      "seeds_wheat": 20,
+      "bottle_empty": 15,
+      "Kapak Berat": 1,
+      "Belati Cepat": 1,
+      "Tongkat Api": 1,
+      "Kulit": 1,
+      "Besi": 1,
+      "Jimat Vitalitas": 1,
+      "Jimat Ketahanan": 1,
+      "Jimat Keberuntungan": 1
+    }
+  },
+  "farm": [
+    {
+      "plot_id": 0,
+      "x": 480,
+      "y": 384,
+      "crop_type": null,
+      "stage": 0,
+      "growth_timer": 0.0,
+      "is_watered": false
+    },
+    {
+      "plot_id": 1,
+      "x": 512,
+      "y": 384,
+      "crop_type": null,
+      "stage": 0,
+      "growth_timer": 0.0,
+      "is_watered": false
+    },
+    {
+      "plot_id": 2,
+      "x": 544,
+      "y": 384,
+      "crop_type": null,
+      "stage": 0,
+      "growth_timer": 0.0,
+      "is_watered": false
+    },
+    {
+      "plot_id": 3,
+      "x": 480,
+      "y": 416,
+      "crop_type": null,
+      "stage": 0,
+      "growth_timer": 0.0,
+      "is_watered": false
+    },
+    {
+      "plot_id": 4,
+      "x": 512,
+      "y": 416,
+      "crop_type": null,
+      "stage": 0,
+      "growth_timer": 0.0,
+      "is_watered": false
+    },
+    {
+      "plot_id": 5,
+      "x": 544,
+      "y": 416,
+      "crop_type": null,
+      "stage": 0,
+      "growth_timer": 0.0,
+      "is_watered": false
+    }
+  ],
+  "gate_open": false,
+  "cooldowns": {
+    "chicken_egg": 0.0,
+    "cow_milk": 0.0,
+    "fishing": 0.0,
+    "tree_wood": 0.0,
+    "rock_mining": 0.0
+  },
+  "timestamp": 1794121968.7433145
+}

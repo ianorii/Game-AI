@@ -1,0 +1,9 @@
+{
+  "command": "/usr/bin/python3 -m unittest discover -s tests -v",
+  "total_tests": 160,
+  "status": "FAILED",
+  "failures": 0,
+  "errors": 0,
+  "duration_seconds": 68.683,
+  "tests_per_file": {}
+}

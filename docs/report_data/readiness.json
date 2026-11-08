@@ -1,0 +1,140 @@
+{
+  "metadata": {
+    "boss_config": {
+      "hp": 100,
+      "attack_dmg": [
+        20,
+        26
+      ],
+      "attack_expected": 23,
+      "heavy_dmg": 36,
+      "heal_amount": 20,
+      "max_heals": 2
+    },
+    "policy_description": "Kebijakan Monoton: Evaluasi kebijakan player dengan amplop monoton W(k+1) >= W(k). Hero dengan k potion dapat memilih strategi k-1 (tidak membuang giliran minum ramuan).",
+    "threshold": 0.5,
+    "min_potions": 1,
+    "sample_size": 200,
+    "seed": 42
+  },
+  "starter": {
+    "0": {
+      "hero_win_rate": 0.0,
+      "boss_win_rate": 100.0,
+      "hero_minimax_win_rate": 0.0,
+      "sample_size": 200,
+      "is_ready": false
+    },
+    "1": {
+      "hero_win_rate": 0.0,
+      "boss_win_rate": 100.0,
+      "hero_minimax_win_rate": 0.0,
+      "sample_size": 200,
+      "is_ready": false
+    },
+    "2": {
+      "hero_win_rate": 0.0,
+      "boss_win_rate": 100.0,
+      "hero_minimax_win_rate": 0.0,
+      "sample_size": 200,
+      "is_ready": false
+    },
+    "3": {
+      "hero_win_rate": 8.0,
+      "boss_win_rate": 92.0,
+      "hero_minimax_win_rate": 8.0,
+      "sample_size": 200,
+      "is_ready": false
+    }
+  },
+  "leather_dagger": {
+    "0": {
+      "hero_win_rate": 30.0,
+      "boss_win_rate": 70.0,
+      "hero_minimax_win_rate": 30.0,
+      "sample_size": 200,
+      "is_ready": false
+    },
+    "1": {
+      "hero_win_rate": 30.0,
+      "boss_win_rate": 70.0,
+      "hero_minimax_win_rate": 30.0,
+      "sample_size": 200,
+      "is_ready": false
+    },
+    "2": {
+      "hero_win_rate": 30.0,
+      "boss_win_rate": 70.0,
+      "hero_minimax_win_rate": 30.0,
+      "sample_size": 200,
+      "is_ready": false
+    },
+    "3": {
+      "hero_win_rate": 30.0,
+      "boss_win_rate": 70.0,
+      "hero_minimax_win_rate": 30.0,
+      "sample_size": 200,
+      "is_ready": false
+    }
+  },
+  "iron_axe": {
+    "0": {
+      "hero_win_rate": 86.5,
+      "boss_win_rate": 13.5,
+      "hero_minimax_win_rate": 86.5,
+      "sample_size": 200,
+      "is_ready": false
+    },
+    "1": {
+      "hero_win_rate": 97.0,
+      "boss_win_rate": 3.0,
+      "hero_minimax_win_rate": 97.0,
+      "sample_size": 200,
+      "is_ready": true
+    },
+    "2": {
+      "hero_win_rate": 97.0,
+      "boss_win_rate": 3.0,
+      "hero_minimax_win_rate": 97.0,
+      "sample_size": 200,
+      "is_ready": true
+    },
+    "3": {
+      "hero_win_rate": 97.0,
+      "boss_win_rate": 3.0,
+      "hero_minimax_win_rate": 97.0,
+      "sample_size": 200,
+      "is_ready": true
+    }
+  },
+  "fire_staff": {
+    "0": {
+      "hero_win_rate": 24.5,
+      "boss_win_rate": 75.5,
+      "hero_minimax_win_rate": 24.5,
+      "sample_size": 200,
+      "is_ready": false
+    },
+    "1": {
+      "hero_win_rate": 99.5,
+      "boss_win_rate": 0.5,
+      "hero_minimax_win_rate": 99.5,
+      "sample_size": 200,
+      "is_ready": true
+    },
+    "2": {
+      "hero_win_rate": 99.5,
+      "boss_win_rate": 0.5,
+      "hero_minimax_win_rate": 99.5,
+      "sample_size": 200,
+      "is_ready": true
+    },
+    "3": {
+      "hero_win_rate": 99.5,
+      "boss_win_rate": 0.5,
+      "hero_minimax_win_rate": 99.5,
+      "sample_size": 200,
+      "is_ready": true
+    }
+  }
+}

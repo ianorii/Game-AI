@@ -1,0 +1,32 @@
+Perintah: /usr/bin/python3 src/main.py --demo-graph
+Waktu Eksekusi: 0.440 s
+Waktu: 2026-11-08T21:03:43.512519
+
+<frozen importlib._bootstrap>:491: RuntimeWarning: Your system is avx2 capable but pygame was not built with support for it. The performance of some of your blits could be adversely affected. Consider enabling compile time detection with environment variables like PYGAME_DETECT_AVX2=1 if you are compiling without cross compilation.
+pygame 2.6.1 (SDL 2.32.72, Python 3.14.7)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+
+================================================================================
+DEMO 3: PLANNING GRAPH & MUTEX (Materi Kuliah Slide 31-35)
+================================================================================
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[1. Membangun Planning Graph Level-by-Level (Slide 31-32)]
+  Level 0:  3 Aksi (1 mutex aksi) -> Level S1:  3 Proposisi (1 mutex proposisi)
+  Level 1:  7 Aksi (15 mutex aksi) -> Level S2:  5 Proposisi (6 mutex proposisi)
+  Level 2: 11 Aksi (43 mutex aksi) -> Level S3:  5 Proposisi (4 mutex proposisi)
+  Level 3: 13 Aksi (60 mutex aksi) -> Level S4:  7 Proposisi (13 mutex proposisi)
+
+[2. Deteksi Relasi Mutex Aksi (Slide 33-34)]
+  Aksi: drive(rumah, warung)
+  Mutex dengan no-op 'motor-at rumah': True (Inconsistent effects / interference)
+  Mutex dengan no-op 'at paket warung': False (Tidak ada konflik)
+
+[3. Evaluasi Heuristik h_level & Ekstraksi GraphPlan (Slide 35)]
+  Heuristik h_level(s0, goal) = 4.0
+  GraphPlan mengekstrak rencana 4 langkah:
+    1. drive(rumah, warung)
+    2. pickup(paket, warung)
+    3. drive(warung, kampus)
+    4. drop(paket, kampus)
+================================================================================
+

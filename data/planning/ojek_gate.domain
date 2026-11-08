@@ -1,0 +1,64 @@
+;; Domain Ojek Delivery dengan Gerbang (Variasi Latihan Slide Kuliah)
+(define (domain ojek-gate-delivery)
+  (:predicates
+    (motor-at ?l)
+    (at ?p ?l)
+    (in ?p)
+    (road ?from ?to)
+    (gate-open ?l)
+    (gate-closed ?l)
+  )
+
+  (:action drive
+    :parameters (?from ?to)
+    :precondition (and
+      (motor-at ?from)
+      (road ?from ?to)
+      (gate-open ?to)
+    )
+    :effect (and
+      (not (motor-at ?from))
+      (motor-at ?to)
+    )
+    :cost 1.0
+  )
+
+  (:action pickup
+    :parameters (?p ?l)
+    :precondition (and
+      (motor-at ?l)
+      (at ?p ?l)
+    )
+    :effect (and
+      (not (at ?p ?l))
+      (in ?p)
+    )
+    :cost 1.0
+  )
+
+  (:action drop
+    :parameters (?p ?l)
+    :precondition (and
+      (motor-at ?l)
+      (in ?p)
+    )
+    :effect (and
+      (not (in ?p))
+      (at ?p ?l)
+    )
+    :cost 1.0
+  )
+
+  (:action open-gate
+    :parameters (?l)
+    :precondition (and
+      (gate-closed ?l)
+    )
+    :effect (and
+      (not (gate-closed ?l))
+      (gate-open ?l)
+    )
+    :cost 1.0
+  )
+)
+

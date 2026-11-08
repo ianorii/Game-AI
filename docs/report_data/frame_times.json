@@ -1,0 +1,30 @@
+{
+  "budget_limit_ms": 20.0,
+  "configured_target_budget_ms": 15.0,
+  "frames_evaluated": 60,
+  "mean_frame_time_ms": 16.877,
+  "max_frame_time_ms": 23.916,
+  "all_under_budget": false,
+  "frame_times_sample": [
+    17.546,
+    18.256,
+    17.749,
+    18.341,
+    17.089,
+    15.937,
+    18.916,
+    17.651,
+    15.123,
+    15.778,
+    15.57,
+    16.212,
+    18.368,
+    16.373,
+    23.916,
+    18.721,
+    15.389,
+    17.915,
+    15.229,
+    15.992
+  ]
+}

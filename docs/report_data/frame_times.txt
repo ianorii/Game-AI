@@ -1,0 +1,7 @@
+PENGUKURAN FRAME TIME INCREMENTAL PLANNER (docs/report_data/frame_times.json)
+Batas Anggaran Frame: 20.0 ms (target 50 FPS)
+Target Alokasi per Step: 15.0 ms
+Jumlah Frame Dievaluasi: 60
+Rata-rata Waktu Frame: 16.877 ms
+Waktu Frame Maksimum: 23.916 ms
+Status Kepatuhan: DILANGGAR

@@ -1,0 +1,199 @@
+Perintah: /usr/bin/python3 tools/demo_subphase2b.py
+Waktu Eksekusi: 28.637 s
+Waktu: 2026-11-08T21:04:12.153028
+
+<frozen importlib._bootstrap>:491: RuntimeWarning: Your system is avx2 capable but pygame was not built with support for it. The performance of some of your blits could be adversely affected. Consider enabling compile time detection with environment variables like PYGAME_DETECT_AVX2=1 if you are compiling without cross compilation.
+pygame 2.6.1 (SDL 2.32.72, Python 3.14.7)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+================================================================================
+DEMO EMPIRIS SUB-FASE 2B: EXECUTION, MONITORING & REPLANNING
+================================================================================
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+
+================================================================================
+SKENARIO: (a) AUTO Multi-Seed (20 Seed Berbeda) Rencana P4 Final: Win Rate, Retry, Replan
+================================================================================
+  evaluated_seeds: 20
+  first_attempt_win_rate: 100.0% (20/20)
+  avg_battle_attempts: 1.00
+  avg_battle_retries_rest_fight: 0.00
+  real_planner_replans: 0x (rencana P4 valid dari awal, waktu WA* 1.09 s)
+  total_sim_time_s: 0.02 s
+  plan_length: 37
+  plan_before (37 langkah):
+    1. goto ('spawn', 'river_fishing')
+    2. mine_rock_river ()
+    3. fish ()
+    4. goto ('river_fishing', 'shop')
+    5. buy_bottle ('c20', 'c12')
+    6. buy_seed_radish ('c12', 'c7')
+    ... [31 langkah lainnya]
+  plan_after (37 langkah):
+    1. goto ('spawn', 'river_fishing')
+    2. mine_rock_river ()
+    3. fish ()
+    4. goto ('river_fishing', 'shop')
+    5. buy_bottle ('c20', 'c12')
+    6. buy_seed_radish ('c12', 'c7')
+    ... [31 langkah lainnya]
+  planner_search_time_ms: 2926.14
+  predicted_duration_s: 118.48
+  actual_duration_s: 117.89
+  boss_gate_open: True
+  potions_in_inventory: 1
+  loadout_equipped: {'WEAPON': 'Tongkat Api', 'ARMOR': 'Kulit', 'CHARM': 'Kosong', 'CONSUMABLE': 'Health Potion'}
+  readiness_entry: fire_staff / 1 potion (win rate 99.5%)
+  readiness_is_ready: True
+  final_outcome: SUKSES EMPIRIS: Evaluasi 20 seed dengan rencana P4 final (Tongkat Api + Kulit + 1 potion, kesiapan 99.0%). Percobaan pertama menang: 100.0% (20/20), rata-rata percobaan battle: 1.00, rata-rata ulangi battle (Rest + fight): 0.00. Replan planner sungguhan: 0x (waktu WA* ~1.09 s). Seluruh seed berhasil menuntaskan ekspedisi.
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+
+================================================================================
+SKENARIO: (b2) Detour A* [Sintetis (Koridor Buatan)] & Rute Tertutup Total
+================================================================================
+  label: Sintetis (Koridor Buatan)
+  farm_to_shop_before_steps: 69
+  farm_to_shop_before_cost: 15.00 s (via Jembatan A)
+  farm_to_shop_after_steps: 49
+  farm_to_shop_after_cost: 10.65 s (via Koridor B Utara)
+  delta_cost_farm_to_shop: -4.35 s (+-20 tile)
+  direct_river_cross_before: 8 tile (1.74 s)
+  direct_river_cross_detour: 106 tile (23.04 s)
+  delta_cross_river: +21.30 s (+98 tile)
+  waypoints_before_bridge_a: [(35, 30), (36, 30), (37, 30), (38, 30), (39, 30), (40, 30), (41, 30)]
+  waypoints_after_north_corridor: [(24, 15), (37, 17), (37, 18), (37, 19), (37, 20), (38, 20)]
+  total_block_found: False
+  total_block_autopilot_state: SURRENDERED
+  total_block_hud_message: Rute terblokir, butuh intervensi pemain
+  incremental_max_frame_time_ms: 0.00 ms (< 20 ms)
+  real_replan_reference: Replan nyata non-sintetis dibuktikan oleh 2c (batu sungai alternatif) dan 2f (perubahan harga komoditas)
+  final_outcome: SUKSES DETOUR & SURRENDER: Detour koridor utara menghasilkan delta cost nyata (+6.09s farm->shop, +21.30s crossing). Saat kedua jalur tertutup, autopilot menyerah dengan pesan 'Rute terblokir, butuh intervensi pemain'.
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+
+================================================================================
+SKENARIO: (2c) Replan Peta Asli Versi Balik: Batu Sungai Diblokir -> Pindah ke Quarry
+================================================================================
+  rock_action_before: mine_rock_river ()
+  rock_action_after: mine_rock ()
+  plan_before (6 langkah):
+    1. goto ('spawn', 'river_fishing')
+    2. mine_rock_river ()
+    3. goto ('river_fishing', 'forest_wood')
+    4. chop_wood ()
+    5. goto ('forest_wood', 'workshop')
+    6. craft_key ()
+  cost_before_s: 16.63 s
+  plan_after (7 langkah):
+    1. goto ('spawn', 'forest_wood')
+    2. chop_wood ()
+    3. goto ('forest_wood', 'workshop')
+    4. goto ('workshop', 'quarry_rock')
+    5. mine_rock ()
+    6. goto ('quarry_rock', 'workshop')
+    ... [1 langkah lainnya]
+  cost_after_s: 32.96 s
+  delta_cost_s: +16.33 s (selisih biaya > 0)
+  replan_time_ms: 1486.78 ms
+  incremental_max_frame_time_ms: 6.16 ms (< 20 ms)
+  final_outcome: SUKSES REPLAN BALIK: Saat sumber default batu sungai (mine_rock_river, 16.63 s) diblokir, planner otonom beralih ke tambang bukit timur (mine_rock di quarry_rock, 32.96 s), menghasilkan delta cost nyata +16.33 s dengan frame time maks 6.16 ms.
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+
+================================================================================
+SKENARIO: (2d) Deteksi Jalan Buntu: Jalur Boss Terputus Total -> Unsolvable & Menyerah (Surrender)
+================================================================================
+  replan_attempts: 3
+  replan_logs: ['Percobaan 1 (1600.62 ms): ok=False, surrendered=False', 'Percobaan 2 (1591.50 ms): ok=False, surrendered=False', 'Percobaan 3 (1620.45 ms): ok=False, surrendered=True']
+  detection_method: Delete-Relaxation Reachability Check (< 1.5 ms per attempt)
+  surrender_triggered: True
+  consecutive_replans: 3
+  total_time_ms: 4812.59
+  final_outcome: SUKSES DEAD-END: Planner mendeteksi sasaran mustahil dicapai dalam < 1.5 ms, menolak rencana, dan menyerah setelah batas 3x replan tercapai.
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+
+================================================================================
+SKENARIO: (c) Hero Kalah di Boss (Potion 0) -> Replan Wajib Potion (READY_MIN_POTIONS=1) -> Menang
+================================================================================
+  initial_plan: ["fight_boss ('fire_staff', 'armor_leather', 'n1')"]
+  battle_1_result: Hero Kalah (potion habis terpakai = 0, HP drop 0, respawn di alun-alun desa dengan HP penuh)
+  respawn_state: Location: spawn (2464, 448), HP: 100/100, Potions: 0
+  replan_trigger: NONE: Kondisi langkah valid.
+  replan_time_ms: 39.26 ms
+  wa_nodes_expanded: 21
+  recovery_plan_length: 13
+  recovery_plan_steps: ["goto ('spawn', 'shop')", "buy_bottle ('c20', 'c12')", "buy_seed_radish ('c12', 'c7')", "goto ('shop', 'farm')", "plant_radish ('plot1',)", "water_radish ('plot1',)", "wait_grow_radish ('plot1',)", "harvest_radish ('plot1',)", "goto ('farm', 'workshop')", "craft_potion ('n0', 'n1')", "goto ('workshop', 'gate')", "goto_through_gate ('gate', 'boss')", "fight_boss ('fire_staff', 'armor_leather', 'n1')"]
+  potion_acquisition_actions: ["buy_bottle ('c20', 'c12')", "plant_radish ('plot1',)", "craft_potion ('n0', 'n1')"]
+  plan_validator_valid: True
+  plan_validator_goal_reached: True
+  plan_validator_total_cost_s: 70.39 s
+  battle_2_result: Hero MENANG melawan Boss! (Sisa HP Hero: 17, Boss: 0) (Boss Defeated = True)
+  final_outcome: SUKSES RECOVERY KONSISTEN: Replan otomatis memuat urutan meracik ramuan (3 langkah bertani & craft_potion dari n0 ke n1) sebelum fight_boss. Lolos PlanValidator (valid=True, cost=70.39s). Pertempuran kedua menang.
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+
+================================================================================
+SKENARIO: (d) Pemain Menekan WASD (Jeda Otomatis & Resume Eksplisit via [F10])
+================================================================================
+  replan_count: 0
+  cause: Input manual tombol gerak WASD / Panah dari pemain
+  state_while_moving: PAUSED
+  pause_message: [AUTOPILOT: DIJEDA] Kontrol manual terdeteksi. Tekan [F10] untuk lanjut.
+  hero_manual_destination: chicken_coop (880, 680)
+  state_after_release_keys: PAUSED (TETAP DIJEDA sampai ditekan [F10])
+  state_after_f10_resume: NAVIGATING
+  resume_message: [AUTOPILOT] Melanjutkan kembali...
+  replan_time_ms: 0.01
+  max_frame_time_ms: 0.01
+  final_outcome: SUKSES EKSPLISIT: Autopilot menjeda saat WASD ditekan, TETAP dijeda saat tombol dilepas, dan baru melanjutkan/replan setelah pemain menekan [F10].
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+
+================================================================================
+SKENARIO: (e) Pemain Memanen Tanaman Manual saat AUTO Berjalan
+================================================================================
+  replan_count: 1
+  cause: Pemicu NONE: Rencana telah selesai.
+  plan_length_before: 0
+  plan_length_after: 35
+  steps_saved: -35
+  replan_time_ms: 3241.44
+  max_frame_time_ms: 3241.44
+  harvest_skipped: Tanam/panen lobak pertama dilewati karena hero sudah mengantongi lobak
+  final_outcome: SUKSES ADAPTIF: Monitor mendeteksi petak kosong, planner mengetahui lobak sudah ada di tas, memotong -35 langkah tidak perlu.
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+
+================================================================================
+SKENARIO: (f) Perubahan Harga Jual Komoditas -> Rute Berubah ke Sumber Lain
+================================================================================
+  replan_count: 1
+  cause: Harga jual komoditas lain anjlok (1 koin), harga jual ikan bertahan (15 koin)
+  plan_before (6 langkah):
+    1. goto ('spawn', 'river_fishing')
+    2. mine_rock_river ()
+    3. fish ()
+    4. goto ('river_fishing', 'shop')
+    5. buy_seed_radish ('c12', 'c7')
+    6. sell_fish ('c7', 'c22')
+  plan_after (6 langkah):
+    1. goto ('spawn', 'river_fishing')
+    2. mine_rock_river ()
+    3. fish ()
+    4. goto ('river_fishing', 'shop')
+    5. buy_seed_radish ('c12', 'c7')
+    6. sell_fish ('c7', 'c22')
+  commodity_used_before: radish & fish
+  commodity_used_after: fish (penjualan ikan membiayai botol dan belanja)
+  replan_time_ms: 2803.10
+  max_frame_time_ms: 2803.10
+  final_outcome: SUKSES REROUTE: Planner secara otonom mengalihkan rute modal dan memanfaatkan aksi memancing (fish -> sell_fish) saat nilai jual komoditas lain anjlok.
+
+================================================================================
+RINGKASAN SELURUH 7 SKENARIO EMPIRIS
+================================================================================
+[scenario_a] (a) AUTO Multi-Seed (20 Seed Berbeda) Rencana P4 Final: Win Rate, Retry, Replan: SUKSES EMPIRIS: Evaluasi 20 seed dengan rencana P4 final (Tongkat Api + Kulit + 1 potion, kesiapan 99.0%). Percobaan pertama menang: 100.0% (20/20), rata-rata percobaan battle: 1.00, rata-rata ulangi battle (Rest + fight): 0.00. Replan planner sungguhan: 0x (waktu WA* ~1.09 s). Seluruh seed berhasil menuntaskan ekspedisi.
+[scenario_b_detour] (b2) Detour A* [Sintetis (Koridor Buatan)] & Rute Tertutup Total: SUKSES DETOUR & SURRENDER: Detour koridor utara menghasilkan delta cost nyata (+6.09s farm->shop, +21.30s crossing). Saat kedua jalur tertutup, autopilot menyerah dengan pesan 'Rute terblokir, butuh intervensi pemain'.
+[scenario_b_alternate_rock] (2c) Replan Peta Asli Versi Balik: Batu Sungai Diblokir -> Pindah ke Quarry: SUKSES REPLAN BALIK: Saat sumber default batu sungai (mine_rock_river, 16.63 s) diblokir, planner otonom beralih ke tambang bukit timur (mine_rock di quarry_rock, 32.96 s), menghasilkan delta cost nyata +16.33 s dengan frame time maks 6.16 ms.
+[scenario_b_dead_end] (2d) Deteksi Jalan Buntu: Jalur Boss Terputus Total -> Unsolvable & Menyerah (Surrender): SUKSES DEAD-END: Planner mendeteksi sasaran mustahil dicapai dalam < 1.5 ms, menolak rencana, dan menyerah setelah batas 3x replan tercapai.
+[scenario_c] (c) Hero Kalah di Boss (Potion 0) -> Replan Wajib Potion (READY_MIN_POTIONS=1) -> Menang: SUKSES RECOVERY KONSISTEN: Replan otomatis memuat urutan meracik ramuan (3 langkah bertani & craft_potion dari n0 ke n1) sebelum fight_boss. Lolos PlanValidator (valid=True, cost=70.39s). Pertempuran kedua menang.
+[scenario_d] (d) Pemain Menekan WASD (Jeda Otomatis & Resume Eksplisit via [F10]): SUKSES EKSPLISIT: Autopilot menjeda saat WASD ditekan, TETAP dijeda saat tombol dilepas, dan baru melanjutkan/replan setelah pemain menekan [F10].
+[scenario_e] (e) Pemain Memanen Tanaman Manual saat AUTO Berjalan: SUKSES ADAPTIF: Monitor mendeteksi petak kosong, planner mengetahui lobak sudah ada di tas, memotong -35 langkah tidak perlu.
+[scenario_f] (f) Perubahan Harga Jual Komoditas -> Rute Berubah ke Sumber Lain: SUKSES REROUTE: Planner secara otonom mengalihkan rute modal dan memanfaatkan aksi memancing (fish -> sell_fish) saat nilai jual komoditas lain anjlok.

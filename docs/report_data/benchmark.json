@@ -1,0 +1,390 @@
+{
+  "generated_at": "2026-11-08T21:08:38.149510",
+  "benchmark_cells": [
+    {
+      "problem": "P1: Key",
+      "algorithm": "BFS",
+      "status": "SUKSES",
+      "plan_length": 6,
+      "cost_seconds": 16.63,
+      "nodes_expanded": 44,
+      "time_ms": 24.63,
+      "ms_per_node": 0.56,
+      "optimality": "Satisficing"
+    },
+    {
+      "problem": "P1: Key",
+      "algorithm": "UCS",
+      "status": "SUKSES",
+      "plan_length": 6,
+      "cost_seconds": 16.63,
+      "nodes_expanded": 35,
+      "time_ms": 19.32,
+      "ms_per_node": 0.552,
+      "optimality": "Ya (Admissible)"
+    },
+    {
+      "problem": "P1: Key",
+      "algorithm": "A* (h_max)",
+      "status": "SUKSES",
+      "plan_length": 6,
+      "cost_seconds": 16.63,
+      "nodes_expanded": 16,
+      "time_ms": 47.36,
+      "ms_per_node": 2.96,
+      "optimality": "Ya (Admissible)"
+    },
+    {
+      "problem": "P1: Key",
+      "algorithm": "A* (h_add)",
+      "status": "SUKSES",
+      "plan_length": 6,
+      "cost_seconds": 16.63,
+      "nodes_expanded": 9,
+      "time_ms": 38.85,
+      "ms_per_node": 4.317,
+      "optimality": "Satisficing"
+    },
+    {
+      "problem": "P1: Key",
+      "algorithm": "WA* (h_FF)",
+      "status": "SUKSES",
+      "plan_length": 6,
+      "cost_seconds": 16.63,
+      "nodes_expanded": 7,
+      "time_ms": 11.62,
+      "ms_per_node": 1.659,
+      "optimality": "Satisficing"
+    },
+    {
+      "problem": "P1: Key",
+      "algorithm": "A* (h_level)",
+      "status": "TIMEOUT (5.0s)",
+      "plan_length": "-",
+      "cost_seconds": "-",
+      "nodes_expanded": 0,
+      "time_ms": 4897.46,
+      "ms_per_node": 4897.461,
+      "optimality": "Ya"
+    },
+    {
+      "problem": "P1: Key",
+      "algorithm": "Static Level S0",
+      "status": "TIMEOUT (5.0s)",
+      "plan_length": "-",
+      "cost_seconds": "-",
+      "nodes_expanded": 0,
+      "time_ms": 4192.35,
+      "ms_per_node": 4192.353,
+      "optimality": "Tidak"
+    },
+    {
+      "problem": "P2: Gate",
+      "algorithm": "BFS",
+      "status": "SUKSES",
+      "plan_length": 8,
+      "cost_seconds": 23.07,
+      "nodes_expanded": 48,
+      "time_ms": 29.05,
+      "ms_per_node": 0.605,
+      "optimality": "Satisficing"
+    },
+    {
+      "problem": "P2: Gate",
+      "algorithm": "UCS",
+      "status": "SUKSES",
+      "plan_length": 8,
+      "cost_seconds": 23.07,
+      "nodes_expanded": 48,
+      "time_ms": 29.41,
+      "ms_per_node": 0.613,
+      "optimality": "Ya (Admissible)"
+    },
+    {
+      "problem": "P2: Gate",
+      "algorithm": "A* (h_max)",
+      "status": "SUKSES",
+      "plan_length": 8,
+      "cost_seconds": 23.07,
+      "nodes_expanded": 29,
+      "time_ms": 66.48,
+      "ms_per_node": 2.293,
+      "optimality": "Ya (Admissible)"
+    },
+    {
+      "problem": "P2: Gate",
+      "algorithm": "A* (h_add)",
+      "status": "SUKSES",
+      "plan_length": 8,
+      "cost_seconds": 23.07,
+      "nodes_expanded": 13,
+      "time_ms": 37.81,
+      "ms_per_node": 2.908,
+      "optimality": "Satisficing"
+    },
+    {
+      "problem": "P2: Gate",
+      "algorithm": "WA* (h_FF)",
+      "status": "SUKSES",
+      "plan_length": 8,
+      "cost_seconds": 23.07,
+      "nodes_expanded": 12,
+      "time_ms": 11.5,
+      "ms_per_node": 0.958,
+      "optimality": "Satisficing"
+    },
+    {
+      "problem": "P2: Gate",
+      "algorithm": "A* (h_level)",
+      "status": "TIMEOUT (5.0s)",
+      "plan_length": "-",
+      "cost_seconds": "-",
+      "nodes_expanded": 0,
+      "time_ms": 7407.42,
+      "ms_per_node": 7407.42,
+      "optimality": "Ya"
+    },
+    {
+      "problem": "P3: Potion",
+      "algorithm": "BFS",
+      "status": "TIMEOUT (5.0s)",
+      "plan_length": "-",
+      "cost_seconds": "-",
+      "nodes_expanded": 3899,
+      "time_ms": 3000.36,
+      "ms_per_node": 0.77,
+      "optimality": "Tidak"
+    },
+    {
+      "problem": "P3: Potion",
+      "algorithm": "UCS",
+      "status": "TIMEOUT (5.0s)",
+      "plan_length": "-",
+      "cost_seconds": "-",
+      "nodes_expanded": 3888,
+      "time_ms": 3000.35,
+      "ms_per_node": 0.772,
+      "optimality": "Ya"
+    },
+    {
+      "problem": "P3: Potion",
+      "algorithm": "A* (h_max)",
+      "status": "TIMEOUT (5.0s)",
+      "plan_length": "-",
+      "cost_seconds": "-",
+      "nodes_expanded": 526,
+      "time_ms": 3006.5,
+      "ms_per_node": 5.716,
+      "optimality": "Ya"
+    },
+    {
+      "problem": "P3: Potion",
+      "algorithm": "A* (h_add)",
+      "status": "SUKSES",
+      "plan_length": 11,
+      "cost_seconds": 50.61,
+      "nodes_expanded": 24,
+      "time_ms": 181.29,
+      "ms_per_node": 7.554,
+      "optimality": "Satisficing"
+    },
+    {
+      "problem": "P3: Potion",
+      "algorithm": "WA* (h_FF)",
+      "status": "SUKSES",
+      "plan_length": 10,
+      "cost_seconds": 50.61,
+      "nodes_expanded": 14,
+      "time_ms": 15.5,
+      "ms_per_node": 1.107,
+      "optimality": "Satisficing"
+    },
+    {
+      "problem": "P3: Potion",
+      "algorithm": "A* (h_level)",
+      "status": "TIMEOUT (5.0s)",
+      "plan_length": "-",
+      "cost_seconds": "-",
+      "nodes_expanded": 0,
+      "time_ms": 4448.23,
+      "ms_per_node": 4448.229,
+      "optimality": "Ya"
+    },
+    {
+      "problem": "P4: Final Game (Tongkat)",
+      "algorithm": "WA* (h_FF)",
+      "status": "SUKSES",
+      "plan_length": 37,
+      "cost_seconds": 118.48,
+      "nodes_expanded": 939,
+      "time_ms": 1458.86,
+      "ms_per_node": 1.554,
+      "optimality": "Satisficing"
+    },
+    {
+      "problem": "P4: Belati Cepat (Murah)",
+      "algorithm": "WA* (h_FF)",
+      "status": "UNSOLVABLE",
+      "plan_length": "-",
+      "cost_seconds": "-",
+      "nodes_expanded": 0,
+      "time_ms": 0.38,
+      "ms_per_node": 0.384,
+      "optimality": "-"
+    },
+    {
+      "problem": "P4: Belati Cepat (Murah)",
+      "algorithm": "BFS",
+      "status": "UNSOLVABLE",
+      "plan_length": "-",
+      "cost_seconds": "-",
+      "nodes_expanded": 0,
+      "time_ms": 0.01,
+      "ms_per_node": 0.01,
+      "optimality": "-"
+    },
+    {
+      "problem": "P4: Belati Cepat (Murah)",
+      "algorithm": "UCS",
+      "status": "UNSOLVABLE",
+      "plan_length": "-",
+      "cost_seconds": "-",
+      "nodes_expanded": 0,
+      "time_ms": 0.01,
+      "ms_per_node": 0.007,
+      "optimality": "-"
+    },
+    {
+      "problem": "P4: Belati Cepat (Murah)",
+      "algorithm": "A* (h_max)",
+      "status": "UNSOLVABLE",
+      "plan_length": "-",
+      "cost_seconds": "-",
+      "nodes_expanded": 0,
+      "time_ms": 0.01,
+      "ms_per_node": 0.007,
+      "optimality": "-"
+    },
+    {
+      "problem": "P4: Belati Cepat (Murah)",
+      "algorithm": "A* (h_add)",
+      "status": "UNSOLVABLE",
+      "plan_length": "-",
+      "cost_seconds": "-",
+      "nodes_expanded": 0,
+      "time_ms": 0.01,
+      "ms_per_node": 0.006,
+      "optimality": "-"
+    },
+    {
+      "problem": "P4: Belati Cepat (Murah)",
+      "algorithm": "A* (h_level)",
+      "status": "UNSOLVABLE",
+      "plan_length": "-",
+      "cost_seconds": "-",
+      "nodes_expanded": 0,
+      "time_ms": 0.01,
+      "ms_per_node": 0.005,
+      "optimality": "-"
+    },
+    {
+      "problem": "P5: Unsolvable",
+      "algorithm": "BFS",
+      "status": "UNSOLVABLE",
+      "plan_length": "-",
+      "cost_seconds": "-",
+      "nodes_expanded": 0,
+      "time_ms": 0.02,
+      "ms_per_node": 0.015,
+      "optimality": "-"
+    },
+    {
+      "problem": "P5: Unsolvable",
+      "algorithm": "UCS",
+      "status": "UNSOLVABLE",
+      "plan_length": "-",
+      "cost_seconds": "-",
+      "nodes_expanded": 0,
+      "time_ms": 0.01,
+      "ms_per_node": 0.007,
+      "optimality": "-"
+    },
+    {
+      "problem": "P5: Unsolvable",
+      "algorithm": "A* (h_max)",
+      "status": "UNSOLVABLE",
+      "plan_length": "-",
+      "cost_seconds": "-",
+      "nodes_expanded": 0,
+      "time_ms": 0.87,
+      "ms_per_node": 0.873,
+      "optimality": "-"
+    },
+    {
+      "problem": "P5: Unsolvable",
+      "algorithm": "A* (h_add)",
+      "status": "UNSOLVABLE",
+      "plan_length": "-",
+      "cost_seconds": "-",
+      "nodes_expanded": 0,
+      "time_ms": 0.01,
+      "ms_per_node": 0.012,
+      "optimality": "-"
+    },
+    {
+      "problem": "P5: Unsolvable",
+      "algorithm": "WA* (h_FF)",
+      "status": "UNSOLVABLE",
+      "plan_length": "-",
+      "cost_seconds": "-",
+      "nodes_expanded": 0,
+      "time_ms": 0.01,
+      "ms_per_node": 0.008,
+      "optimality": "-"
+    },
+    {
+      "problem": "P5: Unsolvable",
+      "algorithm": "A* (h_level)",
+      "status": "UNSOLVABLE",
+      "plan_length": "-",
+      "cost_seconds": "-",
+      "nodes_expanded": 0,
+      "time_ms": 0.01,
+      "ms_per_node": 0.008,
+      "optimality": "-"
+    }
+  ],
+  "ablation_relevance_pruning": {
+    "problem": "P1: Simple Key",
+    "actions_unpruned": 592,
+    "actions_pruned": 117,
+    "ucs_unpruned": {
+      "status": "SUKSES",
+      "nodes": 2301,
+      "time_ms": 2034.5
+    },
+    "ucs_pruned": {
+      "status": "SUKSES",
+      "nodes": 35,
+      "time_ms": 17.42,
+      "cost_s": 16.63
+    }
+  },
+  "regression_vs_forward_ojek": {
+    "forward_bfs": {
+      "steps": 4,
+      "nodes": 5,
+      "time_ms": 0.094
+    },
+    "regression_bfs": {
+      "steps": 4,
+      "nodes": 8,
+      "time_ms": 0.132
+    },
+    "regression_astar": {
+      "steps": 4,
+      "nodes": 10,
+      "time_ms": 0.209
+    }
+  }
+}

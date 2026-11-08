@@ -1,0 +1,30 @@
+[
+  {
+    "type": "goblin",
+    "name": "goblin_farm",
+    "x": 544,
+    "y": 384,
+    "note": "Ladang labu barat laut"
+  },
+  {
+    "type": "goblin",
+    "name": "goblin_west",
+    "x": 480,
+    "y": 752,
+    "note": "Jalan jembatan barat"
+  },
+  {
+    "type": "goblin",
+    "name": "goblin_pasture",
+    "x": 1920,
+    "y": 384,
+    "note": "Bukit domba timur laut"
+  },
+  {
+    "type": "goblin",
+    "name": "goblin_graveyard",
+    "x": 1280,
+    "y": 1248,
+    "note": "Area makam kuno berbisik"
+  }
+]

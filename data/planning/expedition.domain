@@ -1,0 +1,502 @@
+(define (domain dungeon-expedition)
+  (:requirements :strips :typing :action-costs)
+
+  (:predicates
+    (at ?loc)
+    (connected ?from ?to)
+    (gate_connected ?from ?to)
+    (has ?item)
+    (has_n ?item ?count)
+    (next_count ?c1 ?c2)
+    (plot_empty ?plot)
+    (plot_planted ?plot ?crop)
+    (plot_watered ?plot)
+    (plot_mature ?plot ?crop)
+    (gate_open)
+    (gate_locked)
+    (equipped_ok)
+    (hp_full)
+    (boss_ready)
+    (boss_defeated)
+    (equipped_weapon ?w)
+    (equipped_armor ?a)
+    (valid_loadout ?w ?a)
+    (ready_loadout ?w ?a ?n)
+    (coins ?c)
+    (pay_seed ?c_from ?c_to)
+    (pay_bottle ?c_from ?c_to)
+    (pay_armor_leather ?c_from ?c_to)
+    (pay_weapon_dagger ?c_from ?c_to)
+    (pay_weapon_axe ?c_from ?c_to)
+    (pay_fire_staff ?c_from ?c_to)
+    (pay_armor_iron ?c_from ?c_to)
+    (pay_key ?c_from ?c_to)
+    (pay_charm_vitality ?c_from ?c_to)
+    (pay_item ?i - item ?c_from - coin ?c_to - coin)
+    (earn_radish ?c_from ?c_to)
+    (earn_egg ?c_from ?c_to)
+    (earn_fish ?c_from ?c_to)
+    (earn_milk ?c_from ?c_to)
+    (earn_wood ?c_from ?c_to)
+    (earn_rock ?c_from ?c_to)
+  )
+
+  ;; =========================================================================
+  ;; PERGERAKAN HERO (GOTO)
+  ;; =========================================================================
+  (:action goto
+    :parameters (?from - location ?to - location)
+    :precondition (and
+      (at ?from)
+      (connected ?from ?to)
+    )
+    :effect (and
+      (not (at ?from))
+      (at ?to)
+    )
+    :cost (distance ?from ?to)
+  )
+
+  (:action goto_through_gate
+    :parameters (?from - location ?to - location)
+    :precondition (and
+      (at ?from)
+      (gate_connected ?from ?to)
+      (gate_open)
+    )
+    :effect (and
+      (not (at ?from))
+      (at ?to)
+    )
+    :cost (distance ?from ?to)
+  )
+
+  ;; =========================================================================
+  ;; PERDAGANGAN (TOKO DESA)
+  ;; =========================================================================
+  (:action buy_seed_radish
+    :parameters (?c_from - coin ?c_to - coin)
+    :precondition (and
+      (at shop)
+      (coins ?c_from)
+      (pay_seed ?c_from ?c_to)
+    )
+    :effect (and
+      (not (coins ?c_from))
+      (coins ?c_to)
+      (has seeds_radish)
+    )
+    :cost 0.5
+  )
+
+  (:action buy_bottle
+    :parameters (?c_from - coin ?c_to - coin)
+    :precondition (and
+      (at shop)
+      (coins ?c_from)
+      (pay_bottle ?c_from ?c_to)
+    )
+    :effect (and
+      (not (coins ?c_from))
+      (coins ?c_to)
+      (has bottle_empty)
+    )
+    :cost 0.5
+  )
+
+  (:action buy_armor_leather
+    :parameters (?c_from - coin ?c_to - coin)
+    :precondition (and
+      (at shop)
+      (coins ?c_from)
+      (pay_armor_leather ?c_from ?c_to)
+    )
+    :effect (and
+      (not (coins ?c_from))
+      (coins ?c_to)
+      (has armor_leather)
+    )
+    :cost 0.5
+  )
+
+  (:action buy_weapon_dagger
+    :parameters (?c_from - coin ?c_to - coin)
+    :precondition (and
+      (at shop)
+      (coins ?c_from)
+      (pay_weapon_dagger ?c_from ?c_to)
+    )
+    :effect (and
+      (not (coins ?c_from))
+      (coins ?c_to)
+      (has weapon_dagger)
+    )
+    :cost 0.5
+  )
+
+  (:action buy_weapon_axe
+    :parameters (?c_from - coin ?c_to - coin)
+    :precondition (and
+      (at shop)
+      (coins ?c_from)
+      (pay_weapon_axe ?c_from ?c_to)
+    )
+    :effect (and
+      (not (coins ?c_from))
+      (coins ?c_to)
+      (has weapon_axe)
+    )
+    :cost 0.5
+  )
+
+  (:action buy_fire_staff
+    :parameters (?c_from - coin ?c_to - coin)
+    :precondition (and
+      (at shop)
+      (coins ?c_from)
+      (pay_fire_staff ?c_from ?c_to)
+    )
+    :effect (and
+      (not (coins ?c_from))
+      (coins ?c_to)
+      (has fire_staff)
+    )
+    :cost 0.5
+  )
+
+  (:action buy_armor_iron
+    :parameters (?c_from - coin ?c_to - coin)
+    :precondition (and
+      (at shop)
+      (coins ?c_from)
+      (pay_armor_iron ?c_from ?c_to)
+    )
+    :effect (and
+      (not (coins ?c_from))
+      (coins ?c_to)
+      (has armor_iron)
+    )
+    :cost 0.5
+  )
+
+  (:action buy_gate_key
+    :parameters (?c_from - coin ?c_to - coin)
+    :precondition (and
+      (at shop)
+      (coins ?c_from)
+      (pay_key ?c_from ?c_to)
+    )
+    :effect (and
+      (not (coins ?c_from))
+      (coins ?c_to)
+      (has gate_key)
+    )
+    :cost 0.5
+  )
+
+  (:action buy_item
+    :parameters (?i - item ?c_from - coin ?c_to - coin)
+    :precondition (and
+      (at shop)
+      (coins ?c_from)
+      (pay_item ?i ?c_from ?c_to)
+    )
+    :effect (and
+      (not (coins ?c_from))
+      (coins ?c_to)
+      (has ?i)
+    )
+    :cost 0.5
+  )
+
+  (:action sell_radish
+    :parameters (?c_from - coin ?c_to - coin)
+    :precondition (and
+      (at shop)
+      (has radish)
+      (coins ?c_from)
+      (earn_radish ?c_from ?c_to)
+    )
+    :effect (and
+      (not (has radish))
+      (not (coins ?c_from))
+      (coins ?c_to)
+    )
+    :cost 0.5
+  )
+
+  (:action sell_egg
+    :parameters (?c_from - coin ?c_to - coin)
+    :precondition (and
+      (at shop)
+      (has egg)
+      (coins ?c_from)
+      (earn_egg ?c_from ?c_to)
+    )
+    :effect (and
+      (not (has egg))
+      (not (coins ?c_from))
+      (coins ?c_to)
+    )
+    :cost 0.5
+  )
+
+  (:action sell_milk
+    :parameters (?c_from - coin ?c_to - coin)
+    :precondition (and
+      (at shop)
+      (has milk)
+      (coins ?c_from)
+      (earn_milk ?c_from ?c_to)
+    )
+    :effect (and
+      (not (has milk))
+      (not (coins ?c_from))
+      (coins ?c_to)
+    )
+    :cost 0.5
+  )
+
+  (:action sell_fish
+    :parameters (?c_from - coin ?c_to - coin)
+    :precondition (and
+      (at shop)
+      (has fish)
+      (coins ?c_from)
+      (earn_fish ?c_from ?c_to)
+    )
+    :effect (and
+      (not (has fish))
+      (not (coins ?c_from))
+      (coins ?c_to)
+    )
+    :cost 0.5
+  )
+
+  ;; =========================================================================
+  ;; PERTANIAN BERTAHAP (FARM)
+  ;; =========================================================================
+  (:action plant_radish
+    :parameters (?plot - plot)
+    :precondition (and
+      (at farm)
+      (plot_empty ?plot)
+      (has seeds_radish)
+    )
+    :effect (and
+      (not (has seeds_radish))
+      (not (plot_empty ?plot))
+      (plot_planted ?plot radish)
+    )
+    :cost 1.0
+  )
+
+  (:action water_radish
+    :parameters (?plot - plot)
+    :precondition (and
+      (at farm)
+      (plot_planted ?plot radish)
+    )
+    :effect (and
+      (plot_watered ?plot)
+    )
+    :cost 1.0
+  )
+
+  (:action wait_grow_radish
+    :parameters (?plot - plot)
+    :precondition (and
+      (at farm)
+      (plot_planted ?plot radish)
+      (plot_watered ?plot)
+    )
+    :effect (and
+      (not (plot_planted ?plot radish))
+      (not (plot_watered ?plot))
+      (plot_mature ?plot radish)
+    )
+    :cost 12.5
+  )
+
+  (:action harvest_radish
+    :parameters (?plot - plot)
+    :precondition (and
+      (at farm)
+      (plot_mature ?plot radish)
+    )
+    :effect (and
+      (not (plot_mature ?plot radish))
+      (plot_empty ?plot)
+      (has radish)
+    )
+    :cost 1.0
+  )
+
+  ;; =========================================================================
+  ;; SUMBER DAYA ALAM & PETERNAKAN
+  ;; =========================================================================
+  (:action collect_egg
+    :parameters ()
+    :precondition (and
+      (at chicken_coop)
+    )
+    :effect (and
+      (has egg)
+    )
+    :cost 1.5
+  )
+
+  (:action collect_milk
+    :parameters ()
+    :precondition (and
+      (at cow_pasture)
+    )
+    :effect (and
+      (has milk)
+    )
+    :cost 2.0
+  )
+
+  (:action fish
+    :parameters ()
+    :precondition (and
+      (at river_fishing)
+    )
+    :effect (and
+      (has fish)
+    )
+    :cost 2.5
+  )
+
+  (:action chop_wood
+    :parameters ()
+    :precondition (and
+      (at forest_wood)
+    )
+    :effect (and
+      (has wood)
+    )
+    :cost 2.0
+  )
+
+  (:action mine_rock
+    :parameters ()
+    :precondition (and
+      (at quarry_rock)
+    )
+    :effect (and
+      (has rock)
+    )
+    :cost 2.0
+  )
+
+  (:action mine_rock_river
+    :parameters ()
+    :precondition (and
+      (at river_fishing)
+    )
+    :effect (and
+      (has rock)
+    )
+    :cost 3.5
+  )
+
+  ;; =========================================================================
+  ;; CRAFTING (BENGKEL DESA)
+  ;; =========================================================================
+  (:action craft_potion
+    :parameters (?c_cur - count ?c_next - count)
+    :precondition (and
+      (at workshop)
+      (has radish)
+      (has bottle_empty)
+      (has_n potion ?c_cur)
+      (next_count ?c_cur ?c_next)
+    )
+    :effect (and
+      (not (has radish))
+      (not (has bottle_empty))
+      (not (has_n potion ?c_cur))
+      (has_n potion ?c_next)
+      (has potion)
+    )
+    :cost 1.5
+  )
+
+  (:action craft_key
+    :parameters ()
+    :precondition (and
+      (at workshop)
+      (has wood)
+      (has rock)
+    )
+    :effect (and
+      (not (has wood))
+      (not (has rock))
+      (has gate_key)
+    )
+    :cost 2.0
+  )
+
+  ;; =========================================================================
+  ;; GERBANG, ISTIRAHAT, LOADOUT, & BATTLE
+  ;; =========================================================================
+  (:action open_gate
+    :parameters ()
+    :precondition (and
+      (at gate)
+      (has gate_key)
+      (gate_locked)
+    )
+    :effect (and
+      (not (gate_locked))
+      (gate_open)
+    )
+    :cost 1.0
+  )
+
+  (:action rest
+    :parameters ()
+    :precondition (and
+      (at bed)
+    )
+    :effect (and
+      (hp_full)
+    )
+    :cost 3.0
+  )
+
+  (:action equip
+    :parameters (?w - item ?a - item)
+    :precondition (and
+      (at workshop)
+      (has ?w)
+      (has ?a)
+      (valid_loadout ?w ?a)
+    )
+    :effect (and
+      (equipped_weapon ?w)
+      (equipped_armor ?a)
+      (equipped_ok)
+    )
+    :cost 0.5
+  )
+
+  (:action fight_boss
+    :parameters (?w - item ?a - item ?n - count)
+    :precondition (and
+      (at boss)
+      (gate_open)
+      (hp_full)
+      (equipped_weapon ?w)
+      (equipped_armor ?a)
+      (equipped_ok)
+      (has_n potion ?n)
+      (ready_loadout ?w ?a ?n)
+    )
+    :effect (and
+      (boss_defeated)
+    )
+    :cost 10.0
+  )
+)

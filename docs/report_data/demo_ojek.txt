@@ -1,0 +1,59 @@
+Perintah: /usr/bin/python3 src/main.py --demo-ojek
+Waktu Eksekusi: 0.802 s
+Waktu: 2026-11-08T21:03:42.502243
+
+<frozen importlib._bootstrap>:491: RuntimeWarning: Your system is avx2 capable but pygame was not built with support for it. The performance of some of your blits could be adversely affected. Consider enabling compile time detection with environment variables like PYGAME_DETECT_AVX2=1 if you are compiling without cross compilation.
+pygame 2.6.1 (SDL 2.32.72, Python 3.14.7)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+
+================================================================================
+DEMO 1: DOMAIN OJEK DELIVERY (Materi Kuliah Slide 1-26 & Slide 30)
+================================================================================
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[Problem Setup]
+  Objects: rumah, warung, kampus, paket
+  Initial State Facts: 6 fakta
+    - (motor-at rumah)
+    - (at paket warung)
+    - road(rumah, warung), road(warung, kampus) [simetris]
+  Goal Facts: (at paket kampus)
+  Aksi ter-ground: 12
+
+[1. Eksekusi Forward Search Algorithms]
+  * BFS (Breadth-First Search)       : 4 langkah | Biaya: 4.0 | Nodes:  6 | Waktu: 0.10 ms
+    Rencana: drive(rumah, warung) -> pickup(paket, warung) -> drive(warung, kampus) -> drop(paket, kampus)
+  * UCS (Uniform-Cost Search)        : 4 langkah | Biaya: 4.0 | Nodes:  8 | Waktu: 0.09 ms
+    Rencana: drive(rumah, warung) -> pickup(paket, warung) -> drive(warung, kampus) -> drop(paket, kampus)
+  * A* (Heuristik h_max)             : 4 langkah | Biaya: 4.0 | Nodes:  5 | Waktu: 0.26 ms
+    Rencana: drive(rumah, warung) -> pickup(paket, warung) -> drive(warung, kampus) -> drop(paket, kampus)
+  * WA* (Weighted A* h_FF, w=2.0)    : 4 langkah | Biaya: 4.0 | Nodes:  5 | Waktu: 0.21 ms
+    Rencana: drive(rumah, warung) -> pickup(paket, warung) -> drive(warung, kampus) -> drop(paket, kampus)
+
+[2. State Progression Trace: Result(s, a) = (s \ del(a)) U add(a)]
+  State Awal (s0):
+    Fakta Dinamis: (at paket warung), (motor-at rumah)
+  Langkah 1: drive(rumah, warung)
+    Del: {(motor-at rumah)} | Add: {(motor-at warung)}
+    State Baru (s1): (at paket warung), (motor-at warung)
+  Langkah 2: pickup(paket, warung)
+    Del: {(at paket warung)} | Add: {(in paket)}
+    State Baru (s2): (in paket), (motor-at warung)
+  Langkah 3: drive(warung, kampus)
+    Del: {(motor-at warung)} | Add: {(motor-at kampus)}
+    State Baru (s3): (in paket), (motor-at kampus)
+  Langkah 4: drop(paket, kampus)
+    Del: {(in paket)} | Add: {(at paket kampus)}
+    State Baru (s4): (at paket kampus), (motor-at kampus)
+
+[3. Plan Checker: Penolakan Rencana Tidak Sah (Slide 30)]
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+  Plan (a) ['drive(rumah, warung)', 'drive(warung, kampus)', 'pickup(paket, kampus)']:
+    Valid: False | Alasan: Langkah 3 'pickup(paket, kampus)' gagal: prasyarat tidak terpenuhi: ['(at paket kampus)']
+  Plan (b) ['drive(rumah, kampus)', 'pickup(paket, kampus)']:
+    Valid: False | Alasan: Langkah 1 'drive(rumah, kampus)' gagal: prasyarat tidak terpenuhi: ['(road rumah kampus)']
+
+[4. Variasi Gerbang Kampus Tertutup (ojek_gate)]
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+  Rencana Adaptif: drive(rumah, warung) -> pickup(paket, warung) -> open-gate(kampus) -> drive(warung, kampus) -> drop(paket, kampus)
+================================================================================
+

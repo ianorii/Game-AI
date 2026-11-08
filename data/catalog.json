@@ -1,0 +1,76 @@
+{
+  "weapons": [
+    {
+      "id": "sword_basic",
+      "name": "Pedang Biasa",
+      "price": 0,
+      "cost": 2,
+      "weight": 3,
+      "effects": {"attack_bonus": 0},
+      "desc": "Pedang seimbang standar (+0 DMG)"
+    },
+    {
+      "id": "weapon_dagger",
+      "name": "Belati Cepat",
+      "price": 25,
+      "cost": 3,
+      "weight": 2,
+      "effects": {"attack_bonus": 3},
+      "desc": "Belati lincah tebasan cepat (+3 DMG)"
+    },
+    {
+      "id": "weapon_axe",
+      "name": "Kapak Berat",
+      "price": 35,
+      "cost": 4,
+      "weight": 6,
+      "effects": {"attack_bonus": 6},
+      "desc": "Kapak penghancur (+6 DMG, berat)"
+    },
+    {
+      "id": "fire_staff",
+      "name": "Tongkat Api",
+      "price": 40,
+      "cost": 5,
+      "weight": 3,
+      "effects": {"attack_bonus": 7},
+      "desc": "Tongkat magis semburan api (+7 DMG)"
+    }
+  ],
+  "armors": [
+    {
+      "id": "cloth_armor",
+      "name": "Kain",
+      "price": 0,
+      "cost": 1,
+      "weight": 1,
+      "effects": {"max_hp_bonus": 0, "defend_bonus": 0.0},
+      "desc": "Jubah kain ringan (+0 HP)"
+    },
+    {
+      "id": "armor_leather",
+      "name": "Kulit",
+      "price": 20,
+      "cost": 3,
+      "weight": 3,
+      "effects": {"max_hp_bonus": 10, "defend_bonus": 0.05},
+      "desc": "Zirah kulit tangguh (+10 HP, +5% defend)"
+    },
+    {
+      "id": "armor_iron",
+      "name": "Besi",
+      "price": 45,
+      "cost": 5,
+      "weight": 6,
+      "effects": {"max_hp_bonus": 20, "defend_bonus": 0.10},
+      "desc": "Baju pelat besi (+20 HP, +10% defend, berat)"
+    }
+  ],
+  "items": [
+    {"name": "seeds_radish", "price": 5, "type": "seed"},
+    {"name": "seeds_wheat", "price": 4, "type": "seed"},
+    {"name": "bottle_empty", "price": 8, "type": "material"},
+    {"name": "potion_red", "price": 18, "type": "consumable", "heal": 30}
+  ]
+}
+

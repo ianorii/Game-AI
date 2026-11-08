@@ -1,0 +1,28 @@
+Perintah: /usr/bin/python3 src/main.py --selftest 120
+Waktu Eksekusi: 3.844 s
+Waktu: 2026-11-08T21:03:41.698804
+
+<frozen importlib._bootstrap>:491: RuntimeWarning: Your system is avx2 capable but pygame was not built with support for it. The performance of some of your blits could be adversely affected. Consider enabling compile time detection with environment variables like PYGAME_DETECT_AVX2=1 if you are compiling without cross compilation.
+pygame 2.6.1 (SDL 2.32.72, Python 3.14.7)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+[HERO SPRITE] Komposisi siap: IDLE (base + spikeyhair) | 9 frame | Per frame: (96, 64)
+[HERO SPRITE] Komposisi siap: RUN (base + spikeyhair) | 8 frame | Per frame: (96, 64)
+[HERO SPRITE] Komposisi siap: WALK (base + spikeyhair) | 8 frame | Per frame: (96, 64)
+[HERO SPRITE] Komposisi siap: ATTACK (base + spikeyhair + tools) | 10 frame | Per frame: (96, 64)
+[HERO SPRITE] Komposisi siap: CASTING (base + spikeyhair) | 15 frame | Per frame: (96, 64)
+[HERO SPRITE] Komposisi siap: HURT (base + spikeyhair) | 8 frame | Per frame: (96, 64)
+[BATTLE SPRITE] Dimuat: /mnt/kuliah/smt3/AI/DungeonGame/assets/sunnyside_world/Characters/Skeleton/PNG/skeleton_idle_strip6.png | Ukuran strip: (576, 64) | 6 frame | Per frame: (96, 64) | Scale: 8x
+[BATTLE SPRITE] Dimuat: /mnt/kuliah/smt3/AI/DungeonGame/assets/sunnyside_world/Characters/Skeleton/PNG/skeleton_attack_strip7.png | Ukuran strip: (672, 64) | 7 frame | Per frame: (96, 64) | Scale: 8x
+[BATTLE SPRITE] Dimuat: /mnt/kuliah/smt3/AI/DungeonGame/assets/sunnyside_world/Characters/Skeleton/PNG/skeleton_hurt_strip7.png | Ukuran strip: (672, 64) | 7 frame | Per frame: (96, 64) | Scale: 8x
+[BATTLE SPRITE] Dimuat: /mnt/kuliah/smt3/AI/DungeonGame/assets/sunnyside_world/Characters/Skeleton/PNG/skeleton_death_strip10.png | Ukuran strip: (960, 64) | 10 frame | Per frame: (96, 64) | Scale: 8x
+[BATTLE SPRITE] Dimuat Glint VFX (Potion/Heal): /mnt/kuliah/smt3/AI/DungeonGame/assets/sunnyside_world/Elements/VFX/Glint/spr_deco_glint_01_strip6.png | 6 frame | Scale: 7x
+[BATTLE SPRITE] Dimuat Hit Spark VFX: /mnt/kuliah/smt3/AI/DungeonGame/assets/sunnyside_world/Elements/VFX/Glint/spr_deco_glint_02_strip4.png | 4 frame | Scale: 6x
+[BATTLE SPRITE] Dimuat Torch VFX: /mnt/kuliah/smt3/AI/DungeonGame/assets/sunnyside_world/Elements/VFX/Fire/spr_deco_fire_01_strip4.png | 4 frame | Scale: 4x
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[CollisionEditor] Berhasil memuat 0 collision override dari '/mnt/kuliah/smt3/AI/DungeonGame/data/collision_overrides.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[HERO SPRITE] Komposisi siap: IDLE (base + curlyhair) | 9 frame | Per frame: (96, 64)
+[HERO SPRITE] Komposisi siap: IDLE (base + mophair) | 9 frame | Per frame: (96, 64)
+[SELFTEST OK] 120 frame dijalankan tanpa crash.

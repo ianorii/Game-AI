@@ -1,0 +1,37 @@
+BENCHMARK COMPREHENSIVE STRIPS EXPEDITION PLANNER (docs/report_data/benchmark.json)
+-------------------------------------------------------------------------------------------------------------------
+Problem                    | Algoritma        | Status             | Langkah | Biaya (s) | Nodes      | Waktu (ms)  | ms/node | Optimalitas    
+-------------------------------------------------------------------------------------------------------------------
+P1: Key                    | BFS              | SUKSES             |    6    |   16.63   |         44 |       24.63 |   0.560 | Satisficing    
+P1: Key                    | UCS              | SUKSES             |    6    |   16.63   |         35 |       19.32 |   0.552 | Ya (Admissible)
+P1: Key                    | A* (h_max)       | SUKSES             |    6    |   16.63   |         16 |       47.36 |   2.960 | Ya (Admissible)
+P1: Key                    | A* (h_add)       | SUKSES             |    6    |   16.63   |          9 |       38.85 |   4.317 | Satisficing    
+P1: Key                    | WA* (h_FF)       | SUKSES             |    6    |   16.63   |          7 |       11.62 |   1.659 | Satisficing    
+P1: Key                    | A* (h_level)     | TIMEOUT (5.0s)     |    -    |     -     |          0 |     4897.46 | 4897.461 | Ya             
+P1: Key                    | Static Level S0  | TIMEOUT (5.0s)     |    -    |     -     |          0 |     4192.35 | 4192.353 | Tidak          
+P2: Gate                   | BFS              | SUKSES             |    8    |   23.07   |         48 |       29.05 |   0.605 | Satisficing    
+P2: Gate                   | UCS              | SUKSES             |    8    |   23.07   |         48 |       29.41 |   0.613 | Ya (Admissible)
+P2: Gate                   | A* (h_max)       | SUKSES             |    8    |   23.07   |         29 |       66.48 |   2.293 | Ya (Admissible)
+P2: Gate                   | A* (h_add)       | SUKSES             |    8    |   23.07   |         13 |       37.81 |   2.908 | Satisficing    
+P2: Gate                   | WA* (h_FF)       | SUKSES             |    8    |   23.07   |         12 |       11.50 |   0.958 | Satisficing    
+P2: Gate                   | A* (h_level)     | TIMEOUT (5.0s)     |    -    |     -     |          0 |     7407.42 | 7407.420 | Ya             
+P3: Potion                 | BFS              | TIMEOUT (5.0s)     |    -    |     -     |      3,899 |     3000.36 |   0.770 | Tidak          
+P3: Potion                 | UCS              | TIMEOUT (5.0s)     |    -    |     -     |      3,888 |     3000.35 |   0.772 | Ya             
+P3: Potion                 | A* (h_max)       | TIMEOUT (5.0s)     |    -    |     -     |        526 |     3006.50 |   5.716 | Ya             
+P3: Potion                 | A* (h_add)       | SUKSES             |   11    |   50.61   |         24 |      181.29 |   7.554 | Satisficing    
+P3: Potion                 | WA* (h_FF)       | SUKSES             |   10    |   50.61   |         14 |       15.50 |   1.107 | Satisficing    
+P3: Potion                 | A* (h_level)     | TIMEOUT (5.0s)     |    -    |     -     |          0 |     4448.23 | 4448.229 | Ya             
+P4: Final Game (Tongkat)   | WA* (h_FF)       | SUKSES             |   37    |  118.48   |        939 |     1458.86 |   1.554 | Satisficing    
+P4: Belati Cepat (Murah)   | WA* (h_FF)       | UNSOLVABLE         |    -    |     -     |          0 |        0.38 |   0.384 | -              
+P4: Belati Cepat (Murah)   | BFS              | UNSOLVABLE         |    -    |     -     |          0 |        0.01 |   0.010 | -              
+P4: Belati Cepat (Murah)   | UCS              | UNSOLVABLE         |    -    |     -     |          0 |        0.01 |   0.007 | -              
+P4: Belati Cepat (Murah)   | A* (h_max)       | UNSOLVABLE         |    -    |     -     |          0 |        0.01 |   0.007 | -              
+P4: Belati Cepat (Murah)   | A* (h_add)       | UNSOLVABLE         |    -    |     -     |          0 |        0.01 |   0.006 | -              
+P4: Belati Cepat (Murah)   | A* (h_level)     | UNSOLVABLE         |    -    |     -     |          0 |        0.01 |   0.005 | -              
+P5: Unsolvable             | BFS              | UNSOLVABLE         |    -    |     -     |          0 |        0.02 |   0.015 | -              
+P5: Unsolvable             | UCS              | UNSOLVABLE         |    -    |     -     |          0 |        0.01 |   0.007 | -              
+P5: Unsolvable             | A* (h_max)       | UNSOLVABLE         |    -    |     -     |          0 |        0.87 |   0.873 | -              
+P5: Unsolvable             | A* (h_add)       | UNSOLVABLE         |    -    |     -     |          0 |        0.01 |   0.012 | -              
+P5: Unsolvable             | WA* (h_FF)       | UNSOLVABLE         |    -    |     -     |          0 |        0.01 |   0.008 | -              
+P5: Unsolvable             | A* (h_level)     | UNSOLVABLE         |    -    |     -     |          0 |        0.01 |   0.008 | -              
+-------------------------------------------------------------------------------------------------------------------

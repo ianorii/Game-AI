@@ -1,0 +1,26 @@
+;; Problem Ojek Delivery (Slide Kuliah Automated Planning)
+;; Objek: rumah, warung, kampus - location; paket - package
+;; Init: (motor-at rumah), (at paket warung), (road rumah warung), (road warung rumah), (road warung kampus), (road kampus warung)
+;; Goal: (at paket kampus)
+
+(define (problem ojek-problem)
+  (:domain ojek-delivery)
+
+  (:objects
+    rumah warung kampus - location
+    paket - package
+  )
+
+  (:init
+    (motor-at rumah)
+    (at paket warung)
+    (road rumah warung)
+    (road warung rumah)
+    (road warung kampus)
+    (road kampus warung)
+  )
+
+  (:goal
+    (at paket kampus)
+  )
+)

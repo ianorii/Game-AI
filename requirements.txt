@@ -1,2 +1,3 @@
-pygame==2.6.1
-pygbag==0.9.3  # hanya untuk deploy web (CI)
+pygame>=2.5.0
+networkx>=3.0
+python-constraint>=1.4.0

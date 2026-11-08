@@ -1,0 +1,51 @@
+;; Domain Ojek Delivery (Materi Slide Kuliah Automated Planning)
+;; Predikat: (motor-at ?l), (at ?p ?l), (in ?p), (road ?from ?to)
+;; Aksi: drive(?from ?to), pickup(?p ?l), drop(?p ?l)
+
+(define (domain ojek-delivery)
+  (:predicates
+    (motor-at ?l)
+    (at ?p ?l)
+    (in ?p)
+    (road ?from ?to)
+  )
+
+  (:action drive
+    :parameters (?from ?to)
+    :precondition (and
+      (motor-at ?from)
+      (road ?from ?to)
+    )
+    :effect (and
+      (not (motor-at ?from))
+      (motor-at ?to)
+    )
+    :cost 1.0
+  )
+
+  (:action pickup
+    :parameters (?p ?l)
+    :precondition (and
+      (motor-at ?l)
+      (at ?p ?l)
+    )
+    :effect (and
+      (not (at ?p ?l))
+      (in ?p)
+    )
+    :cost 1.0
+  )
+
+  (:action drop
+    :parameters (?p ?l)
+    :precondition (and
+      (motor-at ?l)
+      (in ?p)
+    )
+    :effect (and
+      (not (in ?p))
+      (at ?p ?l)
+    )
+    :cost 1.0
+  )
+)

@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "map_id": "sunnyside_island",
+  "world_seed": 20261021,
+  "world_size": [
+    86,
+    48
+  ],
+  "overrides": []
+}
