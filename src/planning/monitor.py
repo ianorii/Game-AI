@@ -187,6 +187,7 @@ class PlanMonitor:
             if res.success and len(res.plan) > 0:
                 self.current_plan = list(res.plan)
                 self.current_step_idx = 0
+                self.surrendered = False
                 if is_initial_plan:
                     self.consecutive_replans = 0
                     self.last_replan_reason = "-"

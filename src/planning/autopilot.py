@@ -89,6 +89,8 @@ class AutopilotController:
                 self._request_new_plan()
         elif self.mode == PlannerMode.AUTO:
             self.status_message = "Mode AUTO aktif: Hero bergerak mandiri."
+            self.monitor.surrendered = False
+            self.monitor.consecutive_replans = 0
             if not self.monitor.current_plan or self.monitor.current_action is None:
                 self._request_new_plan()
             else:
@@ -99,6 +101,8 @@ class AutopilotController:
     def _request_new_plan(self) -> bool:
         """Membuat rencana baru dari kondisi dunia saat ini."""
         self.state = AutopilotState.PLANNING
+        self.monitor.surrendered = False
+        self.monitor.consecutive_replans = 0
         ok, plan, msg = self.monitor.trigger_replan(hero=self.hero, game_map=self.game_map)
         if ok and plan:
             self.status_message = msg
