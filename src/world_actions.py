@@ -49,7 +49,10 @@ def goto_location(world_state: WorldState, hero: Any, location_name: str, game_m
             hero.gx = int(target_pos[0] // 32)
             hero.gy = int(target_pos[1] // 32)
         if hasattr(hero, "cell"):
-            hero.cell = (int(target_pos[0] // 32), int(target_pos[1] // 32))
+            try:
+                hero.cell = (int(target_pos[0] // 32), int(target_pos[1] // 32))
+            except (AttributeError, TypeError):
+                pass
 
     # Hitung durasi tempuh fisik aktual
     duration = 2.0

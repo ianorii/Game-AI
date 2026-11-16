@@ -215,6 +215,11 @@ class Entity:
     def cell(self):
         return (self.gx, self.gy)
 
+    @cell.setter
+    def cell(self, val):
+        self.gx = int(val[0])
+        self.gy = int(val[1])
+
     def tile_rect(self):
         return pygame.Rect(self.px, self.py, TILE, TILE)
 
@@ -655,6 +660,11 @@ class Trap:
     @property
     def cell(self):
         return (self.gx, self.gy)
+
+    @cell.setter
+    def cell(self, val):
+        self.gx = int(val[0])
+        self.gy = int(val[1])
 
     def trigger(self):
         if not self.active:
