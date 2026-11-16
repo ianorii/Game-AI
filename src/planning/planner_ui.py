@@ -325,6 +325,7 @@ class HTNPlanPanel:
             "working": "UI/expression_working.png",
             "confused": "UI/expression_confused.png",
             "chat": "UI/expression_chat.png",
+            "rest": "UI/expression_rest.png",
             "confirm": "UI/confirm.png",
             "indicator": "UI/indicator.png"
         }

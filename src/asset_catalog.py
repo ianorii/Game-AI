@@ -139,6 +139,14 @@ class AssetCatalog:
             return gen_candidate
 
         # 4. Cek fallback penamaan (case-insensitive / strip)
+        if os.path.basename(key_or_path) == "expression_rest.png":
+            rest_p = os.path.join(self.root_dir, "UI", "expression_rest.png")
+            if os.path.isfile(rest_p):
+                return rest_p
+            love_p = os.path.join(self.root_dir, "UI", "expression_love.png")
+            if os.path.isfile(love_p):
+                return love_p
+
         key_lower = key_or_path.lower()
         for idx_k, rel_p in self._index.items():
             if idx_k.lower() == key_lower:
