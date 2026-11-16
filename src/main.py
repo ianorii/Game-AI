@@ -210,7 +210,8 @@ class Game:
         self.hero = Hero(spawn_gx, spawn_gy, self.assets)
         self.hero.px = float(self.game_map.spawn_x)
         self.hero.py = float(self.game_map.spawn_y)
-        self.boss = Boss(config.BOSS_POS[0], config.BOSS_POS[1], self.assets)
+        boss_spawn = getattr(config, "BOSS_FIELD_POS", config.BOSS_POS)
+        self.boss = Boss(boss_spawn[0], boss_spawn[1], self.assets)
         self.boss.alive = True
         self.boss_defeated = False
         self.saved_player_pos = None
@@ -268,11 +269,10 @@ class Game:
         board_pos = getattr(config, "INTERACT_WEATHER_BOARD_POS", (1504, 1024))
         self.weather_board_prop = WeatherNoticeBoardProp(x=board_pos[0] - 18, y=board_pos[1] - 20)
 
-        # Sinkronkan obstacle gerbang tertutup ke dynamic_obstacles game_map
+        # Gerbang dihilangkan sesuai permintaan pemain (open-world tanpa barrier gerbang fisik)
+        # Dynamic obstacle gerbang tidak dimasukkan ke game_map agar jalur ke timur bebas diakses
         if self.game_map:
-            obs = self.world_state.gate.get_obstacle_rect()
-            if obs and obs not in self.game_map.dynamic_obstacles:
-                self.game_map.dynamic_obstacles.append(obs)
+            pass
 
         # ---- kamera open-world (mengikuti Hero dengan smoothing) ---------
         self.cam_x = 0.0
@@ -1715,8 +1715,9 @@ class Game:
                 entities.append(self.boss)
             if hasattr(self, "village_deco") and self.village_deco:
                 entities.extend(self.village_deco.get_y_sort_entities())
-        if hasattr(self, "world_state") and self.world_state and hasattr(self.world_state, "gate"):
-            entities.append(self.world_state.gate)
+        # Gerbang dihilangkan secara visual dari dunia eksplorasi sesuai permintaan
+        # if hasattr(self, "world_state") and self.world_state and hasattr(self.world_state, "gate"):
+        #     entities.append(self.world_state.gate)
         if hasattr(self, "beach_deco") and self.beach_deco:
             entities.extend(self.beach_deco.get_y_sort_entities())
         if hasattr(self, "weather_board_prop") and self.weather_board_prop:

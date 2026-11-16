@@ -250,6 +250,7 @@ BOSS_SPEED_TPS = 2.2
 BOSS_MAX_HP = 100
 BOSS_DAMAGE = 12            # baseline; tiap aksi punya range sendiri
 BOSS_POS = (2464, 448)      # Koordinat Boss di dunia (Obsidian Keep Ruins)
+BOSS_FIELD_POS = (2592, 608) # Posisi Boss di lahan terbuka timur (kotak yang ditandai pemain, tile 81, 19)
 BOSS_TRIGGER_RADIUS = 64    # Radius trigger interaksi (2 tile x 32 px)
 BOSS_NAME = "SKELETON OVERLORD"
 

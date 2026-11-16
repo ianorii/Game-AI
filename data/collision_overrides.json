@@ -6,5 +6,91 @@
     86,
     48
   ],
-  "overrides": []
+  "overrides": [
+    {
+      "x": 76,
+      "y": 15,
+      "blocked": false
+    },
+    {
+      "x": 76,
+      "y": 16,
+      "blocked": false
+    },
+    {
+      "x": 76,
+      "y": 17,
+      "blocked": false
+    },
+    {
+      "x": 77,
+      "y": 15,
+      "blocked": false
+    },
+    {
+      "x": 77,
+      "y": 16,
+      "blocked": false
+    },
+    {
+      "x": 77,
+      "y": 17,
+      "blocked": false
+    },
+    {
+      "x": 78,
+      "y": 15,
+      "blocked": false
+    },
+    {
+      "x": 78,
+      "y": 17,
+      "blocked": false
+    },
+    {
+      "x": 80,
+      "y": 18,
+      "blocked": false
+    },
+    {
+      "x": 81,
+      "y": 18,
+      "blocked": false
+    },
+    {
+      "x": 82,
+      "y": 18,
+      "blocked": false
+    },
+    {
+      "x": 80,
+      "y": 19,
+      "blocked": false
+    },
+    {
+      "x": 81,
+      "y": 19,
+      "blocked": false
+    },
+    {
+      "x": 82,
+      "y": 19,
+      "blocked": false
+    },
+    {
+      "x": 80,
+      "y": 20,
+      "blocked": false
+    },
+    {
+      "x": 81,
+      "y": 20,
+      "blocked": false
+    },
+    {
+      "x": 82,
+      "y": 20,
+      "blocked": false
+    }
+  ]
 }

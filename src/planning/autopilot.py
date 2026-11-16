@@ -300,12 +300,17 @@ class AutopilotController:
 
             locs = getattr(config, "LOCATIONS", {})
             target_pt = locs.get(to_loc)
+            if to_loc == "boss":
+                if hasattr(self, "game") and self.game and hasattr(self.game, "boss") and self.game.boss:
+                    target_pt = (self.game.boss.px - 32, self.game.boss.py)
+                elif hasattr(config, "BOSS_FIELD_POS"):
+                    target_pt = (config.BOSS_FIELD_POS[0] - 32, config.BOSS_FIELD_POS[1])
 
             # Cari path A* dari posisi hero sekarang
             path_tiles = None
             if self.hero and target_pt:
                 hero_cell = getattr(self.hero, "cell", (int(self.hero.px // 32), int(self.hero.py // 32)))
-                target_cell = (target_pt[0] // 32, target_pt[1] // 32)
+                target_cell = (int(target_pt[0] // 32), int(target_pt[1] // 32))
                 
                 # Gunakan cache distance matrix jika hero berada di from_loc
                 _, _, dm_path = self.distance_matrix.get_distance(
@@ -318,11 +323,6 @@ class AutopilotController:
                     def is_blocked(cx, cy):
                         if not self.game_map.can_stand(pygame.Rect(cx * 32 + 9, cy * 32 + 12, 14, 8)):
                             return True
-                        if not self.world_state.gate.is_open:
-                            px = cx * 32 + 16
-                            py = cy * 32 + 16
-                            if (2480 <= px <= 2600) and (500 <= py <= 550):
-                                return True
                         return False
                     res = astar(self.game_map.width // 32, self.game_map.height // 32,
                                 hero_cell, target_cell, is_blocked)
