@@ -207,6 +207,7 @@ class Game:
 
         self.placements = []                 # list[Placement] hasil pasangan pemain
         self.traps = {}                      # cell -> Trap
+        self.messages = deque(maxlen=6)
         self.hero = Hero(spawn_gx, spawn_gy, self.assets)
         self.hero.px = float(self.game_map.spawn_x)
         self.hero.py = float(self.game_map.spawn_y)
@@ -1467,7 +1468,13 @@ class Game:
                             self.screen_shake = ccfg.SCREEN_SHAKE_DURATION
                         self.log(f"Serangan mengenai {gob.name}! HP musuh: {gob.hp}/{gob.max_hp}", config.YELLOW)
 
-        # ---- Bersihkan minion/goblin yang sudah mati agar hilang total dari layar & game ----
+        # ---- Bersihkan minion/goblin yang sudah mati, berikan drop koin, dan respawn ----
+        newly_dead = [g for g in self.goblins if not g.alive]
+        for dead_gob in newly_dead:
+            loot_coins = random.randint(3, 8)
+            if hasattr(self, "world_state") and self.world_state:
+                self.world_state.coins += loot_coins
+            self.log(f"Minion {dead_gob.name} dikalahkan! Mendapatkan +{loot_coins} Koin dari jarahan!", config.GREEN)
         self.goblins = [g for g in self.goblins if g.alive]
 
         # ---- Respawn random goblin baru ketika ada goblin yang mati/hilang ----
@@ -1911,11 +1918,13 @@ class Game:
             ("BED", getattr(config, "INTERACT_BED_POS", (1344, 960)), 54.0),
             ("CHICKEN", getattr(config, "INTERACT_CHICKEN_POS", (1072, 976)), 54.0),
             ("COW", getattr(config, "INTERACT_COW_POS", (1744, 528)), 54.0),
-            ("FISHING", getattr(config, "INTERACT_FISHING_POS", (1424, 688)), 96.0),
             ("TREE", getattr(config, "INTERACT_TREE_POS", (1488, 592)), 54.0),
             ("ROCK", getattr(config, "INTERACT_ROCK_POS", (1904, 656)), 54.0),
             ("WEATHER_BOARD", getattr(config, "INTERACT_WEATHER_BOARD_POS", (1504, 1024)), 54.0),
         ]
+        # 5 Spot Pancingan Multi-Armed Bandit di seluruh pulau
+        for sp in getattr(config, "BANDIT_FISHING_SPOTS", []):
+            poi_list.append(("FISHING", sp["pos"], 54.0))
 
         min_d = 9999.0
         nearest_poi = None

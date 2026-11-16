@@ -8,46 +8,6 @@
   ],
   "overrides": [
     {
-      "x": 76,
-      "y": 15,
-      "blocked": false
-    },
-    {
-      "x": 76,
-      "y": 16,
-      "blocked": false
-    },
-    {
-      "x": 76,
-      "y": 17,
-      "blocked": false
-    },
-    {
-      "x": 77,
-      "y": 15,
-      "blocked": false
-    },
-    {
-      "x": 77,
-      "y": 16,
-      "blocked": false
-    },
-    {
-      "x": 77,
-      "y": 17,
-      "blocked": false
-    },
-    {
-      "x": 78,
-      "y": 15,
-      "blocked": false
-    },
-    {
-      "x": 78,
-      "y": 17,
-      "blocked": false
-    },
-    {
       "x": 80,
       "y": 18,
       "blocked": false

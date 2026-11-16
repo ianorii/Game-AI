@@ -487,3 +487,4 @@ class BanditDirector:
         for step in range(1, self.t + 1):
             curve.append(c_lr * math.log(step))
         return curve
+

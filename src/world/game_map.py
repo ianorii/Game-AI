@@ -126,6 +126,23 @@ class GameMap:
             except Exception:
                 pass
 
+        # 3b. Terapkan data/collision_overrides.json langsung ke walkable_mask
+        col_overrides_file = getattr(config, "COLLISION_OVERRIDES_PATH", "data/collision_overrides.json")
+        if os.path.exists(col_overrides_file) and self.walkable_mask is not None:
+            try:
+                with open(col_overrides_file, "r", encoding="utf-8") as f:
+                    co_data = json.load(f)
+                tile_sz = config.TILE_SIZE
+                for item in co_data.get("overrides", []):
+                    tx, ty, blk = item.get("x"), item.get("y"), item.get("blocked", False)
+                    if tx is not None and ty is not None:
+                        val = 0 if blk else 1
+                        for py in range(ty * tile_sz, min(self.height, (ty + 1) * tile_sz)):
+                            for px in range(tx * tile_sz, min(self.width, (tx + 1) * tile_sz)):
+                                self.walkable_mask.set_at((px, py), val)
+            except Exception as e:
+                print(f"[GameMap] Gagal menerapkan collision_overrides.json: {e}")
+
         # 4. Muat Footprint Bangunan (exact decomposed bounding rects)
         self.building_footprints = []
         fp_file = os.path.join(os.path.dirname(self.mask_path), "building_footprints.json")

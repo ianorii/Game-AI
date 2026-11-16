@@ -582,7 +582,7 @@ WINDMILL_FPS = 8.0                               # Kecepatan putaran bilah kinci
 # Zona Aman Desa Sunnyside (Village Safe Zone: area permukiman, toko, dan ladang)
 # Musuh/Goblin dilarang berkeliaran, mengejar, atau spawn di dalam zona aman ini
 VILLAGE_SAFE_ZONE_RECT = (800, 420, 1150, 700)   # (x, y, w, h) melingkupi seluruh desa damai
-WORLD_GOBLINS_ACTIVE = False                     # Dinonaktifkan di dunia petualangan desa (audit: patroli musuh ditunda)
+WORLD_GOBLINS_ACTIVE = True                      # Diaktifkan: minion goblin hijau berkeliaran di alam pulau (live combat)
 
 # Titik Keluar Asap Cerobong Desa (Ujung Atas Cerobong Rumah yang Memiliki Cerobong Nyata)
 # Disimpan dalam koordinat dunia HD (2x). Hanya rumah yang benar-benar memiliki cerobong.
@@ -610,13 +610,13 @@ INTERACT_GATE_POS = (2544, 560)           # Posisi berdiri depan Gerbang Besi di
 INTERACT_CHICKEN_POS = (1344, 992)        # Kandang ayam desa (Telur, samping ayam riil di alun-alun)
 INTERACT_COW_POS = (704, 480)              # Padang rumput sapi perah (Susu, samping sapi riil barat laut)
 INTERACT_FISHING_POS = (1424, 688)        # Dermaga kayu pancingan sungai (Ikan)
-# Multi-Armed Bandit (Explore vs Exploit): 5 Spot Pancingan Muara
+# Multi-Armed Bandit (Explore vs Exploit): 5 Spot Pancingan Tersebar di Pulau Sunnyside
 BANDIT_FISHING_SPOTS = [
-    {"id": 0, "name": "Spot A (Dermaga Barat)", "pos": (1392, 688), "tile": (43, 21)},
-    {"id": 1, "name": "Spot B (Dermaga Tengah)", "pos": (1424, 688), "tile": (44, 21)},
-    {"id": 2, "name": "Spot C (Dermaga Timur)", "pos": (1456, 688), "tile": (45, 21)},
-    {"id": 3, "name": "Spot D (Muara Hilir)", "pos": (1488, 688), "tile": (46, 21)},
-    {"id": 4, "name": "Spot E (Tanjung Bebatuan)", "pos": (1520, 688), "tile": (47, 21)},
+    {"id": 0, "name": "Spot A (Dermaga Sungai Desa)", "pos": (1424, 688), "tile": (44, 21)},
+    {"id": 1, "name": "Spot B (Danau Peternakan Barat)", "pos": (784, 720), "tile": (24, 22)},
+    {"id": 2, "name": "Spot C (Hilir Muara Selatan)", "pos": (1488, 944), "tile": (46, 29)},
+    {"id": 3, "name": "Spot D (Pesisir Pantai Tenggara)", "pos": (2000, 1168), "tile": (62, 36)},
+    {"id": 4, "name": "Spot E (Tanjung Selat Timur)", "pos": (2256, 720), "tile": (70, 22)},
 ]
 INTERACT_TREE_POS = (1488, 592)           # Pohon tebang desa (Kayu)
 INTERACT_ROCK_POS = (1904, 624)           # Vena tambang tebing (Batu)

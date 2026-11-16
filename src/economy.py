@@ -175,6 +175,11 @@ class ShopUI:
         self.prev_btn_rect = pygame.Rect(self.modal_rect.x + 24, self.modal_rect.y + 348, 36, 26)
         self.next_btn_rect = pygame.Rect(self.modal_rect.x + 318, self.modal_rect.y + 348, 36, 26)
 
+    @property
+    def visible(self) -> bool:
+        """Alias untuk is_open demi konsistensi dengan UI modal lainnya."""
+        return self.is_open
+
     def open(self):
         self.is_open = True
         self.selected_item = None
@@ -184,6 +189,14 @@ class ShopUI:
 
     def close(self):
         self.is_open = False
+        self.selected_item = None
+
+    def toggle(self):
+        """Buka atau tutup modal toko secara bergantian."""
+        if self.is_open:
+            self.close()
+        else:
+            self.open()
 
     def handle_event(self, event: pygame.event.Event, shop: Shop, inventory: Inventory, coins: int) -> Tuple[bool, int]:
         """
