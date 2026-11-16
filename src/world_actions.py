@@ -38,6 +38,9 @@ def goto_location(world_state: WorldState, hero: Any, location_name: str, game_m
         prev_pos = (hero.px, hero.py)
 
     target_pos = locs[location_name]
+    if location_name == "boss":
+        # Berdiri di depan Boss (koordinat pasir 2400, 448), bukan menumpuk di dalam tubuh Boss
+        target_pos = (target_pos[0] - 64, target_pos[1])
     if hero is not None:
         if hasattr(hero, "px"):
             hero.px = float(target_pos[0])
@@ -319,6 +322,12 @@ def start_boss_battle(world_state: WorldState, hero: Any = None, game: Any = Non
 
     if st.boss_hp <= 0:
         world_state.boss_defeated = True
+        if game is not None:
+            if hasattr(game, "boss") and game.boss:
+                game.boss.alive = False
+                game.boss.defeated = True
+            if hasattr(game, "boss_defeated"):
+                game.boss_defeated = True
         return ActionResult(True, f"Hero MENANG melawan Boss! (Sisa HP Hero: {st.player_hp}, Boss: {st.boss_hp})", duration=10.0)
     else:
         # Kalah: Respawn di spawn dengan HP reset

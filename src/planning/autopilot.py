@@ -49,41 +49,50 @@ class AutopilotController:
     """
 
     def __init__(self, world_state: WorldState, hero: Any = None, game_map: Any = None,
-                 distance_matrix: Optional[DistanceMatrix] = None):
+                 distance_matrix: Optional[DistanceMatrix] = None, game: Any = None):
         self.world_state = world_state
         self.hero = hero
         self.game_map = game_map
+        self.game = game
         self.mode = PlannerMode.OFF
         self.state = AutopilotState.IDLE
 
         self.distance_matrix = distance_matrix or DistanceMatrix(game_map=game_map)
         self.monitor = PlanMonitor(world_state, distance_matrix=self.distance_matrix)
-        self.executor = PlanExecutor(world_state, hero=hero, game_map=game_map)
+        self.executor = PlanExecutor(world_state, hero=hero, game_map=game_map, game=game)
 
         self.current_path: List[Tuple[int, int]] = []
         self.target_location_name: Optional[str] = None
         self.status_message: str = "Mode Planner: OFF"
         self.is_paused_by_player: bool = False
+        self.navigating_act: Optional[GroundAction] = None
+        self.interacting_act: Optional[GroundAction] = None
+        self.interaction_timer: float = 0.0
 
     def toggle_mode(self) -> str:
         """Berpindah antara mode OFF -> ADVISOR -> AUTO -> OFF."""
         idx = PlannerMode.ALL.index(self.mode) if self.mode in PlannerMode.ALL else 0
         self.mode = PlannerMode.ALL[(idx + 1) % len(PlannerMode.ALL)]
         self.is_paused_by_player = False
+        self.navigating_act = None
+        self.interacting_act = None
+        self.interaction_timer = 0.0
 
         if self.mode == PlannerMode.OFF:
             self.state = AutopilotState.IDLE
             self.status_message = "Mode Planner dimatikan (OFF)."
+            if self.hero:
+                self.hero.set_path([])
         elif self.mode == PlannerMode.ADVISOR:
             self.status_message = "Mode ADVISOR aktif: Menampilkan saran langkah."
-            if not self.monitor.current_plan:
+            if not self.monitor.current_plan or self.monitor.current_action is None:
                 self._request_new_plan()
         elif self.mode == PlannerMode.AUTO:
             self.status_message = "Mode AUTO aktif: Hero bergerak mandiri."
-            if not self.monitor.current_plan:
+            if not self.monitor.current_plan or self.monitor.current_action is None:
                 self._request_new_plan()
             else:
-                self.state = AutopilotState.NAVIGATING
+                self.state = AutopilotState.IDLE
 
         return self.mode
 
@@ -215,33 +224,138 @@ class AutopilotController:
     def update(self, dt: float):
         """
         Loop update autopilot yang dipanggil setiap frame permainan.
+        Menggerakkan Hero secara fisik di dunia game tile-by-tile via A*,
+        memberikan pacing aksi yang halus, dan memvalidasi prekondisi kontinu.
         """
         if self.mode != PlannerMode.AUTO or self.is_paused_by_player:
             return
 
-        if self.state in (AutopilotState.IDLE, AutopilotState.SURRENDERED, AutopilotState.PAUSED):
+        if self.state in (AutopilotState.SURRENDERED, AutopilotState.PAUSED):
             return
 
+        # 1. State NAVIGATING: Hero sedang berjalan di peta menuju lokasi tujuan
+        if self.state == AutopilotState.NAVIGATING:
+            if self.hero and (self.hero.moving or (hasattr(self.hero, "path") and len(self.hero.path) > 0)):
+                # Hero masih melangkah di peta, biarkan berjalan
+                return
+            else:
+                # Hero telah tiba di tujuan!
+                if self.navigating_act:
+                    step_res = self.executor.execute_action(self.navigating_act, advance_crops=True)
+                    self.status_message = f"Tiba di {self.target_location_name or 'tujuan'}!"
+                    self.monitor.advance_step()
+                    self.navigating_act = None
+                    self.target_location_name = None
+                    self.state = AutopilotState.IDLE
+                return
+
+        # 2. State INTERACTING: Hero sedang menjalankan aksi di tempat (potong kayu, crafting, dll)
+        if self.state == AutopilotState.INTERACTING:
+            self.interaction_timer -= dt
+            if self.interaction_timer > 0:
+                return
+            else:
+                # Timer aksi selesai, terapkan efeknya di world_state
+                if self.interacting_act:
+                    step_res = self.executor.execute_action(self.interacting_act, advance_crops=True)
+                    if step_res.success:
+                        self.status_message = f"Selesai: {self.interacting_act.name}"
+                        self.monitor.advance_step()
+                    else:
+                        self.status_message = f"Gagal: {self.interacting_act.name} -> {step_res.message}"
+                        self._request_new_plan()
+                    self.interacting_act = None
+                    self.state = AutopilotState.IDLE
+                return
+
+        # 3. State IDLE: Ambil aksi berikutnya dari monitor
         act = self.monitor.current_action
         if act is None:
             self.state = AutopilotState.IDLE
-            self.status_message = "Misi ekspedisi selesai!"
+            self.status_message = "Selesai! Boss telah dikalahkan."
             return
 
-        # 1. Periksa pre-kondisi dengan PlanMonitor
+        # Periksa prekondisi dengan PlanMonitor
         status = self.monitor.check_preconditions(hero=self.hero, game_map=self.game_map)
         if not status.is_valid:
             self.status_message = f"[Pemicu {status.trigger}] {status.message}"
             replan_ok = self._request_new_plan()
             if not replan_ok:
                 return
+            act = self.monitor.current_action
+            if not act:
+                return
 
-        # 2. Eksekusi aksi
-        step_res = self.executor.execute_action(act, advance_crops=True)
-        if step_res.success:
-            self.status_message = f"Selesai: {act.name} -> {step_res.message}"
-            self.monitor.advance_step()
+        # Eksekusi aksi:
+        # A. Aksi Pergerakan (goto / goto_through_gate)
+        if act.name in ("goto", "goto_through_gate"):
+            to_loc = act.params[1] if len(act.params) > 1 else act.params[0]
+            from_loc = act.params[0] if len(act.params) > 1 else "spawn"
+            self.target_location_name = to_loc
+            self.navigating_act = act
+
+            locs = getattr(config, "LOCATIONS", {})
+            target_pt = locs.get(to_loc)
+
+            # Cari path A* dari posisi hero sekarang
+            path_tiles = None
+            if self.hero and target_pt:
+                hero_cell = getattr(self.hero, "cell", (int(self.hero.px // 32), int(self.hero.py // 32)))
+                target_cell = (target_pt[0] // 32, target_pt[1] // 32)
+                
+                # Gunakan cache distance matrix jika hero berada di from_loc
+                _, _, dm_path = self.distance_matrix.get_distance(
+                    from_loc, to_loc, gate_open=self.world_state.gate.is_open
+                )
+                if dm_path and len(dm_path) > 0 and hero_cell == dm_path[0]:
+                    path_tiles = list(dm_path)
+                elif self.game_map:
+                    from ai.pathfinding import astar
+                    def is_blocked(cx, cy):
+                        if not self.game_map.can_stand(pygame.Rect(cx * 32 + 9, cy * 32 + 12, 14, 8)):
+                            return True
+                        if not self.world_state.gate.is_open:
+                            px = cx * 32 + 16
+                            py = cy * 32 + 16
+                            if (2480 <= px <= 2600) and (500 <= py <= 550):
+                                return True
+                        return False
+                    res = astar(self.game_map.width // 32, self.game_map.height // 32,
+                                hero_cell, target_cell, is_blocked)
+                    if res.found:
+                        path_tiles = res.path
+
+            if self.hero and path_tiles and len(path_tiles) > 0:
+                self.hero.manual_mode = False
+                self.hero.set_control_dir(None)
+                self.hero.set_path(path_tiles)
+                self.state = AutopilotState.NAVIGATING
+                self.status_message = f"Menuju {to_loc} ({len(path_tiles)} langkah)..."
+            else:
+                # Fallback teleport instan jika sudah berada di lokasi atau path kosong
+                step_res = self.executor.execute_action(act, advance_crops=True)
+                self.monitor.advance_step()
+                self.navigating_act = None
+                self.target_location_name = None
+                self.state = AutopilotState.IDLE
+            return
+
+        # B. Aksi Interaksi Dunia (potong kayu, tambang batu, tempa kunci, tanam, beli barang, dll)
         else:
-            self.status_message = f"Gagal: {act.name} -> {step_res.message}"
-            self._request_new_plan()
+            self.interacting_act = act
+            self.state = AutopilotState.INTERACTING
+            # Berikan waktu animasi singkat (0.4s) agar player melihat aksi hero
+            self.interaction_timer = 0.4
+            if self.hero:
+                if "chop" in act.name or "mine" in act.name:
+                    self.hero.action_anim = "attack"
+                    self.hero.action_anim_duration = 0.4
+                elif "craft" in act.name or "water" in act.name or "plant" in act.name:
+                    self.hero.action_anim = "casting"
+                    self.hero.action_anim_duration = 0.4
+                elif "fight" in act.name:
+                    self.hero.action_anim = "attack"
+                    self.hero.action_anim_duration = 0.8
+            self.status_message = f"Melakukan {act.name}..."
+            return
 

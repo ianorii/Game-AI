@@ -248,7 +248,7 @@ class Game:
         from planning.planner_ui import ExpeditionPlanPanel, HTNPlanPanel, UnifiedPlannerPanel
         from planning.htn import parse_htn_file, HTNNPCAgent, WorldClock
 
-        self.autopilot_controller = AutopilotController(self.world_state, hero=self.hero, game_map=self.game_map)
+        self.autopilot_controller = AutopilotController(self.world_state, hero=self.hero, game_map=self.game_map, game=self)
         self.expedition_panel = ExpeditionPlanPanel()
         self.htn_panel = HTNPlanPanel()
         self.unified_panel = UnifiedPlannerPanel()
@@ -570,7 +570,7 @@ class Game:
                                  origin, self.tile_map.core, blocked)
         if self.control_mode == config.CONTROL_AUTOPILOT:
             hero.set_path(self.path_result.path)
-        else:
+        elif getattr(self, "planner_mode", "OFF") != "AUTO":
             hero.set_path([])
 
     def _monster_repath(self, m, target):
@@ -1336,7 +1336,7 @@ class Game:
 
         hero = self.hero
         # ---- mode kontrol: arah manual dari tombol yang sedang ditekan ----
-        if self.control_mode == config.CONTROL_MANUAL:
+        if self.control_mode == config.CONTROL_MANUAL and getattr(self, "planner_mode", "OFF") != "AUTO":
             hero.manual_mode = True
             vx, vy = 0.0, 0.0
             speed = config.HERO_SPEED_TPS * config.TILE_SIZE

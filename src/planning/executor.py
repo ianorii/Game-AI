@@ -57,11 +57,12 @@ class PlanExecutor:
     """
 
     def __init__(self, world_state: WorldState, hero: Any = None, game_map: Any = None,
-                 distance_matrix: Optional[DistanceMatrix] = None):
+                 distance_matrix: Optional[DistanceMatrix] = None, game: Any = None):
         self.world_state = world_state
         self.hero = hero
         self.game_map = game_map
         self.distance_matrix = distance_matrix or DistanceMatrix(game_map=game_map)
+        self.game = game
 
     def execute_plan(self, plan: List[GroundAction], advance_crops: bool = True) -> PlanExecutionReport:
         """
@@ -265,7 +266,7 @@ class PlanExecutor:
             res = world_actions.rest(self.world_state, self.hero)
 
         elif name in ("fight_boss", "fight_boss_hardened"):
-            res = world_actions.start_boss_battle(self.world_state, hero=self.hero)
+            res = world_actions.start_boss_battle(self.world_state, hero=self.hero, game=self.game)
 
         else:
             res = world_actions.ActionResult(False, f"Aksi '{name}' tidak memiliki pemetaan di PlanExecutor!", duration=0.0)
