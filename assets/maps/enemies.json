@@ -26,5 +26,26 @@
     "x": 1280,
     "y": 1248,
     "note": "Area makam kuno berbisik"
+  },
+  {
+    "type": "goblin",
+    "name": "goblin_east_channel",
+    "x": 2240,
+    "y": 950,
+    "note": "Selat bebatuan timur"
+  },
+  {
+    "type": "goblin",
+    "name": "goblin_south_beach",
+    "x": 2028,
+    "y": 1120,
+    "note": "Pesisir pantai tenggara"
+  },
+  {
+    "type": "goblin",
+    "name": "goblin_west_valley",
+    "x": 600,
+    "y": 800,
+    "note": "Lembah barat dekat sungai"
   }
 ]
