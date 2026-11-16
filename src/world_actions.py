@@ -187,13 +187,13 @@ def collect_milk(world_state: WorldState) -> ActionResult:
     return ActionResult(ok, msg, duration=2.0)
 
 
-def fish(world_state: WorldState) -> ActionResult:
-    """Memancing ikan segar di dermaga sungai desa."""
+def fish(world_state: WorldState, spot_id: Optional[int] = None) -> ActionResult:
+    """Memancing ikan segar di dermaga sungai desa (Multi-Armed Bandit integration)."""
     extra = 0.0
     if world_state.cooldowns.get("fishing", 0.0) > 0:
         extra = world_state.cooldowns["fishing"]
         world_state.update(extra)
-    ok, msg = world_state.fish()
+    ok, msg = world_state.fish(spot_id=spot_id)
     return ActionResult(ok, msg, duration=2.5 + extra)
 
 
@@ -305,7 +305,7 @@ def start_boss_battle(world_state: WorldState, hero: Any = None, game: Any = Non
             min_hero_dmg = config.HERO_ATTACK_DMG[0] + getattr(st, "hero_attack_bonus", 0)
             if st.boss_hp <= min_hero_dmg and not st.boss_defending:
                 hero_act = "ATTACK"
-            elif st.player_hp <= 40 and st.potion_count > 0:
+            elif st.player_hp <= 50 and st.potion_count > 0:
                 hero_act = "POTION"
             elif st.player_hp <= 50 and st.boss_heavy_cd == 0:
                 hero_act = "DEFEND"

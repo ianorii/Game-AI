@@ -42,6 +42,7 @@ DEFAULT_SELL_PRICES: Dict[str, int] = {
     "egg": 6,
     "milk": 12,
     "fish": 15,
+    "rare_fish": 60,
     "wood": 5,
     "rock": 5,
     "potion_red": 18,

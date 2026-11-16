@@ -25,6 +25,7 @@ ITEM_DEFINITIONS: Dict[str, Dict[str, Any]] = {
     "egg": {"name": "Telur Ayam", "category": "material", "max_stack": 99, "icon_type": "crop_item", "icon_param": "egg", "desc": "Telur segar dari kandang ayam desa."},
     "milk": {"name": "Susu Sapi", "category": "material", "max_stack": 99, "icon_type": "crop_item", "icon_param": "milk", "desc": "Susu murni dari sapi perah padang rumput."},
     "fish": {"name": "Ikan Sungai", "category": "material", "max_stack": 99, "icon_type": "crop_item", "icon_param": "fish", "desc": "Ikan segar hasil pancingan di dermaga sungai."},
+    "rare_fish": {"name": "Ikan Emas Langka", "category": "material", "max_stack": 99, "icon_type": "crop_item", "icon_param": "fish", "desc": "Ikan langka bercahaya emas dari spot pancingan muara terbaik."},
 
     # Benih
     "seeds_radish": {"name": "Benih Lobak", "category": "seed", "max_stack": 99, "icon_type": "crop_item", "icon_param": "seeds_generic", "desc": "Benih lobak siap tanam di petak ladang."},

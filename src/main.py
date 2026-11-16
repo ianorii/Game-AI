@@ -269,6 +269,12 @@ class Game:
         board_pos = getattr(config, "INTERACT_WEATHER_BOARD_POS", (1504, 1024))
         self.weather_board_prop = WeatherNoticeBoardProp(x=board_pos[0] - 18, y=board_pos[1] - 20)
 
+        # ---- Sistem Multi-Armed Bandit (Explore vs Exploit) Nelayan ----
+        from decision.bandit_ui import BanditHUD
+        sw = self.screen.get_width() if hasattr(self, "screen") and self.screen else 1024
+        sh = self.screen.get_height() if hasattr(self, "screen") and self.screen else 768
+        self.bandit_hud = BanditHUD(self.world_state.bandit_director, sw, sh)
+
         # Gerbang dihilangkan sesuai permintaan pemain (open-world tanpa barrier gerbang fisik)
         # Dynamic obstacle gerbang tidak dimasukkan ke game_map agar jalur ke timur bebas diakses
         if self.game_map:
@@ -983,6 +989,10 @@ class Game:
             if handled:
                 return
 
+        if hasattr(self, "bandit_hud") and self.bandit_hud.visible:
+            if self.bandit_hud.handle_event(event):
+                return
+
         if event.type == pygame.KEYDOWN:
             # catat tombol yang ditekan (dipakai mode MANUAL: gerak.hero)
             self.keys_held.add(event.key)
@@ -1180,6 +1190,11 @@ class Game:
             else:
                 self.show_htn_panel = not self.show_htn_panel
             self.log(f"Panel Decisions Under Uncertainty [F8]: {'DITAMPILKAN' if getattr(self, 'unified_panel', None) and self.unified_panel.visible else 'DISEMBUNYIKAN'}", config.GOLD)
+            return
+        if key == pygame.K_b:
+            if hasattr(self, "bandit_hud"):
+                self.bandit_hud.toggle()
+                self.log(f"Jurnal Nelayan Multi-Armed Bandit [B]: {'DITAMPILKAN' if self.bandit_hud.visible else 'DISEMBUNYIKAN'}", config.GOLD)
             return
         if key == pygame.K_g:
             self.show_spatial_debug = not getattr(self, "show_spatial_debug", False)
@@ -1820,6 +1835,9 @@ class Game:
                 if getattr(self, "show_htn_panel", False) and hasattr(self, "htn_panel") and hasattr(self, "farmer_npc"):
                     self.htn_panel.draw(screen, self.farmer_npc, self.miller_npc, self.world_clock)
 
+            if hasattr(self, "bandit_hud") and self.bandit_hud.visible:
+                self.bandit_hud.render(screen)
+
         if self.state == config.STATE_GAME_OVER:
             if getattr(self, "game_over", None) == "GOBLIN":
                 self._draw_combat_game_over(screen)
@@ -1893,7 +1911,7 @@ class Game:
             ("BED", getattr(config, "INTERACT_BED_POS", (1344, 960)), 54.0),
             ("CHICKEN", getattr(config, "INTERACT_CHICKEN_POS", (1072, 976)), 54.0),
             ("COW", getattr(config, "INTERACT_COW_POS", (1744, 528)), 54.0),
-            ("FISHING", getattr(config, "INTERACT_FISHING_POS", (1424, 688)), 54.0),
+            ("FISHING", getattr(config, "INTERACT_FISHING_POS", (1424, 688)), 96.0),
             ("TREE", getattr(config, "INTERACT_TREE_POS", (1488, 592)), 54.0),
             ("ROCK", getattr(config, "INTERACT_ROCK_POS", (1904, 656)), 54.0),
             ("WEATHER_BOARD", getattr(config, "INTERACT_WEATHER_BOARD_POS", (1504, 1024)), 54.0),
@@ -2137,7 +2155,17 @@ class Game:
             self.log(res.message, config.GREEN if res.success else config.YELLOW)
             return True
         elif target_type == "FISHING":
-            res = world_actions.fish(self.world_state)
+            # Cari spot bandit terdekat dari posisi hero
+            closest_spot = 1
+            if hasattr(config, "BANDIT_FISHING_SPOTS"):
+                hero_x, hero_y = self.hero.px, self.hero.py
+                min_d = float("inf")
+                for sp in config.BANDIT_FISHING_SPOTS:
+                    d = math.hypot(hero_x - sp["pos"][0], hero_y - sp["pos"][1])
+                    if d < min_d:
+                        min_d = d
+                        closest_spot = sp["id"]
+            res = world_actions.fish(self.world_state, spot_id=closest_spot)
             if res.success:
                 self.hero.play_action_animation("reeling", 1.5)
             self.log(res.message, config.GREEN if res.success else config.YELLOW)
@@ -2239,8 +2267,13 @@ class Game:
             text = "Perah Susu Sapi"
             sub = "Susu murni bergizi tinggi untuk dijual"
         elif ttype == "FISHING":
-            text = "Memancing Ikan"
-            sub = "Pancingan di dermaga kayu sungai desa"
+            spot_name = "Spot Muara"
+            if hasattr(config, "BANDIT_FISHING_SPOTS"):
+                hero_x, hero_y = self.hero.px, self.hero.py
+                closest = min(config.BANDIT_FISHING_SPOTS, key=lambda sp: math.hypot(hero_x - sp["pos"][0], hero_y - sp["pos"][1]))
+                spot_name = closest["name"]
+            text = f"Memancing di {spot_name}"
+            sub = "Tekan [E] Lempar Umpan · Tekan [B] Jurnal Analisis Bandit"
         elif ttype == "TREE":
             text = "Tebang Pohon"
             sub = "Bahan baku membuat kunci gerbang reruntuhan"

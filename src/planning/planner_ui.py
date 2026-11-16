@@ -918,6 +918,8 @@ class UnifiedPlannerPanel:
         screen.blit(self.font_badge.render("VPI Teori = +1.98 poin (Slide) | Biaya Baca = 0.20s", True, (255, 220, 140)), (rx + 10, cur_y))
         cur_y += 14
         screen.blit(self.font_badge.render("Amortisasi: Hemat +0.0035s*K vs 0.20s -> K=57x (Tak Impas)", True, (180, 205, 230)), (rx + 10, cur_y))
+        cur_y += 16
+        screen.blit(self.font_badge.render("MULTI-ARMED BANDIT: Tekan [B] Jurnal Nelayan (MAB 5 Spot)", True, (255, 235, 120)), (rx + 10, cur_y))
 
     def draw(self, screen: pygame.Surface, autopilot: Optional[AutopilotController] = None,
              farmer: Optional[HTNNPCAgent] = None, miller: Optional[HTNNPCAgent] = None,

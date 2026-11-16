@@ -11,6 +11,19 @@ Komponen:
 from decision.probability import expected_value, expected_utility, meu, bayes_update
 from decision.mdp import MDP, value_iteration, extract_policy
 from decision.flood_model import create_flood_mdp, analyze_sensitivity_f
+from decision.bandit import (
+    SpotBandit,
+    ActorView,
+    BanditAgent,
+    RandomAgent,
+    GreedyAgent,
+    EpsilonGreedyAgent,
+    UCB1Agent,
+    ThompsonSamplingAgent,
+    RegretTracker,
+    BanditDirector,
+    BANDIT_PRESETS
+)
 
 __all__ = [
     "expected_value",
@@ -22,5 +35,16 @@ __all__ = [
     "extract_policy",
     "create_flood_mdp",
     "analyze_sensitivity_f",
+    "SpotBandit",
+    "ActorView",
+    "BanditAgent",
+    "RandomAgent",
+    "GreedyAgent",
+    "EpsilonGreedyAgent",
+    "UCB1Agent",
+    "ThompsonSamplingAgent",
+    "RegretTracker",
+    "BanditDirector",
+    "BANDIT_PRESETS",
 ]
 

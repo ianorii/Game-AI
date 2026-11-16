@@ -38,6 +38,8 @@ DEFAULT_SPAWN_1X = (720, 528)      # Titik awal player di alun-alun desa Meadowb
 # LAYAR & GRID
 # ==============================================================================
 WINDOW_SIZE = (1024, 768)          # spesifikasi tugas
+SCREEN_WIDTH = WINDOW_SIZE[0]
+SCREEN_HEIGHT = WINDOW_SIZE[1]
 TITLE = "AI LABYRINTH: SUNNYSIDE ISLE"
 FPS = 60                           # spesifikasi tugas
 
@@ -608,6 +610,14 @@ INTERACT_GATE_POS = (2544, 560)           # Posisi berdiri depan Gerbang Besi di
 INTERACT_CHICKEN_POS = (1344, 992)        # Kandang ayam desa (Telur, samping ayam riil di alun-alun)
 INTERACT_COW_POS = (704, 480)              # Padang rumput sapi perah (Susu, samping sapi riil barat laut)
 INTERACT_FISHING_POS = (1424, 688)        # Dermaga kayu pancingan sungai (Ikan)
+# Multi-Armed Bandit (Explore vs Exploit): 5 Spot Pancingan Muara
+BANDIT_FISHING_SPOTS = [
+    {"id": 0, "name": "Spot A (Dermaga Barat)", "pos": (1392, 688), "tile": (43, 21)},
+    {"id": 1, "name": "Spot B (Dermaga Tengah)", "pos": (1424, 688), "tile": (44, 21)},
+    {"id": 2, "name": "Spot C (Dermaga Timur)", "pos": (1456, 688), "tile": (45, 21)},
+    {"id": 3, "name": "Spot D (Muara Hilir)", "pos": (1488, 688), "tile": (46, 21)},
+    {"id": 4, "name": "Spot E (Tanjung Bebatuan)", "pos": (1520, 688), "tile": (47, 21)},
+]
 INTERACT_TREE_POS = (1488, 592)           # Pohon tebang desa (Kayu)
 INTERACT_ROCK_POS = (1904, 624)           # Vena tambang tebing (Batu)
 INTERACT_WINDMILL_POS = (1328, 640)       # Pintu kincir angin desa (Penggilingan gandum)

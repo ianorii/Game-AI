@@ -267,6 +267,10 @@ class WorldState:
         self.inventory.add_item("Pedang Biasa", 1)
         self.inventory.add_item("Kain", 1)
 
+        # Multi-Armed Bandit (Explore vs Exploit) Engine untuk 5 Spot Muara
+        from decision.bandit import BanditDirector
+        self.bandit_director = BanditDirector(preset_key="REALISTIC", seed=self.seed)
+
     def update(self, dt: float):
         """Update waktu pada seluruh komponen dunia."""
         self.farm.update(dt)
@@ -322,14 +326,24 @@ class WorldState:
         self.cooldowns["cow_milk"] = 15.0
         return True, "Berhasil memerah 1x Susu segar di padang rumput!"
 
-    def fish(self) -> Tuple[bool, str]:
+    def fish(self, spot_id: Optional[int] = None) -> Tuple[bool, str]:
         if self.cooldowns["fishing"] > 0:
             return False, f"Menunggu ikan menyambar umpan... ({int(self.cooldowns['fishing'])}s)"
         if self.inventory.is_full() and not self.inventory.has_item("fish", 1):
             return False, "Inventori tas hero penuh!"
 
+        is_rare = False
+        if hasattr(self, "bandit_director") and self.bandit_director:
+            sid = spot_id if spot_id is not None else 1
+            is_rare, _ = self.bandit_director.resolve_cast(sid)
+
         self.inventory.add_item("fish", 1)
+        if is_rare and not self.inventory.is_full():
+            self.inventory.add_item("rare_fish", 1)
+
         self.cooldowns["fishing"] = 10.0
+        if is_rare:
+            return True, "JACKPOT EMAS! Berhasil memancing 1x Ikan Segar + 1x Ikan Emas Langka (Rare Fish)!"
         return True, "STRIKE! Berhasil memancing 1x Ikan segar dari sungai!"
 
     def chop_wood(self) -> Tuple[bool, str]:
