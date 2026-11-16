@@ -38,7 +38,7 @@ DEFAULT_SPAWN_1X = (720, 528)      # Titik awal player di alun-alun desa Meadowb
 # LAYAR & GRID
 # ==============================================================================
 WINDOW_SIZE = (1024, 768)          # spesifikasi tugas
-TITLE = "AI LABYRINTH: THE DUNGEON OVERSEER"
+TITLE = "AI LABYRINTH: SUNNYSIDE ISLE"
 FPS = 60                           # spesifikasi tugas
 
 # Ukuran tile render - Sunnyside World 16x16 dirender x2 (32x32)
@@ -287,6 +287,7 @@ BATTLE_MAX_TURNS = 50
 READY_MIN_WIN_RATE = 0.50             # Ambang tunggal (50%): hanya loadout win rate >= 50% yang siap tempur
 READY_MIN_POTIONS = 1                 # Syarat wajib potion: minimal membawa 1 potion untuk status SIAP (ekspedisi aman)
 PLANNER_PAUSE_KEY = "F10"             # Tombol eksplisit jeda/lanjut planner (tidak lagi memakai Spasi)
+PLANNER_WEIGHT = 1.5                  # Bobot heuristik WA*(h_FF) default (live configuration)
 
 # Fallback alias untuk kode lama bila ada yang mengakses
 BOSS_HEAVY_STRIKE_DMG = (20, 28)
@@ -602,12 +603,14 @@ INTERACT_BED_POS = (1344, 960)            # Ranjang istirahat hero di rumah warg
 INTERACT_FARM_POS = (528, 448)            # Ladang pertanian luas barat laut
 FARM_BASE_STAGE_DURATION = 5.0            # Detik per tahap pertumbuhan tanaman (5 tahap = 25s unwatered, 12.5s watered)
 
-INTERACT_GATE_POS = (2384, 880)           # Posisi berdiri depan Gerbang Besi koridor chokepoint
+INTERACT_GATE_POS = (2544, 560)           # Posisi berdiri depan Gerbang Besi di celah tebing menuju Obsidian Keep
 INTERACT_CHICKEN_POS = (1344, 992)        # Kandang ayam desa (Telur, samping ayam riil di alun-alun)
 INTERACT_COW_POS = (704, 480)              # Padang rumput sapi perah (Susu, samping sapi riil barat laut)
 INTERACT_FISHING_POS = (1424, 688)        # Dermaga kayu pancingan sungai (Ikan)
 INTERACT_TREE_POS = (1488, 592)           # Pohon tebang desa (Kayu)
-INTERACT_ROCK_POS = (1904, 656)           # Vena tambang tebing (Batu)
+INTERACT_ROCK_POS = (1904, 624)           # Vena tambang tebing (Batu)
+INTERACT_WINDMILL_POS = (1328, 640)       # Pintu kincir angin desa (Penggilingan gandum)
+INTERACT_WEATHER_BOARD_POS = (1504, 1024)  # Papan pengumuman cuaca desa (Bayesian Notice Board)
 INTERACTION_RADIUS = 52.0                 # Jarak deteksi interaksi tombol [E]
 
 # Kamus Lokasi Terverifikasi A* Reachable untuk Automated Expedition Planner
@@ -625,4 +628,34 @@ LOCATIONS = {
     "quarry_rock": INTERACT_ROCK_POS,
     "boss": BOSS_POS,
 }
+
+# Kamus Lokasi Lengkap untuk NPC Desa HTN (termasuk Kincir Angin)
+NPC_LOCATIONS = dict(LOCATIONS)
+NPC_LOCATIONS["windmill"] = INTERACT_WINDMILL_POS
+
+# ==============================================================================
+# MODUL DECISION UNDER UNCERTAINTY (Slide 3-23)
+# ==============================================================================
+# Probabilitas & Bukti (Bayesian)
+FLOOD_PRIOR_DEFAULT = 0.1             # P(Banjir) pada hari biasa
+P_NEWS_GIVEN_FLOOD = 0.9              # P(Berita | Banjir)
+P_NEWS_GIVEN_NO_FLOOD = 0.1           # P(Berita | NoBanjir)
+P_SUNNY_GIVEN_FLOOD = 0.1             # P(Cerah | Banjir)
+P_SUNNY_GIVEN_NO_FLOOD = 0.9          # P(Cerah | NoBanjir)
+
+# Utilitas & Reward
+DECISION_REWARD_CAMPUS = 10.0         # Reward mencapai Kampus
+DECISION_REWARD_FLOOD = -20.0         # Penalti terjebak Banjir (skala utilitas slide)
+FLOOD_PENALTY_TIME = 2.70             # Penalti waktu fisik terkalibrasi (detik): swimming lock 1.5s + re-walk delay (~1.2s)
+FLOOD_MEASURED_DELAY = 1.78           # Penalti waktu empiris murni terukur (detik): swimming lock 1.5s + re-walk terdekat 0.28s
+DECISION_REWARD_STEP_DEFAULT = -2.0   # Biaya waktu/langkah standar (Rumah, Warung, Jalan Raya)
+DECISION_UTILITY_MAIN_ROAD = 6.0      # Utilitas pasti jalan utama
+DECISION_REWARD_SHAPING_STEP = 3.0    # Reward cacat per aksi gerak (+3 untuk demonstrasi loop)
+
+# Parameter MDP & Value Iteration
+DECISION_MDP_GAMMA = 0.8              # Discount factor gamma (slide 10-21)
+DECISION_VI_TOLERANCE = 1e-6          # Batas konvergensi sinkron |V_k - V_{k-1}|
+DECISION_VI_MAX_ITER = 1000           # Batas iterasi maksimal
+DECISION_ANALYTIC_F_STAR = 4.0 / 30.0 # Titik kritis f* = 2/15 (~0.13333333333333333)
+
 

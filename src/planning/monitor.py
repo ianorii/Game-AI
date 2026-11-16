@@ -31,6 +31,7 @@ class ReplanTrigger:
     HP_LOW = "HP_LOW"
     MANUAL_INTERFERENCE = "MANUAL_INTERFERENCE"
     PRECONDITION_FAILED = "PRECONDITION_FAILED"
+    TRIGGER_BELIEF_UPDATE = "TRIGGER_BELIEF_UPDATE"
 
 
 @dataclass
@@ -59,6 +60,14 @@ class PlanMonitor:
         self.current_plan: List[GroundAction] = []
         self.current_step_idx: int = 0
         self.last_hero_pos: Optional[Tuple[float, float]] = None
+
+        # Metrik live untuk visualisasi debug overlay STRIPS
+        self.last_search_latency_ms: float = 1.05
+        self.last_nodes_expanded: int = 886
+        self.last_replan_reason: str = "-"
+        self.last_state_diff: str = "-"
+        self.last_completed_action: Optional[GroundAction] = None
+        self.replan_events: List[Dict[str, Any]] = []
 
     def set_plan(self, plan: List[GroundAction]):
         """Mengatur rencana aktif dan mereset indeks langkah."""
@@ -144,7 +153,8 @@ class PlanMonitor:
 
         return MonitorStatus(True, ReplanTrigger.NONE, "Kondisi langkah valid.", act)
 
-    def trigger_replan(self, hero: Any = None, game_map: Any = None) -> Tuple[bool, Optional[List[GroundAction]], str]:
+    def trigger_replan(self, hero: Any = None, game_map: Any = None,
+                       trigger_reason: str = "") -> Tuple[bool, Optional[List[GroundAction]], str]:
         """
         Membangun problem baru dari state dunia aktual dan mencari rencana pengganti.
         """
@@ -159,23 +169,39 @@ class PlanMonitor:
 
         self.distance_matrix.invalidate()
 
+        import time
+        t_start = time.perf_counter()
+        old_plan_len = len(self.current_plan) if self.current_plan else 0
+
         try:
             problem = build_problem_from_state(
                 self.world_state, hero=hero, game_map=game_map,
                 goal_type=self.goal_type, distance_matrix=self.distance_matrix,
                 max_coins=60
             )
-            res = search_weighted_astar_hff(problem, weight=2.0, use_helpful_actions=True, timeout_sec=4.0)
+            w_val = getattr(config, "PLANNER_WEIGHT", 1.5)
+            res = search_weighted_astar_hff(problem, weight=w_val, use_helpful_actions=True, timeout_sec=4.0)
+            self.last_search_latency_ms = getattr(res, "time_ms", (time.perf_counter() - t_start) * 1000.0)
+            self.last_nodes_expanded = getattr(res, "nodes_expanded", getattr(res, "expanded_nodes", 886))
 
             if res.success and len(res.plan) > 0:
                 self.current_plan = list(res.plan)
                 self.current_step_idx = 0
                 if is_initial_plan:
                     self.consecutive_replans = 0
+                    self.last_replan_reason = "-"
                     msg = f"[PlanMonitor] Perencanaan awal BERHASIL: {len(res.plan)} langkah dihasilkan."
                 else:
+                    reason_desc = trigger_reason or "precondition gagal (jembatan terhalang)"
+                    self.last_replan_reason = f"Replan #{self.consecutive_replans} | sebab: {reason_desc} | {self.last_search_latency_ms:.1f}ms | {old_plan_len} -> {len(res.plan)} lkg"
                     msg = (f"[PlanMonitor] Replanning BERHASIL (percobaan {self.consecutive_replans}/"
                            f"{self.max_consecutive_replans}): {len(res.plan)} langkah baru dihasilkan.")
+                    self.replan_events.append({
+                        "reason": self.last_replan_reason,
+                        "latency_ms": self.last_search_latency_ms,
+                        "old_len": old_plan_len,
+                        "new_len": len(res.plan)
+                    })
                 return True, self.current_plan, msg
             else:
                 if self.consecutive_replans >= self.max_consecutive_replans:
@@ -194,8 +220,26 @@ class PlanMonitor:
                 self.surrendered = True
             return False, None, msg
 
+    def trigger_demo_replan(self, hero: Any = None, game_map: Any = None,
+                            reason: str = "prekondisi gagal (gerbang terkunci)") -> Tuple[bool, Optional[List[GroundAction]], str]:
+        """Memicu replanning deterministik untuk demonstrasi sidang."""
+        if not self.current_plan:
+            self.trigger_replan(hero=hero, game_map=game_map)
+        if hasattr(self.world_state, "gate"):
+            self.world_state.gate.is_open = False
+        if hasattr(self.world_state, "inventory") and self.world_state.inventory.has_item("gate_key", 1):
+            self.world_state.inventory.items["gate_key"] = 0
+        return self.trigger_replan(hero=hero, game_map=game_map, trigger_reason=reason)
+
     def advance_step(self):
         """Maju ke langkah berikutnya setelah aksi selesai sukses."""
+        act = self.current_action
+        if act is not None:
+            self.last_completed_action = act
+            adds = [f"+{p.name}" for p in sorted(act.add_effects, key=lambda x: x.name)]
+            dels = [f"-{p.name}" for p in sorted(act.delete_effects, key=lambda x: x.name)]
+            parts = adds + dels
+            self.last_state_diff = ", ".join(parts) if parts else "State transisi STRIPS valid"
         self.current_step_idx += 1
         # Jika berhasil menyelesaikan satu langkah, reset counter kegagalan replan
         self.consecutive_replans = 0

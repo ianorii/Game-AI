@@ -1,0 +1,22 @@
+Perintah: /usr/bin/python3 src/main.py --demo-sensitivity
+Waktu Eksekusi: 0.315 s
+Waktu: 2026-11-16T13:31:24.155922
+
+<frozen importlib._bootstrap>:491: RuntimeWarning: Your system is avx2 capable but pygame was not built with support for it. The performance of some of your blits could be adversely affected. Consider enabling compile time detection with environment variables like PYGAME_DETECT_AVX2=1 if you are compiling without cross compilation.
+pygame 2.6.1 (SDL 2.32.72, Python 3.14.7)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+
+================================================================================
+ DEMO 4: ANALISIS SENSITIVITAS & AMBANG BATAS f* (Ekstensi Analitik di Luar Slide)
+ (Catatan: Slide 22 adalah diagram hasil akhir f = 0.25)
+================================================================================
+Batas Analitik Teoretis : f* = 4/30 = 2/15 = 0.133333 (~0.1333)
+Sweep Grid Numerik      : Rentang [0.0, 0.5] | 101 titik (Langkah/Step: 0.0050)
+  Switch Point Grid     : f  = 0.1350
+Pencarian Bisection     : f* = 0.133334 (Konvergen dalam 18 iterasi)
+
+Aturan Kebijakan:
+  - Untuk f < 0.1333 : Pilih 'Pintas' (Q_Pintas = 10 - 30f > 6.0)
+  - Untuk f > 0.1333 : Pilih 'Raya'   (Q_Raya = 6.0 > Q_Pintas)
+[Chart] Berhasil menyimpan grafik sensitivitas ke: 'docs/figures/sensitivity_policy_vs_f.png'
+Grafik visual kurva dan region tersimpan di: docs/figures/sensitivity_policy_vs_f.png

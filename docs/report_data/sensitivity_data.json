@@ -1,0 +1,817 @@
+{
+  "f_star_analytic": 0.13333333333333333,
+  "step_size": 0.005,
+  "numerical_switch_f": 0.135,
+  "bisection_switch_f": 0.13333415985107422,
+  "bisection_iterations": 18,
+  "sweep_data": [
+    {
+      "f": 0.0,
+      "Q_Pintas": 10.0,
+      "Q_Raya": 6.0,
+      "V_Warung": 10.0,
+      "V_Rumah": 6.0,
+      "policy_warung": "Pintas"
+    },
+    {
+      "f": 0.005,
+      "Q_Pintas": 9.85,
+      "Q_Raya": 6.0,
+      "V_Warung": 9.85,
+      "V_Rumah": 5.88,
+      "policy_warung": "Pintas"
+    },
+    {
+      "f": 0.01,
+      "Q_Pintas": 9.700000000000001,
+      "Q_Raya": 6.0,
+      "V_Warung": 9.700000000000001,
+      "V_Rumah": 5.760000000000002,
+      "policy_warung": "Pintas"
+    },
+    {
+      "f": 0.015,
+      "Q_Pintas": 9.549999999999999,
+      "Q_Raya": 6.0,
+      "V_Warung": 9.549999999999999,
+      "V_Rumah": 5.64,
+      "policy_warung": "Pintas"
+    },
+    {
+      "f": 0.02,
+      "Q_Pintas": 9.4,
+      "Q_Raya": 6.0,
+      "V_Warung": 9.4,
+      "V_Rumah": 5.5200000000000005,
+      "policy_warung": "Pintas"
+    },
+    {
+      "f": 0.025,
+      "Q_Pintas": 9.25,
+      "Q_Raya": 6.0,
+      "V_Warung": 9.25,
+      "V_Rumah": 5.4,
+      "policy_warung": "Pintas"
+    },
+    {
+      "f": 0.03,
+      "Q_Pintas": 9.1,
+      "Q_Raya": 6.0,
+      "V_Warung": 9.1,
+      "V_Rumah": 5.28,
+      "policy_warung": "Pintas"
+    },
+    {
+      "f": 0.035,
+      "Q_Pintas": 8.950000000000001,
+      "Q_Raya": 6.0,
+      "V_Warung": 8.950000000000001,
+      "V_Rumah": 5.160000000000001,
+      "policy_warung": "Pintas"
+    },
+    {
+      "f": 0.04,
+      "Q_Pintas": 8.799999999999999,
+      "Q_Raya": 6.0,
+      "V_Warung": 8.799999999999999,
+      "V_Rumah": 5.039999999999999,
+      "policy_warung": "Pintas"
+    },
+    {
+      "f": 0.045,
+      "Q_Pintas": 8.649999999999999,
+      "Q_Raya": 6.0,
+      "V_Warung": 8.649999999999999,
+      "V_Rumah": 4.919999999999999,
+      "policy_warung": "Pintas"
+    },
+    {
+      "f": 0.05,
+      "Q_Pintas": 8.5,
+      "Q_Raya": 6.0,
+      "V_Warung": 8.5,
+      "V_Rumah": 4.800000000000001,
+      "policy_warung": "Pintas"
+    },
+    {
+      "f": 0.055,
+      "Q_Pintas": 8.35,
+      "Q_Raya": 6.0,
+      "V_Warung": 8.35,
+      "V_Rumah": 4.68,
+      "policy_warung": "Pintas"
+    },
+    {
+      "f": 0.06,
+      "Q_Pintas": 8.2,
+      "Q_Raya": 6.0,
+      "V_Warung": 8.2,
+      "V_Rumah": 4.56,
+      "policy_warung": "Pintas"
+    },
+    {
+      "f": 0.065,
+      "Q_Pintas": 8.05,
+      "Q_Raya": 6.0,
+      "V_Warung": 8.05,
+      "V_Rumah": 4.440000000000001,
+      "policy_warung": "Pintas"
+    },
+    {
+      "f": 0.07,
+      "Q_Pintas": 7.899999999999999,
+      "Q_Raya": 6.0,
+      "V_Warung": 7.899999999999999,
+      "V_Rumah": 4.319999999999999,
+      "policy_warung": "Pintas"
+    },
+    {
+      "f": 0.075,
+      "Q_Pintas": 7.75,
+      "Q_Raya": 6.0,
+      "V_Warung": 7.75,
+      "V_Rumah": 4.2,
+      "policy_warung": "Pintas"
+    },
+    {
+      "f": 0.08,
+      "Q_Pintas": 7.600000000000001,
+      "Q_Raya": 6.0,
+      "V_Warung": 7.600000000000001,
+      "V_Rumah": 4.080000000000002,
+      "policy_warung": "Pintas"
+    },
+    {
+      "f": 0.085,
+      "Q_Pintas": 7.45,
+      "Q_Raya": 6.0,
+      "V_Warung": 7.45,
+      "V_Rumah": 3.960000000000001,
+      "policy_warung": "Pintas"
+    },
+    {
+      "f": 0.09,
+      "Q_Pintas": 7.3,
+      "Q_Raya": 6.0,
+      "V_Warung": 7.3,
+      "V_Rumah": 3.84,
+      "policy_warung": "Pintas"
+    },
+    {
+      "f": 0.095,
+      "Q_Pintas": 7.15,
+      "Q_Raya": 6.0,
+      "V_Warung": 7.15,
+      "V_Rumah": 3.7200000000000006,
+      "policy_warung": "Pintas"
+    },
+    {
+      "f": 0.1,
+      "Q_Pintas": 7.0,
+      "Q_Raya": 6.0,
+      "V_Warung": 7.0,
+      "V_Rumah": 3.6000000000000005,
+      "policy_warung": "Pintas"
+    },
+    {
+      "f": 0.105,
+      "Q_Pintas": 6.85,
+      "Q_Raya": 6.0,
+      "V_Warung": 6.85,
+      "V_Rumah": 3.4800000000000004,
+      "policy_warung": "Pintas"
+    },
+    {
+      "f": 0.11,
+      "Q_Pintas": 6.7,
+      "Q_Raya": 6.0,
+      "V_Warung": 6.7,
+      "V_Rumah": 3.3600000000000003,
+      "policy_warung": "Pintas"
+    },
+    {
+      "f": 0.115,
+      "Q_Pintas": 6.549999999999999,
+      "Q_Raya": 6.0,
+      "V_Warung": 6.549999999999999,
+      "V_Rumah": 3.2399999999999993,
+      "policy_warung": "Pintas"
+    },
+    {
+      "f": 0.12,
+      "Q_Pintas": 6.4,
+      "Q_Raya": 6.0,
+      "V_Warung": 6.4,
+      "V_Rumah": 3.120000000000001,
+      "policy_warung": "Pintas"
+    },
+    {
+      "f": 0.125,
+      "Q_Pintas": 6.25,
+      "Q_Raya": 6.0,
+      "V_Warung": 6.25,
+      "V_Rumah": 3.0,
+      "policy_warung": "Pintas"
+    },
+    {
+      "f": 0.13,
+      "Q_Pintas": 6.1,
+      "Q_Raya": 6.0,
+      "V_Warung": 6.1,
+      "V_Rumah": 2.88,
+      "policy_warung": "Pintas"
+    },
+    {
+      "f": 0.135,
+      "Q_Pintas": 5.95,
+      "Q_Raya": 6.0,
+      "V_Warung": 6.0,
+      "V_Rumah": 2.8000000000000007,
+      "policy_warung": "Raya"
+    },
+    {
+      "f": 0.14,
+      "Q_Pintas": 5.799999999999999,
+      "Q_Raya": 6.0,
+      "V_Warung": 6.0,
+      "V_Rumah": 2.8000000000000007,
+      "policy_warung": "Raya"
+    },
+    {
+      "f": 0.145,
+      "Q_Pintas": 5.65,
+      "Q_Raya": 6.0,
+      "V_Warung": 6.0,
+      "V_Rumah": 2.8000000000000007,
+      "policy_warung": "Raya"
+    },
+    {
+      "f": 0.15,
+      "Q_Pintas": 5.5,
+      "Q_Raya": 6.0,
+      "V_Warung": 6.0,
+      "V_Rumah": 2.8000000000000007,
+      "policy_warung": "Raya"
+    },
+    {
+      "f": 0.155,
+      "Q_Pintas": 5.35,
+      "Q_Raya": 6.0,
+      "V_Warung": 6.0,
+      "V_Rumah": 2.8000000000000007,
+      "policy_warung": "Raya"
+    },
+    {
+      "f": 0.16,
+      "Q_Pintas": 5.2,
+      "Q_Raya": 6.0,
+      "V_Warung": 6.0,
+      "V_Rumah": 2.8000000000000007,
+      "policy_warung": "Raya"
+    },
+    {
+      "f": 0.165,
+      "Q_Pintas": 5.049999999999999,
+      "Q_Raya": 6.0,
+      "V_Warung": 6.0,
+      "V_Rumah": 2.8000000000000007,
+      "policy_warung": "Raya"
+    },
+    {
+      "f": 0.17,
+      "Q_Pintas": 4.899999999999999,
+      "Q_Raya": 6.0,
+      "V_Warung": 6.0,
+      "V_Rumah": 2.8000000000000007,
+      "policy_warung": "Raya"
+    },
+    {
+      "f": 0.175,
+      "Q_Pintas": 4.75,
+      "Q_Raya": 6.0,
+      "V_Warung": 6.0,
+      "V_Rumah": 2.8000000000000007,
+      "policy_warung": "Raya"
+    },
+    {
+      "f": 0.18,
+      "Q_Pintas": 4.600000000000001,
+      "Q_Raya": 6.0,
+      "V_Warung": 6.0,
+      "V_Rumah": 2.8000000000000007,
+      "policy_warung": "Raya"
+    },
+    {
+      "f": 0.185,
+      "Q_Pintas": 4.449999999999998,
+      "Q_Raya": 6.0,
+      "V_Warung": 6.0,
+      "V_Rumah": 2.8000000000000007,
+      "policy_warung": "Raya"
+    },
+    {
+      "f": 0.19,
+      "Q_Pintas": 4.300000000000002,
+      "Q_Raya": 6.0,
+      "V_Warung": 6.0,
+      "V_Rumah": 2.8000000000000007,
+      "policy_warung": "Raya"
+    },
+    {
+      "f": 0.195,
+      "Q_Pintas": 4.149999999999999,
+      "Q_Raya": 6.0,
+      "V_Warung": 6.0,
+      "V_Rumah": 2.8000000000000007,
+      "policy_warung": "Raya"
+    },
+    {
+      "f": 0.2,
+      "Q_Pintas": 4.0,
+      "Q_Raya": 6.0,
+      "V_Warung": 6.0,
+      "V_Rumah": 2.8000000000000007,
+      "policy_warung": "Raya"
+    },
+    {
+      "f": 0.205,
+      "Q_Pintas": 3.8500000000000005,
+      "Q_Raya": 6.0,
+      "V_Warung": 6.0,
+      "V_Rumah": 2.8000000000000007,
+      "policy_warung": "Raya"
+    },
+    {
+      "f": 0.21,
+      "Q_Pintas": 3.7,
+      "Q_Raya": 6.0,
+      "V_Warung": 6.0,
+      "V_Rumah": 2.8000000000000007,
+      "policy_warung": "Raya"
+    },
+    {
+      "f": 0.215,
+      "Q_Pintas": 3.5500000000000007,
+      "Q_Raya": 6.0,
+      "V_Warung": 6.0,
+      "V_Rumah": 2.8000000000000007,
+      "policy_warung": "Raya"
+    },
+    {
+      "f": 0.22,
+      "Q_Pintas": 3.4000000000000004,
+      "Q_Raya": 6.0,
+      "V_Warung": 6.0,
+      "V_Rumah": 2.8000000000000007,
+      "policy_warung": "Raya"
+    },
+    {
+      "f": 0.225,
+      "Q_Pintas": 3.25,
+      "Q_Raya": 6.0,
+      "V_Warung": 6.0,
+      "V_Rumah": 2.8000000000000007,
+      "policy_warung": "Raya"
+    },
+    {
+      "f": 0.23,
+      "Q_Pintas": 3.0999999999999996,
+      "Q_Raya": 6.0,
+      "V_Warung": 6.0,
+      "V_Rumah": 2.8000000000000007,
+      "policy_warung": "Raya"
+    },
+    {
+      "f": 0.235,
+      "Q_Pintas": 2.950000000000001,
+      "Q_Raya": 6.0,
+      "V_Warung": 6.0,
+      "V_Rumah": 2.8000000000000007,
+      "policy_warung": "Raya"
+    },
+    {
+      "f": 0.24,
+      "Q_Pintas": 2.8,
+      "Q_Raya": 6.0,
+      "V_Warung": 6.0,
+      "V_Rumah": 2.8000000000000007,
+      "policy_warung": "Raya"
+    },
+    {
+      "f": 0.245,
+      "Q_Pintas": 2.6499999999999995,
+      "Q_Raya": 6.0,
+      "V_Warung": 6.0,
+      "V_Rumah": 2.8000000000000007,
+      "policy_warung": "Raya"
+    },
+    {
+      "f": 0.25,
+      "Q_Pintas": 2.5,
+      "Q_Raya": 6.0,
+      "V_Warung": 6.0,
+      "V_Rumah": 2.8000000000000007,
+      "policy_warung": "Raya"
+    },
+    {
+      "f": 0.255,
+      "Q_Pintas": 2.3500000000000005,
+      "Q_Raya": 6.0,
+      "V_Warung": 6.0,
+      "V_Rumah": 2.8000000000000007,
+      "policy_warung": "Raya"
+    },
+    {
+      "f": 0.26,
+      "Q_Pintas": 2.2,
+      "Q_Raya": 6.0,
+      "V_Warung": 6.0,
+      "V_Rumah": 2.8000000000000007,
+      "policy_warung": "Raya"
+    },
+    {
+      "f": 0.265,
+      "Q_Pintas": 2.049999999999999,
+      "Q_Raya": 6.0,
+      "V_Warung": 6.0,
+      "V_Rumah": 2.8000000000000007,
+      "policy_warung": "Raya"
+    },
+    {
+      "f": 0.27,
+      "Q_Pintas": 1.8999999999999995,
+      "Q_Raya": 6.0,
+      "V_Warung": 6.0,
+      "V_Rumah": 2.8000000000000007,
+      "policy_warung": "Raya"
+    },
+    {
+      "f": 0.275,
+      "Q_Pintas": 1.75,
+      "Q_Raya": 6.0,
+      "V_Warung": 6.0,
+      "V_Rumah": 2.8000000000000007,
+      "policy_warung": "Raya"
+    },
+    {
+      "f": 0.28,
+      "Q_Pintas": 1.5999999999999988,
+      "Q_Raya": 6.0,
+      "V_Warung": 6.0,
+      "V_Rumah": 2.8000000000000007,
+      "policy_warung": "Raya"
+    },
+    {
+      "f": 0.285,
+      "Q_Pintas": 1.450000000000001,
+      "Q_Raya": 6.0,
+      "V_Warung": 6.0,
+      "V_Rumah": 2.8000000000000007,
+      "policy_warung": "Raya"
+    },
+    {
+      "f": 0.29,
+      "Q_Pintas": 1.2999999999999998,
+      "Q_Raya": 6.0,
+      "V_Warung": 6.0,
+      "V_Rumah": 2.8000000000000007,
+      "policy_warung": "Raya"
+    },
+    {
+      "f": 0.295,
+      "Q_Pintas": 1.1500000000000012,
+      "Q_Raya": 6.0,
+      "V_Warung": 6.0,
+      "V_Rumah": 2.8000000000000007,
+      "policy_warung": "Raya"
+    },
+    {
+      "f": 0.3,
+      "Q_Pintas": 1.0,
+      "Q_Raya": 6.0,
+      "V_Warung": 6.0,
+      "V_Rumah": 2.8000000000000007,
+      "policy_warung": "Raya"
+    },
+    {
+      "f": 0.305,
+      "Q_Pintas": 0.8500000000000014,
+      "Q_Raya": 6.0,
+      "V_Warung": 6.0,
+      "V_Rumah": 2.8000000000000007,
+      "policy_warung": "Raya"
+    },
+    {
+      "f": 0.31,
+      "Q_Pintas": 0.6999999999999993,
+      "Q_Raya": 6.0,
+      "V_Warung": 6.0,
+      "V_Rumah": 2.8000000000000007,
+      "policy_warung": "Raya"
+    },
+    {
+      "f": 0.315,
+      "Q_Pintas": 0.5500000000000007,
+      "Q_Raya": 6.0,
+      "V_Warung": 6.0,
+      "V_Rumah": 2.8000000000000007,
+      "policy_warung": "Raya"
+    },
+    {
+      "f": 0.32,
+      "Q_Pintas": 0.3999999999999986,
+      "Q_Raya": 6.0,
+      "V_Warung": 6.0,
+      "V_Rumah": 2.8000000000000007,
+      "policy_warung": "Raya"
+    },
+    {
+      "f": 0.325,
+      "Q_Pintas": 0.25,
+      "Q_Raya": 6.0,
+      "V_Warung": 6.0,
+      "V_Rumah": 2.8000000000000007,
+      "policy_warung": "Raya"
+    },
+    {
+      "f": 0.33,
+      "Q_Pintas": 0.09999999999999876,
+      "Q_Raya": 6.0,
+      "V_Warung": 6.0,
+      "V_Rumah": 2.8000000000000007,
+      "policy_warung": "Raya"
+    },
+    {
+      "f": 0.335,
+      "Q_Pintas": -0.04999999999999982,
+      "Q_Raya": 6.0,
+      "V_Warung": 6.0,
+      "V_Rumah": 2.8000000000000007,
+      "policy_warung": "Raya"
+    },
+    {
+      "f": 0.34,
+      "Q_Pintas": -0.20000000000000107,
+      "Q_Raya": 6.0,
+      "V_Warung": 6.0,
+      "V_Rumah": 2.8000000000000007,
+      "policy_warung": "Raya"
+    },
+    {
+      "f": 0.345,
+      "Q_Pintas": -0.34999999999999876,
+      "Q_Raya": 6.0,
+      "V_Warung": 6.0,
+      "V_Rumah": 2.8000000000000007,
+      "policy_warung": "Raya"
+    },
+    {
+      "f": 0.35,
+      "Q_Pintas": -0.5,
+      "Q_Raya": 6.0,
+      "V_Warung": 6.0,
+      "V_Rumah": 2.8000000000000007,
+      "policy_warung": "Raya"
+    },
+    {
+      "f": 0.355,
+      "Q_Pintas": -0.6499999999999995,
+      "Q_Raya": 6.0,
+      "V_Warung": 6.0,
+      "V_Rumah": 2.8000000000000007,
+      "policy_warung": "Raya"
+    },
+    {
+      "f": 0.36,
+      "Q_Pintas": -0.7999999999999989,
+      "Q_Raya": 6.0,
+      "V_Warung": 6.0,
+      "V_Rumah": 2.8000000000000007,
+      "policy_warung": "Raya"
+    },
+    {
+      "f": 0.365,
+      "Q_Pintas": -0.9500000000000002,
+      "Q_Raya": 6.0,
+      "V_Warung": 6.0,
+      "V_Rumah": 2.8000000000000007,
+      "policy_warung": "Raya"
+    },
+    {
+      "f": 0.37,
+      "Q_Pintas": -1.1000000000000005,
+      "Q_Raya": 6.0,
+      "V_Warung": 6.0,
+      "V_Rumah": 2.8000000000000007,
+      "policy_warung": "Raya"
+    },
+    {
+      "f": 0.375,
+      "Q_Pintas": -1.25,
+      "Q_Raya": 6.0,
+      "V_Warung": 6.0,
+      "V_Rumah": 2.8000000000000007,
+      "policy_warung": "Raya"
+    },
+    {
+      "f": 0.38,
+      "Q_Pintas": -1.3999999999999995,
+      "Q_Raya": 6.0,
+      "V_Warung": 6.0,
+      "V_Rumah": 2.8000000000000007,
+      "policy_warung": "Raya"
+    },
+    {
+      "f": 0.385,
+      "Q_Pintas": -1.5499999999999998,
+      "Q_Raya": 6.0,
+      "V_Warung": 6.0,
+      "V_Rumah": 2.8000000000000007,
+      "policy_warung": "Raya"
+    },
+    {
+      "f": 0.39,
+      "Q_Pintas": -1.700000000000001,
+      "Q_Raya": 6.0,
+      "V_Warung": 6.0,
+      "V_Rumah": 2.8000000000000007,
+      "policy_warung": "Raya"
+    },
+    {
+      "f": 0.395,
+      "Q_Pintas": -1.8500000000000005,
+      "Q_Raya": 6.0,
+      "V_Warung": 6.0,
+      "V_Rumah": 2.8000000000000007,
+      "policy_warung": "Raya"
+    },
+    {
+      "f": 0.4,
+      "Q_Pintas": -2.0,
+      "Q_Raya": 6.0,
+      "V_Warung": 6.0,
+      "V_Rumah": 2.8000000000000007,
+      "policy_warung": "Raya"
+    },
+    {
+      "f": 0.405,
+      "Q_Pintas": -2.150000000000002,
+      "Q_Raya": 6.0,
+      "V_Warung": 6.0,
+      "V_Rumah": 2.8000000000000007,
+      "policy_warung": "Raya"
+    },
+    {
+      "f": 0.41,
+      "Q_Pintas": -2.299999999999999,
+      "Q_Raya": 6.0,
+      "V_Warung": 6.0,
+      "V_Rumah": 2.8000000000000007,
+      "policy_warung": "Raya"
+    },
+    {
+      "f": 0.415,
+      "Q_Pintas": -2.4499999999999993,
+      "Q_Raya": 6.0,
+      "V_Warung": 6.0,
+      "V_Rumah": 2.8000000000000007,
+      "policy_warung": "Raya"
+    },
+    {
+      "f": 0.42,
+      "Q_Pintas": -2.5999999999999996,
+      "Q_Raya": 6.0,
+      "V_Warung": 6.0,
+      "V_Rumah": 2.8000000000000007,
+      "policy_warung": "Raya"
+    },
+    {
+      "f": 0.425,
+      "Q_Pintas": -2.75,
+      "Q_Raya": 6.0,
+      "V_Warung": 6.0,
+      "V_Rumah": 2.8000000000000007,
+      "policy_warung": "Raya"
+    },
+    {
+      "f": 0.43,
+      "Q_Pintas": -2.8999999999999986,
+      "Q_Raya": 6.0,
+      "V_Warung": 6.0,
+      "V_Rumah": 2.8000000000000007,
+      "policy_warung": "Raya"
+    },
+    {
+      "f": 0.435,
+      "Q_Pintas": -3.05,
+      "Q_Raya": 6.0,
+      "V_Warung": 6.0,
+      "V_Rumah": 2.8000000000000007,
+      "policy_warung": "Raya"
+    },
+    {
+      "f": 0.44,
+      "Q_Pintas": -3.2,
+      "Q_Raya": 6.0,
+      "V_Warung": 6.0,
+      "V_Rumah": 2.8000000000000007,
+      "policy_warung": "Raya"
+    },
+    {
+      "f": 0.445,
+      "Q_Pintas": -3.3500000000000014,
+      "Q_Raya": 6.0,
+      "V_Warung": 6.0,
+      "V_Rumah": 2.8000000000000007,
+      "policy_warung": "Raya"
+    },
+    {
+      "f": 0.45,
+      "Q_Pintas": -3.5,
+      "Q_Raya": 6.0,
+      "V_Warung": 6.0,
+      "V_Rumah": 2.8000000000000007,
+      "policy_warung": "Raya"
+    },
+    {
+      "f": 0.455,
+      "Q_Pintas": -3.6500000000000004,
+      "Q_Raya": 6.0,
+      "V_Warung": 6.0,
+      "V_Rumah": 2.8000000000000007,
+      "policy_warung": "Raya"
+    },
+    {
+      "f": 0.46,
+      "Q_Pintas": -3.8000000000000007,
+      "Q_Raya": 6.0,
+      "V_Warung": 6.0,
+      "V_Rumah": 2.8000000000000007,
+      "policy_warung": "Raya"
+    },
+    {
+      "f": 0.465,
+      "Q_Pintas": -3.950000000000001,
+      "Q_Raya": 6.0,
+      "V_Warung": 6.0,
+      "V_Rumah": 2.8000000000000007,
+      "policy_warung": "Raya"
+    },
+    {
+      "f": 0.47,
+      "Q_Pintas": -4.099999999999998,
+      "Q_Raya": 6.0,
+      "V_Warung": 6.0,
+      "V_Rumah": 2.8000000000000007,
+      "policy_warung": "Raya"
+    },
+    {
+      "f": 0.475,
+      "Q_Pintas": -4.25,
+      "Q_Raya": 6.0,
+      "V_Warung": 6.0,
+      "V_Rumah": 2.8000000000000007,
+      "policy_warung": "Raya"
+    },
+    {
+      "f": 0.48,
+      "Q_Pintas": -4.3999999999999995,
+      "Q_Raya": 6.0,
+      "V_Warung": 6.0,
+      "V_Rumah": 2.8000000000000007,
+      "policy_warung": "Raya"
+    },
+    {
+      "f": 0.485,
+      "Q_Pintas": -4.549999999999999,
+      "Q_Raya": 6.0,
+      "V_Warung": 6.0,
+      "V_Rumah": 2.8000000000000007,
+      "policy_warung": "Raya"
+    },
+    {
+      "f": 0.49,
+      "Q_Pintas": -4.700000000000001,
+      "Q_Raya": 6.0,
+      "V_Warung": 6.0,
+      "V_Rumah": 2.8000000000000007,
+      "policy_warung": "Raya"
+    },
+    {
+      "f": 0.495,
+      "Q_Pintas": -4.8500000000000005,
+      "Q_Raya": 6.0,
+      "V_Warung": 6.0,
+      "V_Rumah": 2.8000000000000007,
+      "policy_warung": "Raya"
+    },
+    {
+      "f": 0.5,
+      "Q_Pintas": -5.0,
+      "Q_Raya": 6.0,
+      "V_Warung": 6.0,
+      "V_Rumah": 2.8000000000000007,
+      "policy_warung": "Raya"
+    }
+  ]
+}

@@ -68,13 +68,13 @@ class DistanceMatrix:
             px = cx * 32 + 16
             py = cy * 32 + 16
 
-            # Gerbang: bentang chokepoint (2336..2624, 800..880) tertutup bila not gate_open
-            if not gate_open and (2320 <= px <= 2630) and (784 <= py <= 896):
+            # Gerbang: bentang chokepoint tebing Obsidian Keep (2496..2592, 512..544) tertutup bila not gate_open
+            if not gate_open and (2480 <= px <= 2600) and (500 <= py <= 550):
                 return True
 
             if self.game_map is not None:
                 # Bila gate_open=True, jangan biarkan obstacle dinamis gerbang di game_map memblokir
-                if gate_open and (2320 <= px <= 2630) and (784 <= py <= 896):
+                if gate_open and (2480 <= px <= 2600) and (500 <= py <= 550):
                     if hasattr(self.game_map, "walkable_mask") and self.game_map.walkable_mask:
                         if 0 <= px < self.game_map.width and 0 <= py < self.game_map.height:
                             return not bool(self.game_map.walkable_mask.get_at((px, py)))

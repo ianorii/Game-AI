@@ -1,6 +1,6 @@
 Perintah: /usr/bin/python3 src/main.py --demo-regression
-Waktu Eksekusi: 0.569 s
-Waktu: 2026-11-08T21:03:43.071537
+Waktu Eksekusi: 0.446 s
+Waktu: 2026-11-16T13:31:23.121505
 
 <frozen importlib._bootstrap>:491: RuntimeWarning: Your system is avx2 capable but pygame was not built with support for it. The performance of some of your blits could be adversely affected. Consider enabling compile time detection with environment variables like PYGAME_DETECT_AVX2=1 if you are compiling without cross compilation.
 pygame 2.6.1 (SDL 2.32.72, Python 3.14.7)
@@ -9,7 +9,8 @@ Hello from the pygame community. https://www.pygame.org/contribute.html
 ================================================================================
 DEMO 2: BACKWARD SEARCH / REGRESSION (Materi Kuliah Slide 27 & Slide 30)
 ================================================================================
-[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
 [1. Backward Search Regression Trace Persis Slide 27]
 ======================================================================
 TRACE BACKWARD SEARCH (REGRESSION) - SESUAI SLIDE 27
@@ -43,8 +44,9 @@ Forward Plan: drive(rumah, warung) -> pickup(paket, warung) -> drive(warung, kam
 
 [2. Backward Search dengan Dual Goal (Slide 30)]
   Goal Ganda: (at paket kampus) DAN (motor-at rumah)
-[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
-  Hasil Pencarian: SUKSES (6 langkah, 0.47 ms)
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+  Hasil Pencarian: SUKSES (6 langkah, 0.38 ms)
     1. drive(rumah, warung)
     2. pickup(paket, warung)
     3. drive(warung, kampus)

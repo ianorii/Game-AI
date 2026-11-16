@@ -136,7 +136,7 @@ def step_unittest():
         if m_ran:
             total_ran = int(m_ran.group(1))
 
-    is_ok = "OK" in lines[-1] if lines else False
+    is_ok = any(l.strip() == "OK" or l.strip().startswith("OK") for l in lines) and failures == 0 and errors == 0
 
     summary = {
         "command": " ".join(cmd),
@@ -169,11 +169,15 @@ def step_selftest():
 
 
 def step_cli_demos():
-    print("[4/10] Menjalankan demo CLI: ojek, regression, graph...")
+    print("[4/10] Menjalankan demo CLI: planning (ojek, regression, graph) & decision (bayes, mdp, sensitivity, reward-shaping)...")
     demos = [
         ("--demo-ojek", "demo_ojek.txt"),
         ("--demo-regression", "demo_regression.txt"),
         ("--demo-graph", "demo_graph.txt"),
+        ("--demo-bayes", "demo_bayes.txt"),
+        ("--demo-mdp", "demo_mdp.txt"),
+        ("--demo-sensitivity", "demo_sensitivity.txt"),
+        ("--demo-reward-shaping", "demo_reward_shaping.txt"),
     ]
     for flag, outfile in demos:
         cmd = [sys.executable, "src/main.py", flag]
@@ -600,6 +604,70 @@ def step_frame_times():
     print("  -> frame_times.json dan frame_times.txt tersimpan.")
 
 
+def step_decision_uncertainty():
+    print("[9/10] Menjalankan evaluasi Keputusan di Bawah Ketidakpastian (Slide 3-23)...")
+    from decision.weather_manager import run_monte_carlo_evaluation
+    from decision.flood_model import analyze_sensitivity_f, create_flood_mdp
+    from decision.mdp import value_iteration, compute_q
+
+    # 1. Monte Carlo Evaluation (10.000 hari) - Model Slide Abstrak
+    mc_results = run_monte_carlo_evaluation(n_days=10000, seed=20261021)
+    with open(os.path.join(REPORT_DIR, "monte_carlo_results.json"), "w", encoding="utf-8") as f:
+        json.dump(mc_results, f, indent=2)
+
+    # 2. Monte Carlo Game Nyata (10.000 hari) - Waktu Detik Riil
+    from decision.weather_manager import run_real_game_monte_carlo
+    real_mc = run_real_game_monte_carlo(n_days=10000, seed=20261021)
+    with open(os.path.join(REPORT_DIR, "monte_carlo_real_game.json"), "w", encoding="utf-8") as f:
+        json.dump(real_mc, f, indent=2)
+
+    # 3. Analisis Sensitivitas f*
+    sens_results = analyze_sensitivity_f()
+    with open(os.path.join(REPORT_DIR, "sensitivity_data.json"), "w", encoding="utf-8") as f:
+        json.dump(sens_results, f, indent=2)
+
+    # 4. Ringkasan Teknis Teks
+    with open(os.path.join(REPORT_DIR, "decision_uncertainty_summary.txt"), "w", encoding="utf-8") as f:
+        f.write("RINGKASAN KEPUTUSAN DI BAWAH KETIDAKPASTIAN (Slide 3-23)\n")
+        f.write("========================================================\n\n")
+        f.write("1. Evaluasi Monte Carlo (10.000 Hari) - Model Slide Abstrak:\n")
+        for strat, stats in mc_results["results"].items():
+            f.write(f"   - {strat.upper():12s}: Mean Payoff = {stats['mean']:.4f} (95% CI: [{stats['ci95_low']}, {stats['ci95_high']}])\n")
+        f.write(f"\n   Teori EU:\n")
+        for strat, val in mc_results["eu_theory"].items():
+            f.write(f"   - {strat.upper():12s}: EU Teori = {val:.4f}\n")
+        f.write(f"\n2. Evaluasi Monte Carlo Game Nyata (10.000 Hari, Satuan Detik):\n")
+        for strat, stats in real_mc["real_game_seconds"].items():
+            if isinstance(stats, dict) and "mean" in stats:
+                f.write(f"   - {strat.upper():14s}: Mean Waktu = {stats['mean']:.4f}s (95% CI: [{stats['ci95_low']}, {stats['ci95_high']}])\n")
+        f.write(f"\n3. Titik Kritis Analitik:\n")
+        f.write(f"   - f* analitik = 4/30 = 2/15 (~0.1333)\n")
+        f.write(f"   - Policy: f < f* -> Pintas, f >= f* -> Raya\n")
+        f.write(f"   - Catatan VPI: VPI adalah metrik ekstensi analisis keputusan formal di luar silabus slide kuliah.\n")
+    print("  -> monte_carlo_results.json, monte_carlo_real_game.json, sensitivity_data.json, dan decision_uncertainty_summary.txt tersimpan.")
+
+
+def step_checksums():
+    print("[10/10] Menghasilkan checksum SHA256 seluruh berkas data...")
+    targets = []
+    for root_dir in [os.path.join(PROJECT_ROOT, "data"), REPORT_DIR]:
+        for root, _, files in os.walk(root_dir):
+            for file in sorted(files):
+                if file.endswith((".json", ".txt", ".csv", ".domain", ".problem")) and file != "checksums.sha256":
+                    targets.append(os.path.join(root, file))
+
+    out_file = os.path.join(REPORT_DIR, "checksums.sha256")
+    with open(out_file, "w", encoding="utf-8") as f_out:
+        for full_p in sorted(targets):
+            rel_p = os.path.relpath(full_p, PROJECT_ROOT)
+            h = hashlib.sha256()
+            with open(full_p, "rb") as f_in:
+                while chunk := f_in.read(65536):
+                    h.update(chunk)
+            f_out.write(f"{h.hexdigest()}  {rel_p}\n")
+    print(f"  -> checksums.sha256 tersimpan ({len(targets)} berkas).")
+
+
 def main():
     force = "--force" in sys.argv
     print("================================================================================")
@@ -647,6 +715,13 @@ def main():
         step_frame_times()
     else:
         print("[8/10] frame_times.json sudah ada (dilewati).")
+
+    if force or not os.path.isfile(os.path.join(REPORT_DIR, "monte_carlo_results.json")):
+        step_decision_uncertainty()
+    else:
+        print("[9/10] monte_carlo_results.json sudah ada (dilewati).")
+
+    step_checksums()
 
     t_total = time.perf_counter() - t_start
     print("================================================================================")

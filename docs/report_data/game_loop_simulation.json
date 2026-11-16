@@ -1,0 +1,140 @@
+{
+  "metadata": {
+    "timestamp": "2026-11-15 10:44:08",
+    "seed": 20261021,
+    "game_duration_sec": 60.0,
+    "game_duration_minutes": 1.0,
+    "dt": 0.016666666666666666,
+    "total_steps": 3600,
+    "real_time_sec": 15.75,
+    "sim_speed_multiplier": 3.8
+  },
+  "boss_status": {
+    "name": "SKELETON OVERLORD",
+    "start_pos": [
+      2464.0,
+      448.0
+    ],
+    "end_pos": [
+      2464.0,
+      448.0
+    ],
+    "is_static_invariant": true,
+    "status": "LULUS"
+  },
+  "summary": {
+    "total_entities_tracked": 15,
+    "total_steps_checked_all_entities": 54000,
+    "total_violations_can_stand": 0,
+    "total_violations_building_fp": 0,
+    "total_violations": 0,
+    "simulation_result": "LULUS (0 PELANGGARAN)"
+  },
+  "entity_details": {
+    "Hero": {
+      "kind": "hero",
+      "steps_checked": 3600,
+      "violations_can_stand": 0,
+      "violations_building_fp": 0,
+      "min_distance_to_fp": 0.0
+    },
+    "Pak Tani": {
+      "kind": "npc_htn",
+      "steps_checked": 3600,
+      "violations_can_stand": 0,
+      "violations_building_fp": 0,
+      "min_distance_to_fp": 23.0
+    },
+    "Kang Penggiling": {
+      "kind": "npc_htn",
+      "steps_checked": 3600,
+      "violations_can_stand": 0,
+      "violations_building_fp": 0,
+      "min_distance_to_fp": 24.0
+    },
+    "Sheep_1": {
+      "kind": "sheep",
+      "steps_checked": 3600,
+      "violations_can_stand": 0,
+      "violations_building_fp": 0,
+      "min_distance_to_fp": 87.0
+    },
+    "Sheep_2": {
+      "kind": "sheep",
+      "steps_checked": 3600,
+      "violations_can_stand": 0,
+      "violations_building_fp": 0,
+      "min_distance_to_fp": 151.00331122197287
+    },
+    "Sheep_3": {
+      "kind": "sheep",
+      "steps_checked": 3600,
+      "violations_can_stand": 0,
+      "violations_building_fp": 0,
+      "min_distance_to_fp": 55.0
+    },
+    "Sheep_4": {
+      "kind": "sheep",
+      "steps_checked": 3600,
+      "violations_can_stand": 0,
+      "violations_building_fp": 0,
+      "min_distance_to_fp": 60.00833275470999
+    },
+    "Cow_5": {
+      "kind": "cow",
+      "steps_checked": 3600,
+      "violations_can_stand": 0,
+      "violations_building_fp": 0,
+      "min_distance_to_fp": 90.0
+    },
+    "Cow_6": {
+      "kind": "cow",
+      "steps_checked": 3600,
+      "violations_can_stand": 0,
+      "violations_building_fp": 0,
+      "min_distance_to_fp": 93.14504817756014
+    },
+    "Chicken_7": {
+      "kind": "chicken",
+      "steps_checked": 3600,
+      "violations_can_stand": 0,
+      "violations_building_fp": 0,
+      "min_distance_to_fp": 25.0
+    },
+    "Chicken_8": {
+      "kind": "chicken",
+      "steps_checked": 3600,
+      "violations_can_stand": 0,
+      "violations_building_fp": 0,
+      "min_distance_to_fp": 106.0
+    },
+    "Chicken_9": {
+      "kind": "chicken",
+      "steps_checked": 3600,
+      "violations_can_stand": 0,
+      "violations_building_fp": 0,
+      "min_distance_to_fp": 25.0
+    },
+    "Duck_10": {
+      "kind": "duck",
+      "steps_checked": 3600,
+      "violations_can_stand": 0,
+      "violations_building_fp": 0,
+      "min_distance_to_fp": 76.55063683601855
+    },
+    "Duck_11": {
+      "kind": "duck",
+      "steps_checked": 3600,
+      "violations_can_stand": 0,
+      "violations_building_fp": 0,
+      "min_distance_to_fp": 40.0
+    },
+    "Goblin Patrol": {
+      "kind": "goblin",
+      "steps_checked": 3600,
+      "violations_can_stand": 0,
+      "violations_building_fp": 0,
+      "min_distance_to_fp": 79.93122043357026
+    }
+  }
+}

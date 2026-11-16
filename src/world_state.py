@@ -20,6 +20,7 @@ Fitur Terpusat:
 import os
 import json
 import time
+import math
 from typing import Dict, List, Optional, Tuple, Any
 import pygame
 
@@ -31,19 +32,176 @@ from farm import FarmManager
 
 
 class LockedGate:
-    """Gerbang besi/kayu berkunci pembatas menuju area Boss Skeleton Overlord di koridor chokepoint tunggal."""
+    """
+    Gerbang kayu & pilar batu Sunnyside berkunci di koridor chokepoint tunggal.
+    Lebar 96px (persis 3 tile: x=2368..2464 / 2352..2448), tinggi tapak 32-48px.
+    Berdiri 100% di atas tanah padat (walkable mask = 1 saat terbuka, 0% di air).
+    Dua sprite Sunnyside:
+      - Tertutup: Daun pintu kayu ganda solid rapat, berpalang besi horizontal & engsel,
+                  gembok emas di kait tengah, menutup penuh lorong.
+      - Terbuka : Daun pintu terlipat rapi ke pilar samping, lorong tengah terbuka bebas
+                  dan tembus pandang ke tanah di bawahnya (selisih > 1000 piksel).
+    Mendukung y-sort depth sorting bersama entitas lainnya.
+    """
 
-    def __init__(self, x: int = 2336, y: int = 816, w: int = 288, h: int = 48):
+    def __init__(self, x: int = 2496, y: int = 512, w: int = 96, h: int = 32):
         self.x = x
         self.y = y
         self.w = w
         self.h = h
         self.is_open: bool = False
-        self.open_progress: float = 0.0  # 0.0 (tertutup penuh) -> 1.0 (terbuka penuh)
-        # Dynamic obstacle rect untuk menutup jalan masuk saat terkunci
+        self.open_progress: float = 0.0  # 0.0 (tertutup) -> 1.0 (terbuka)
         self.collision_rect = pygame.Rect(self.x, self.y, self.w, self.h)
-        # Posisi visual pintu gerbang di koridor utama
-        self.visual_pos = (self.x, self.y)
+        # Visual sprite digambar sedikit lebih tinggi agar pilar & lengkung batu menjulang
+        self.visual_y_offset = 32
+        self.visual_pos = (self.x, self.y - self.visual_y_offset)
+        self.surf_closed = None
+        self.surf_open = None
+        self._init_sprites()
+
+    @property
+    def sort_y(self) -> float:
+        """Kunci kedalaman rendering y-sort (diukur di dasar tapak gerbang)."""
+        return float(self.y + self.h)
+
+    def collidepoint(self, px: float, py: float) -> bool:
+        """Pemeriksaan tabrakan titik terhadap gerbang berkunci."""
+        if self.is_open:
+            return False
+        return self.collision_rect.collidepoint(px, py)
+
+    def _init_sprites(self):
+        """Membuat dua sprite otentik Sunnyside yang terbaca sangat jelas: Tertutup dan Terbuka."""
+        sw = self.w
+        sh = self.h + self.visual_y_offset + 8  # 96 x 72 px kanvas
+        self.surf_closed = pygame.Surface((sw, sh), pygame.SRCALPHA)
+        self.surf_open = pygame.Surface((sw, sh), pygame.SRCALPHA)
+
+        # Palet resmi Sunnyside World
+        C_STONE_OUTLINE = (28, 26, 36)
+        C_STONE_DARK    = (50, 48, 62)
+        C_STONE_MID     = (82, 80, 98)
+        C_STONE_LIGHT   = (122, 120, 142)
+        C_STONE_TOP     = (158, 156, 178)
+
+        C_WOOD_OUTLINE  = (40, 24, 16)
+        C_WOOD_DARK     = (78, 48, 30)
+        C_WOOD_MID      = (128, 80, 50)
+        C_WOOD_LIGHT    = (168, 110, 70)
+
+        C_IRON_DARK     = (30, 32, 40)
+        C_IRON_MID      = (65, 70, 82)
+        C_IRON_LIGHT    = (120, 125, 140)
+
+        C_GOLD_DARK     = (150, 100, 15)
+        C_GOLD_MID      = (220, 165, 35)
+        C_GOLD_LIGHT    = (255, 225, 90)
+
+        for surf, is_op in [(self.surf_closed, False), (self.surf_open, True)]:
+            # 1. Pilar Kiri (x=2..22, y=10..68)
+            pygame.draw.rect(surf, C_STONE_OUTLINE, (2, 10, 20, 58), border_radius=3)
+            pygame.draw.rect(surf, C_STONE_DARK, (4, 12, 16, 54), border_radius=2)
+            pygame.draw.rect(surf, C_STONE_MID, (6, 14, 12, 50))
+            # Capital block / mahkota atas pilar kiri
+            pygame.draw.rect(surf, C_STONE_OUTLINE, (0, 8, 24, 8), border_radius=2)
+            pygame.draw.rect(surf, C_STONE_TOP, (2, 9, 20, 3))
+            pygame.draw.rect(surf, C_STONE_MID, (2, 12, 20, 3))
+            # Garis batu bata pilar kiri
+            for py in [24, 38, 52]:
+                pygame.draw.line(surf, C_STONE_OUTLINE, (4, py), (19, py), 1)
+                pygame.draw.line(surf, C_STONE_LIGHT, (4, py + 1), (19, py + 1), 1)
+
+            # 2. Pilar Kanan (x=74..94, y=10..68)
+            pygame.draw.rect(surf, C_STONE_OUTLINE, (74, 10, 20, 58), border_radius=3)
+            pygame.draw.rect(surf, C_STONE_DARK, (76, 12, 16, 54), border_radius=2)
+            pygame.draw.rect(surf, C_STONE_MID, (78, 14, 12, 50))
+            # Capital block / mahkota atas pilar kanan
+            pygame.draw.rect(surf, C_STONE_OUTLINE, (72, 8, 24, 8), border_radius=2)
+            pygame.draw.rect(surf, C_STONE_TOP, (74, 9, 20, 3))
+            pygame.draw.rect(surf, C_STONE_MID, (74, 12, 20, 3))
+            # Garis batu bata pilar kanan
+            for py in [24, 38, 52]:
+                pygame.draw.line(surf, C_STONE_OUTLINE, (76, py), (91, py), 1)
+                pygame.draw.line(surf, C_STONE_LIGHT, (76, py + 1), (91, py + 1), 1)
+
+            # 3. Lengkung Batu Atas / Stone Arch Lintel (x=18..78, y=4..18)
+            pygame.draw.rect(surf, C_STONE_OUTLINE, (18, 4, 60, 14), border_radius=4)
+            pygame.draw.rect(surf, C_STONE_DARK, (20, 6, 56, 10), border_radius=2)
+            pygame.draw.rect(surf, C_STONE_TOP, (22, 6, 52, 3))
+            pygame.draw.rect(surf, C_STONE_MID, (22, 9, 52, 6))
+            # Keystone di tengah atas arch (x=42..54, y=2..18)
+            pygame.draw.polygon(surf, C_STONE_OUTLINE, [(44, 2), (52, 2), (55, 18), (41, 18)])
+            pygame.draw.polygon(surf, C_STONE_TOP, [(45, 3), (51, 3), (53, 7), (43, 7)])
+            pygame.draw.polygon(surf, C_STONE_MID, [(43, 7), (53, 7), (54, 17), (42, 17)])
+
+            # 4. Daun Pintu Kayu (Wooden Gate Leaves)
+            if not is_op:
+                # TERTUTUP: Daun pintu ganda kayu oak solid (x=22..74, y=20..68)
+                # Daun pintu kiri
+                pygame.draw.rect(surf, C_WOOD_OUTLINE, (22, 20, 26, 48))
+                pygame.draw.rect(surf, C_WOOD_MID, (24, 22, 22, 44))
+                for px in [28, 34, 40]:
+                    pygame.draw.line(surf, C_WOOD_OUTLINE, (px, 22), (px, 65), 1)
+                    pygame.draw.line(surf, C_WOOD_LIGHT, (px + 1, 22), (px + 1, 65), 1)
+
+                # Daun pintu kanan
+                pygame.draw.rect(surf, C_WOOD_OUTLINE, (48, 20, 26, 48))
+                pygame.draw.rect(surf, C_WOOD_MID, (50, 22, 22, 44))
+                for px in [54, 60, 66]:
+                    pygame.draw.line(surf, C_WOOD_OUTLINE, (px, 22), (px, 65), 1)
+                    pygame.draw.line(surf, C_WOOD_LIGHT, (px + 1, 22), (px + 1, 65), 1)
+
+                # Celah tengah pintu
+                pygame.draw.line(surf, C_WOOD_OUTLINE, (48, 20), (48, 67), 2)
+
+                # Engsel besi di tiang pilar kiri & kanan
+                for hy in [28, 56]:
+                    pygame.draw.rect(surf, C_IRON_DARK, (18, hy, 12, 5), border_radius=1)
+                    pygame.draw.rect(surf, C_IRON_LIGHT, (19, hy + 1, 10, 2))
+                    pygame.draw.circle(surf, (200, 205, 220), (20, hy + 2), 1)
+
+                    pygame.draw.rect(surf, C_IRON_DARK, (66, hy, 12, 5), border_radius=1)
+                    pygame.draw.rect(surf, C_IRON_LIGHT, (67, hy + 1, 10, 2))
+                    pygame.draw.circle(surf, (200, 205, 220), (76, hy + 2), 1)
+
+                # Palang besi penguat horizontal
+                for by in [34, 52]:
+                    pygame.draw.rect(surf, C_IRON_DARK, (23, by, 50, 5))
+                    pygame.draw.rect(surf, C_IRON_MID, (24, by + 1, 48, 3))
+                    pygame.draw.line(surf, C_IRON_LIGHT, (24, by + 1), (71, by + 1), 1)
+                    for bx in [26, 36, 60, 70]:
+                        pygame.draw.circle(surf, (220, 225, 240), (bx, by + 2), 1)
+
+                # Palang Pengunci & Gembok Emas di kait tengah
+                pygame.draw.rect(surf, C_IRON_DARK, (42, 41, 12, 6), border_radius=1)
+                pygame.draw.rect(surf, C_IRON_LIGHT, (43, 42, 10, 2))
+                pygame.draw.arc(surf, (190, 195, 210), (45, 43, 6, 7), 0, 3.1415, 2)
+                pygame.draw.rect(surf, C_GOLD_DARK, (44, 47, 8, 8), border_radius=2)
+                pygame.draw.rect(surf, C_GOLD_MID, (45, 48, 6, 6))
+                pygame.draw.rect(surf, C_GOLD_LIGHT, (45, 48, 2, 2))
+                pygame.draw.circle(surf, (30, 20, 5), (48, 51), 1)
+
+            else:
+                # TERBUKA: Daun pintu kayu terlipat lebar ke sisi pilar batu
+                # Daun kiri terlipat
+                pygame.draw.polygon(surf, C_WOOD_OUTLINE, [(18, 20), (26, 23), (26, 65), (18, 68)])
+                pygame.draw.polygon(surf, C_WOOD_MID, [(19, 21), (25, 24), (25, 64), (19, 67)])
+                pygame.draw.line(surf, C_WOOD_LIGHT, (20, 22), (20, 66), 2)
+                pygame.draw.rect(surf, C_IRON_DARK, (16, 28, 6, 4))
+                pygame.draw.rect(surf, C_IRON_DARK, (16, 56, 6, 4))
+
+                # Daun kanan terlipat
+                pygame.draw.polygon(surf, C_WOOD_OUTLINE, [(78, 20), (70, 23), (70, 65), (78, 68)])
+                pygame.draw.polygon(surf, C_WOOD_MID, [(77, 21), (71, 24), (71, 64), (77, 67)])
+                pygame.draw.line(surf, C_WOOD_LIGHT, (76, 22), (76, 66), 2)
+                pygame.draw.rect(surf, C_IRON_DARK, (74, 28, 6, 4))
+                pygame.draw.rect(surf, C_IRON_DARK, (74, 56, 6, 4))
+
+                # Garis ambang batu dasar di tanah (y=64..66)
+                pygame.draw.line(surf, C_STONE_DARK, (26, 65), (70, 65), 2)
+                pygame.draw.line(surf, C_STONE_LIGHT, (26, 66), (70, 66), 1)
+
+
 
     def unlock(self, inventory: Inventory) -> Tuple[bool, str]:
         if self.is_open:
@@ -65,94 +223,20 @@ class LockedGate:
         return None if self.is_open else self.collision_rect
 
     def draw(self, screen: pygame.Surface, camera: Tuple[int, int],
-             hero_pos: Optional[Tuple[float, float]] = None):
-        cat = get_asset_catalog()
+             hero_pos: Optional[Tuple[float, float]] = None, *args, **kwargs):
         cam_x, cam_y = camera
-        vx = int(self.visual_pos[0] - cam_x)
-        vy = int(self.visual_pos[1] - cam_y)
+        draw_x = int(self.x - cam_x)
+        draw_y = int(self.y - self.visual_y_offset - cam_y)
 
         # Culling di luar layar
-        if not (-self.w <= vx <= 1024 + 64 and -self.h <= vy <= 768 + 64):
+        if not (-self.w <= draw_x <= 1024 + 64 and -64 <= draw_y <= 768 + 64):
             return
 
-        font_prompt = pygame.font.Font(None, 18)
+        if self.surf_closed is None or self.surf_open is None:
+            self._init_sprites()
 
-        # 1. Pilar batu samping kiri dan kanan dari blok batu Sunnyside
-        pillar_w = 24
-        # Pilar kiri
-        pygame.draw.rect(screen, (45, 42, 50), (vx, vy - 4, pillar_w, self.h + 8), border_radius=4)
-        pygame.draw.rect(screen, (75, 70, 82), (vx + 2, vy - 2, pillar_w - 4, self.h + 4), border_radius=3)
-        pygame.draw.rect(screen, (105, 100, 115), (vx, vy - 4, pillar_w, self.h + 8), 1, border_radius=4)
-        # Cap atas pilar kiri
-        pygame.draw.rect(screen, (120, 115, 130), (vx - 2, vy - 8, pillar_w + 4, 6), border_radius=2)
-
-        # Pilar kanan
-        pr_x = vx + self.w - pillar_w
-        pygame.draw.rect(screen, (45, 42, 50), (pr_x, vy - 4, pillar_w, self.h + 8), border_radius=4)
-        pygame.draw.rect(screen, (75, 70, 82), (pr_x + 2, vy - 2, pillar_w - 4, self.h + 4), border_radius=3)
-        pygame.draw.rect(screen, (105, 100, 115), (pr_x, vy - 4, pillar_w, self.h + 8), 1, border_radius=4)
-        # Cap atas pilar kanan
-        pygame.draw.rect(screen, (120, 115, 130), (pr_x - 2, vy - 8, pillar_w + 4, 6), border_radius=2)
-
-        gate_span = self.w - (pillar_w * 2)
-        gate_start_x = vx + pillar_w
-        half_span = gate_span // 2
-
-        # Animasi buka: slide/retract kedua sayap pintu ke pilar
-        prog = self.open_progress if self.is_open else 0.0
-        leaf_w = int(half_span * (1.0 - prog * 0.75))
-
-        # Panel Pintu Kiri
-        left_leaf_rect = pygame.Rect(gate_start_x, vy + 4, leaf_w, self.h - 8)
-        # Panel Pintu Kanan
-        right_leaf_rect = pygame.Rect(gate_start_x + gate_span - leaf_w, vy + 4, leaf_w, self.h - 8)
-
-        # Gambar Daun Pintu Kayu & Jeruji Besi
-        for rect, is_right in [(left_leaf_rect, False), (right_leaf_rect, True)]:
-            if rect.width <= 4:
-                continue
-            # Dasar kayu gelap
-            pygame.draw.rect(screen, (60, 42, 28), rect, border_radius=2)
-            pygame.draw.rect(screen, (92, 64, 42), rect.inflate(-2, -2), border_radius=2)
-            # Palang besi horizontal
-            pygame.draw.line(screen, (45, 48, 55), (rect.left, rect.top + 8), (rect.right, rect.top + 8), 3)
-            pygame.draw.line(screen, (45, 48, 55), (rect.left, rect.centery), (rect.right, rect.centery), 3)
-            pygame.draw.line(screen, (45, 48, 55), (rect.left, rect.bottom - 8), (rect.right, rect.bottom - 8), 3)
-            # Jeruji besi vertikal
-            for bx in range(rect.left + 8, rect.right - 4, 16):
-                pygame.draw.line(screen, (130, 135, 145), (bx, rect.top + 2), (bx, rect.bottom - 2), 2)
-                # Ujung runcing atas
-                pygame.draw.line(screen, (180, 185, 195), (bx, rect.top), (bx, rect.top + 4), 1)
-            # Bingkai besi
-            pygame.draw.rect(screen, (35, 38, 45), rect, 1, border_radius=2)
-
-        lock_cx = vx + self.w // 2
-        lock_cy = vy + self.h // 2
-
-        if not self.is_open:
-            # Ikon Gembok Rantai di tengah kedua daun pintu yang terkunci
-            gate_surf = cat.get_generated_icon("gate_locked", scale=2)
-            screen.blit(gate_surf, (lock_cx - gate_surf.get_width() // 2, lock_cy - gate_surf.get_height() // 2))
-
-            # Prompt "Butuh Kunci Gerbang" saat hero dekat
-            is_near = False
-            if hero_pos:
-                dist = ((self.x + self.w // 2 - hero_pos[0]) ** 2 + (self.y + self.h // 2 - hero_pos[1]) ** 2) ** 0.5
-                if dist <= 120.0:
-                    is_near = True
-
-            if is_near:
-                lbl = font_prompt.render("Butuh Kunci Gerbang [E]", True, (255, 210, 80))
-                tag_w = lbl.get_width() + 12
-                tag_h = lbl.get_height() + 4
-                tag_rect = pygame.Rect(lock_cx - tag_w // 2, vy - 24, tag_w, tag_h)
-                pygame.draw.rect(screen, (20, 20, 30, 220), tag_rect, border_radius=3)
-                pygame.draw.rect(screen, (255, 190, 60), tag_rect, 1, border_radius=3)
-                screen.blit(lbl, (tag_rect.x + 6, tag_rect.y + 2))
-        else:
-            # Ikon gerbang terbuka di pilar samping
-            gate_surf = cat.get_generated_icon("gate_open", scale=2)
-            screen.blit(gate_surf, (lock_cx - gate_surf.get_width() // 2, lock_cy - gate_surf.get_height() // 2))
+        active_surf = self.surf_open if self.is_open else self.surf_closed
+        screen.blit(active_surf, (draw_x, draw_y))
 
 
 class WorldState:

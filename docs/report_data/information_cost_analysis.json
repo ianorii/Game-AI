@@ -1,0 +1,130 @@
+{
+  "board_location": [
+    1504,
+    1024
+  ],
+  "interaction_delay_sec": 0.2,
+  "abstract_vpi_utility_points": 1.98,
+  "corridor_full_model": {
+    "delta_t": 0.8696,
+    "calibrated_2_70s": {
+      "raw_savings_sec": 0.0865,
+      "spawns": {
+        "Rumah": {
+          "detour_sec": 0.2,
+          "net_sec": -0.1135,
+          "k_breakeven": 2.31,
+          "status": "Impas K >= 3 trip/hari"
+        },
+        "Alun_Alun": {
+          "detour_sec": 0.42,
+          "net_sec": -0.3335,
+          "k_breakeven": 4.86,
+          "status": "Impas K >= 5 trip/hari"
+        },
+        "Warung": {
+          "detour_sec": 7.81,
+          "net_sec": -7.7235,
+          "k_breakeven": 90.29,
+          "status": "Tidak Realistis"
+        },
+        "Ladang": {
+          "detour_sec": 0.86,
+          "net_sec": -0.7735,
+          "k_breakeven": 9.94,
+          "status": "Impas K >= 10 trip/hari"
+        }
+      }
+    },
+    "measured_1_78s": {
+      "raw_savings_sec": 0.0035,
+      "spawns": {
+        "Rumah": {
+          "detour_sec": 0.2,
+          "net_sec": -0.1965,
+          "k_breakeven": 56.73,
+          "status": "Tidak Pernah Impas (Biaya > 57x Penghematan)"
+        },
+        "Alun_Alun": {
+          "detour_sec": 0.42,
+          "net_sec": -0.4165,
+          "k_breakeven": 119.15,
+          "status": "Tidak Pernah Impas"
+        },
+        "Warung": {
+          "detour_sec": 7.81,
+          "net_sec": -7.8065,
+          "k_breakeven": 2215.6,
+          "status": "Tidak Pernah Impas"
+        },
+        "Ladang": {
+          "detour_sec": 0.86,
+          "net_sec": -0.8565,
+          "k_breakeven": 243.97,
+          "status": "Tidak Pernah Impas"
+        }
+      }
+    }
+  },
+  "subsegment_local_model": {
+    "delta_t": 0.3546,
+    "calibrated_2_70s": {
+      "raw_savings_sec": 0.1772,
+      "spawns": {
+        "Rumah": {
+          "detour_sec": 0.2,
+          "net_sec": -0.0228,
+          "k_breakeven": 1.13,
+          "status": "Impas K >= 2 trip/hari"
+        },
+        "Alun_Alun": {
+          "detour_sec": 0.42,
+          "net_sec": -0.2428,
+          "k_breakeven": 2.37,
+          "status": "Impas K >= 3 trip/hari"
+        },
+        "Warung": {
+          "detour_sec": 7.81,
+          "net_sec": -7.6328,
+          "k_breakeven": 44.07,
+          "status": "Rugi Besar"
+        },
+        "Ladang": {
+          "detour_sec": 0.86,
+          "net_sec": -0.6828,
+          "k_breakeven": 4.85,
+          "status": "Impas K >= 5 trip/hari"
+        }
+      }
+    },
+    "measured_1_78s": {
+      "raw_savings_sec": 0.0952,
+      "spawns": {
+        "Rumah": {
+          "detour_sec": 0.2,
+          "net_sec": -0.1048,
+          "k_breakeven": 2.1,
+          "status": "Impas K >= 3 trip/hari"
+        },
+        "Alun_Alun": {
+          "detour_sec": 0.42,
+          "net_sec": -0.3248,
+          "k_breakeven": 4.41,
+          "status": "Impas K >= 5 trip/hari"
+        },
+        "Warung": {
+          "detour_sec": 7.81,
+          "net_sec": -7.7148,
+          "k_breakeven": 82.04,
+          "status": "Rugi Besar"
+        },
+        "Ladang": {
+          "detour_sec": 0.86,
+          "net_sec": -0.7648,
+          "k_breakeven": 9.03,
+          "status": "Impas K >= 10 trip/hari"
+        }
+      }
+    }
+  }
+}

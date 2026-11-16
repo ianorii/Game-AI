@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-08T21:08:38.149510",
+  "generated_at": "2026-11-16T13:41:12.777711",
   "benchmark_cells": [
     {
       "problem": "P1: Key",
@@ -8,8 +8,8 @@
       "plan_length": 6,
       "cost_seconds": 16.63,
       "nodes_expanded": 44,
-      "time_ms": 24.63,
-      "ms_per_node": 0.56,
+      "time_ms": 20.71,
+      "ms_per_node": 0.471,
       "optimality": "Satisficing"
     },
     {
@@ -18,9 +18,9 @@
       "status": "SUKSES",
       "plan_length": 6,
       "cost_seconds": 16.63,
-      "nodes_expanded": 35,
-      "time_ms": 19.32,
-      "ms_per_node": 0.552,
+      "nodes_expanded": 34,
+      "time_ms": 14.05,
+      "ms_per_node": 0.413,
       "optimality": "Ya (Admissible)"
     },
     {
@@ -30,8 +30,8 @@
       "plan_length": 6,
       "cost_seconds": 16.63,
       "nodes_expanded": 16,
-      "time_ms": 47.36,
-      "ms_per_node": 2.96,
+      "time_ms": 23.24,
+      "ms_per_node": 1.453,
       "optimality": "Ya (Admissible)"
     },
     {
@@ -41,8 +41,8 @@
       "plan_length": 6,
       "cost_seconds": 16.63,
       "nodes_expanded": 9,
-      "time_ms": 38.85,
-      "ms_per_node": 4.317,
+      "time_ms": 15.42,
+      "ms_per_node": 1.714,
       "optimality": "Satisficing"
     },
     {
@@ -52,8 +52,8 @@
       "plan_length": 6,
       "cost_seconds": 16.63,
       "nodes_expanded": 7,
-      "time_ms": 11.62,
-      "ms_per_node": 1.659,
+      "time_ms": 4.24,
+      "ms_per_node": 0.606,
       "optimality": "Satisficing"
     },
     {
@@ -63,8 +63,8 @@
       "plan_length": "-",
       "cost_seconds": "-",
       "nodes_expanded": 0,
-      "time_ms": 4897.46,
-      "ms_per_node": 4897.461,
+      "time_ms": 3291.06,
+      "ms_per_node": 3291.064,
       "optimality": "Ya"
     },
     {
@@ -74,8 +74,8 @@
       "plan_length": "-",
       "cost_seconds": "-",
       "nodes_expanded": 0,
-      "time_ms": 4192.35,
-      "ms_per_node": 4192.353,
+      "time_ms": 3225.97,
+      "ms_per_node": 3225.968,
       "optimality": "Tidak"
     },
     {
@@ -83,10 +83,10 @@
       "algorithm": "BFS",
       "status": "SUKSES",
       "plan_length": 8,
-      "cost_seconds": 23.07,
-      "nodes_expanded": 48,
-      "time_ms": 29.05,
-      "ms_per_node": 0.605,
+      "cost_seconds": 26.33,
+      "nodes_expanded": 53,
+      "time_ms": 28.3,
+      "ms_per_node": 0.534,
       "optimality": "Satisficing"
     },
     {
@@ -94,10 +94,10 @@
       "algorithm": "UCS",
       "status": "SUKSES",
       "plan_length": 8,
-      "cost_seconds": 23.07,
-      "nodes_expanded": 48,
-      "time_ms": 29.41,
-      "ms_per_node": 0.613,
+      "cost_seconds": 26.33,
+      "nodes_expanded": 57,
+      "time_ms": 24.06,
+      "ms_per_node": 0.422,
       "optimality": "Ya (Admissible)"
     },
     {
@@ -105,10 +105,10 @@
       "algorithm": "A* (h_max)",
       "status": "SUKSES",
       "plan_length": 8,
-      "cost_seconds": 23.07,
-      "nodes_expanded": 29,
-      "time_ms": 66.48,
-      "ms_per_node": 2.293,
+      "cost_seconds": 26.33,
+      "nodes_expanded": 28,
+      "time_ms": 33.82,
+      "ms_per_node": 1.208,
       "optimality": "Ya (Admissible)"
     },
     {
@@ -116,10 +116,10 @@
       "algorithm": "A* (h_add)",
       "status": "SUKSES",
       "plan_length": 8,
-      "cost_seconds": 23.07,
+      "cost_seconds": 26.33,
       "nodes_expanded": 13,
-      "time_ms": 37.81,
-      "ms_per_node": 2.908,
+      "time_ms": 20.98,
+      "ms_per_node": 1.614,
       "optimality": "Satisficing"
     },
     {
@@ -127,10 +127,10 @@
       "algorithm": "WA* (h_FF)",
       "status": "SUKSES",
       "plan_length": 8,
-      "cost_seconds": 23.07,
-      "nodes_expanded": 12,
-      "time_ms": 11.5,
-      "ms_per_node": 0.958,
+      "cost_seconds": 26.33,
+      "nodes_expanded": 11,
+      "time_ms": 6.74,
+      "ms_per_node": 0.613,
       "optimality": "Satisficing"
     },
     {
@@ -140,8 +140,8 @@
       "plan_length": "-",
       "cost_seconds": "-",
       "nodes_expanded": 0,
-      "time_ms": 7407.42,
-      "ms_per_node": 7407.42,
+      "time_ms": 4523.65,
+      "ms_per_node": 4523.647,
       "optimality": "Ya"
     },
     {
@@ -150,9 +150,9 @@
       "status": "TIMEOUT (5.0s)",
       "plan_length": "-",
       "cost_seconds": "-",
-      "nodes_expanded": 3899,
-      "time_ms": 3000.36,
-      "ms_per_node": 0.77,
+      "nodes_expanded": 5228,
+      "time_ms": 3000.46,
+      "ms_per_node": 0.574,
       "optimality": "Tidak"
     },
     {
@@ -161,9 +161,9 @@
       "status": "TIMEOUT (5.0s)",
       "plan_length": "-",
       "cost_seconds": "-",
-      "nodes_expanded": 3888,
-      "time_ms": 3000.35,
-      "ms_per_node": 0.772,
+      "nodes_expanded": 4914,
+      "time_ms": 3000.2,
+      "ms_per_node": 0.611,
       "optimality": "Ya"
     },
     {
@@ -172,9 +172,9 @@
       "status": "TIMEOUT (5.0s)",
       "plan_length": "-",
       "cost_seconds": "-",
-      "nodes_expanded": 526,
-      "time_ms": 3006.5,
-      "ms_per_node": 5.716,
+      "nodes_expanded": 867,
+      "time_ms": 3002.28,
+      "ms_per_node": 3.463,
       "optimality": "Ya"
     },
     {
@@ -184,8 +184,8 @@
       "plan_length": 11,
       "cost_seconds": 50.61,
       "nodes_expanded": 24,
-      "time_ms": 181.29,
-      "ms_per_node": 7.554,
+      "time_ms": 113.97,
+      "ms_per_node": 4.749,
       "optimality": "Satisficing"
     },
     {
@@ -195,8 +195,8 @@
       "plan_length": 10,
       "cost_seconds": 50.61,
       "nodes_expanded": 14,
-      "time_ms": 15.5,
-      "ms_per_node": 1.107,
+      "time_ms": 12.76,
+      "ms_per_node": 0.911,
       "optimality": "Satisficing"
     },
     {
@@ -206,8 +206,8 @@
       "plan_length": "-",
       "cost_seconds": "-",
       "nodes_expanded": 0,
-      "time_ms": 4448.23,
-      "ms_per_node": 4448.229,
+      "time_ms": 2865.51,
+      "ms_per_node": 2865.512,
       "optimality": "Ya"
     },
     {
@@ -216,9 +216,9 @@
       "status": "SUKSES",
       "plan_length": 37,
       "cost_seconds": 118.48,
-      "nodes_expanded": 939,
-      "time_ms": 1458.86,
-      "ms_per_node": 1.554,
+      "nodes_expanded": 876,
+      "time_ms": 1014.55,
+      "ms_per_node": 1.158,
       "optimality": "Satisficing"
     },
     {
@@ -228,8 +228,8 @@
       "plan_length": "-",
       "cost_seconds": "-",
       "nodes_expanded": 0,
-      "time_ms": 0.38,
-      "ms_per_node": 0.384,
+      "time_ms": 0.36,
+      "ms_per_node": 0.358,
       "optimality": "-"
     },
     {
@@ -240,34 +240,12 @@
       "cost_seconds": "-",
       "nodes_expanded": 0,
       "time_ms": 0.01,
-      "ms_per_node": 0.01,
+      "ms_per_node": 0.009,
       "optimality": "-"
     },
     {
       "problem": "P4: Belati Cepat (Murah)",
       "algorithm": "UCS",
-      "status": "UNSOLVABLE",
-      "plan_length": "-",
-      "cost_seconds": "-",
-      "nodes_expanded": 0,
-      "time_ms": 0.01,
-      "ms_per_node": 0.007,
-      "optimality": "-"
-    },
-    {
-      "problem": "P4: Belati Cepat (Murah)",
-      "algorithm": "A* (h_max)",
-      "status": "UNSOLVABLE",
-      "plan_length": "-",
-      "cost_seconds": "-",
-      "nodes_expanded": 0,
-      "time_ms": 0.01,
-      "ms_per_node": 0.007,
-      "optimality": "-"
-    },
-    {
-      "problem": "P4: Belati Cepat (Murah)",
-      "algorithm": "A* (h_add)",
       "status": "UNSOLVABLE",
       "plan_length": "-",
       "cost_seconds": "-",
@@ -278,12 +256,34 @@
     },
     {
       "problem": "P4: Belati Cepat (Murah)",
-      "algorithm": "A* (h_level)",
+      "algorithm": "A* (h_max)",
       "status": "UNSOLVABLE",
       "plan_length": "-",
       "cost_seconds": "-",
       "nodes_expanded": 0,
       "time_ms": 0.01,
+      "ms_per_node": 0.006,
+      "optimality": "-"
+    },
+    {
+      "problem": "P4: Belati Cepat (Murah)",
+      "algorithm": "A* (h_add)",
+      "status": "UNSOLVABLE",
+      "plan_length": "-",
+      "cost_seconds": "-",
+      "nodes_expanded": 0,
+      "time_ms": 0.0,
+      "ms_per_node": 0.005,
+      "optimality": "-"
+    },
+    {
+      "problem": "P4: Belati Cepat (Murah)",
+      "algorithm": "A* (h_level)",
+      "status": "UNSOLVABLE",
+      "plan_length": "-",
+      "cost_seconds": "-",
+      "nodes_expanded": 0,
+      "time_ms": 0.0,
       "ms_per_node": 0.005,
       "optimality": "-"
     },
@@ -295,7 +295,7 @@
       "cost_seconds": "-",
       "nodes_expanded": 0,
       "time_ms": 0.02,
-      "ms_per_node": 0.015,
+      "ms_per_node": 0.018,
       "optimality": "-"
     },
     {
@@ -306,7 +306,7 @@
       "cost_seconds": "-",
       "nodes_expanded": 0,
       "time_ms": 0.01,
-      "ms_per_node": 0.007,
+      "ms_per_node": 0.005,
       "optimality": "-"
     },
     {
@@ -316,8 +316,8 @@
       "plan_length": "-",
       "cost_seconds": "-",
       "nodes_expanded": 0,
-      "time_ms": 0.87,
-      "ms_per_node": 0.873,
+      "time_ms": 0.42,
+      "ms_per_node": 0.416,
       "optimality": "-"
     },
     {
@@ -328,7 +328,7 @@
       "cost_seconds": "-",
       "nodes_expanded": 0,
       "time_ms": 0.01,
-      "ms_per_node": 0.012,
+      "ms_per_node": 0.008,
       "optimality": "-"
     },
     {
@@ -339,7 +339,7 @@
       "cost_seconds": "-",
       "nodes_expanded": 0,
       "time_ms": 0.01,
-      "ms_per_node": 0.008,
+      "ms_per_node": 0.009,
       "optimality": "-"
     },
     {
@@ -350,7 +350,7 @@
       "cost_seconds": "-",
       "nodes_expanded": 0,
       "time_ms": 0.01,
-      "ms_per_node": 0.008,
+      "ms_per_node": 0.007,
       "optimality": "-"
     }
   ],
@@ -360,31 +360,31 @@
     "actions_pruned": 117,
     "ucs_unpruned": {
       "status": "SUKSES",
-      "nodes": 2301,
-      "time_ms": 2034.5
+      "nodes": 2296,
+      "time_ms": 1471.73
     },
     "ucs_pruned": {
       "status": "SUKSES",
-      "nodes": 35,
-      "time_ms": 17.42,
+      "nodes": 34,
+      "time_ms": 14.5,
       "cost_s": 16.63
     }
   },
   "regression_vs_forward_ojek": {
     "forward_bfs": {
       "steps": 4,
-      "nodes": 5,
-      "time_ms": 0.094
+      "nodes": 6,
+      "time_ms": 0.076
     },
     "regression_bfs": {
       "steps": 4,
-      "nodes": 8,
-      "time_ms": 0.132
+      "nodes": 17,
+      "time_ms": 0.219
     },
     "regression_astar": {
       "steps": 4,
       "nodes": 10,
-      "time_ms": 0.209
+      "time_ms": 0.275
     }
   }
 }

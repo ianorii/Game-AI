@@ -210,7 +210,17 @@ Boss menggunakan **Minimax + Alpha-Beta depth 3** untuk memilih aksinya.
 | `ai/csp.py` | **Constraint Satisfaction (backtracking)** | Validasi penempatan Overseer. Aturan: (R1) jalur spawn→Core tidak boleh sepenuhnya diblokir, (R2) `fire trap` tidak boleh bersebelahan dengan `ice monster`, (R3) total energi ≤ kapasitas Core. Panel F2 menampilkan hasil audit/saran. |
 | `ai/local_search.py` | **Simulated Annealing** | Tombol **O** mengoptimasi layout Overseer untuk memaksimalkan kesulitan. Progres ditampilkan di F3. |
 | `ai/adversarial.py` | **Minimax + Alpha-Beta Pruning** | Boss menghitung aksi terbaik dengan kedalaman 3. Evaluasi dari sudut pandang Boss. Skor tiap aksi & pohon pencarian ditampilkan di F4. |
-| `src/planning/` | **Automated Planning (STRIPS, Regression, Planning Graph)** | Ekspedisi otonom: Forward Search (BFS, UCS, A* $h_{\max}$, WA* $h_{\text{FF}}$, A* $h_{\text{level}}$), Backward Subgoal Regression (Slide 27), Planning Graph dengan Mutex (Slide 31–35), Plan Monitor & Adaptive Replan. Panel F7 & F8, Mode F9 (OFF/AUTO/ADVISOR). |
+| `src/planning/` | **Automated Planning (STRIPS, Regression, Planning Graph, HTN)** | Ekspedisi otonom: Forward Search (BFS, UCS, A* $h_{\max}$, WA* $h_{\text{FF}}$, A* $h_{\text{level}}$), Backward Subgoal Regression (Slide 27), Planning Graph dengan Mutex (Slide 31–35), Plan Monitor & Adaptive Replan. Serta **HTN SHOP-style** untuk rutinitas mandiri 2 NPC desa (Pak Tani & Kang Penggiling). Panel F7 & F8, Mode F9 (OFF/AUTO/ADVISOR). |
+| `src/decision/` | **Decisions Under Uncertainty (Probability, Bayes, MDP, Value Iteration)** | Pemodelan keputusan di bawah ketidakpastian (Slide 3–23): Teorema Bayes, Expected Utility, Maximum Expected Utility (MEU), Synchronous Value Iteration, analisis sensitivitas $f^* = 4/30 \approx 0.1333$, dan bahaya kesalahan Reward Shaping. |
+
+### CLI Demonstrasi Decisions Under Uncertainty (Materi Kuliah Slide 3–23)
+Tersedia opsi CLI mandiri untuk mengecek perhitungan matematis & simulasi MDP:
+```bash
+python3 src/main.py --demo-mdp             # Demo 1: Value Iteration & Bellman Equation f=0.1 & f=0.25 (Slide 13-21)
+python3 src/main.py --demo-bayes           # Demo 2: Teorema Bayes, Likelihood Berita/Cerah, EV & MEU (Slide 3-8)
+python3 src/main.py --demo-reward-shaping  # Demo 3: Kesalahan Reward Shaping (+3/langkah) & Loop Abadi (Slide 23)
+python3 src/main.py --demo-sensitivity     # Demo 4: Analisis Sensitivitas Batas f* = 0.1333 (Bisection & Sweep)
+```
 
 ### CLI Demonstrasi Automated Planning (Materi Kuliah 35 Slide)
 Tersedia opsi CLI interaktif untuk verifikasi cepat:

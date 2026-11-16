@@ -15,6 +15,7 @@ from typing import List, Dict, Set, Tuple, Optional, Any, Callable
 import time
 import math
 import re
+import pygame
 
 import config
 from world_state import WorldState
@@ -266,6 +267,14 @@ class WorldClock:
         self.total_cycle = day_duration + night_duration
         self.time_seconds: float = 0.0
 
+    @property
+    def elapsed(self) -> float:
+        return self.time_seconds
+
+    @elapsed.setter
+    def elapsed(self, val: float):
+        self.time_seconds = float(val)
+
     def update(self, dt: float):
         self.time_seconds = (self.time_seconds + dt) % self.total_cycle
 
@@ -274,10 +283,28 @@ class WorldClock:
         return (self.time_seconds % self.total_cycle) < self.day_duration
 
     @property
+    def phase(self) -> str:
+        """
+        Sub-fase waktu harian desa Sunnyside:
+        - 0.0s .. 15.0s : PAGI (Fajar / pagi hari saat NPC bangun)
+        - 15.0s .. 45.0s: SIANG (Siang hari saat NPC aktif bekerja penuh)
+        - 45.0s .. 60.0s: SORE (Sore hari saat NPC menyelesaikan shift kerja)
+        - 60.0s .. 90.0s: MALAM (Malam hari saat NPC tidur di kasur)
+        """
+        cycle_pos = self.time_seconds % self.total_cycle
+        if cycle_pos < 15.0:
+            return "PAGI"
+        elif cycle_pos < 45.0:
+            return "SIANG"
+        elif cycle_pos < self.day_duration:
+            return "SORE"
+        else:
+            return "MALAM"
+
+    @property
     def time_string(self) -> str:
         cycle_pos = self.time_seconds % self.total_cycle
-        phase = "SIANG" if self.is_daytime else "MALAM"
-        return f"{phase} ({cycle_pos:.1f}s / {self.total_cycle:.1f}s)"
+        return f"{self.phase} ({cycle_pos:.1f}s / {self.total_cycle:.1f}s)"
 
 
 class ExpressionIcon:
@@ -304,7 +331,7 @@ class HTNNPCAgent:
         self.distance_matrix = distance_matrix or DistanceMatrix()
         self.planner = SHOPPlanner(domain, distance_matrix=self.distance_matrix)
 
-        locs = getattr(config, "LOCATIONS", {})
+        locs = getattr(config, "NPC_LOCATIONS", getattr(config, "LOCATIONS", {}))
         pos = locs.get(starting_loc, (1000, 750))
         self.px = float(pos[0])
         self.py = float(pos[1])
@@ -318,13 +345,54 @@ class HTNNPCAgent:
         self.current_op_duration: float = 0.0
         self.current_op_elapsed: float = 0.0
         self.replan_count: int = 0
+        self.replan_cooldown: float = 0.0
+
+        # Navigasi & Collision Guard
+        self.last_valid_pos = (self.px, self.py)
+        self.stuck_timer = 0.0
+        self.current_path: List[Tuple[float, float]] = []
+        self.path_target_loc = None
+
+    def _reset_navigation(self):
+        """Mereset state navigasi A* dan timer saat replanning atau aksi selesai."""
+        self.current_path = []
+        self.path_target_loc = None
+        self.stuck_timer = 0.0
+
+    def _install_plan(self, plan_ops: List[HTNTask], tree: List[HTNDecompositionNode]):
+        """Memasang rencana baru dan membersihkan state eksekusi sebelumnya."""
+        self.active_operator_queue = list(plan_ops)
+        self.active_tree = tree
+        self.current_op_elapsed = 0.0
+        self._reset_navigation()
+        self.replan_cooldown = 0.0
+
+    def get_symbolic_location(self) -> str:
+        """
+        Mengembalikan lokasi simbolik untuk fakta HTN.
+        Jika NPC berada di dekat landmark (<= 32px), update lokasi tersebut.
+        Jika sedang di tengah perjalanan (in-transit), gunakan lokasi terakhir yang sah.
+        """
+        locs = getattr(config, "NPC_LOCATIONS", getattr(config, "LOCATIONS", {}))
+        for loc_name, pos in locs.items():
+            if math.hypot(self.px - pos[0], self.py - pos[1]) <= 32.0:
+                self.current_location = loc_name
+                return loc_name
+        return self.current_location
+
+    def feet_hitbox(self) -> pygame.Rect:
+        """Hitbox kaki NPC untuk pengecekan can_stand dan move_and_slide."""
+        w, h = 14, 8
+        hx = int(self.px + (config.TILE_SIZE - w) / 2)
+        hy = int(self.py + config.TILE_SIZE - h - 1)
+        return pygame.Rect(hx, hy, w, h)
 
     def get_world_facts(self, clock: Optional[WorldClock] = None) -> Set[Tuple[str, ...]]:
         """Mengekstraksi fakta-fakta simbolik dunia saat ini untuk input perencana HTN."""
         facts: Set[Tuple[str, ...]] = set()
 
-        # Lokasi NPC
-        facts.add(("at", self.role, self.current_location))
+        # Lokasi simbolik NPC
+        facts.add(("at", self.role, self.get_symbolic_location()))
 
         # Jam dunia
         if clock is not None:
@@ -378,6 +446,7 @@ class HTNNPCAgent:
     def request_htn_plan(self, clock: Optional[WorldClock] = None) -> bool:
         """Menghasilkan rencana HTN baru berdasarkan peran dan jam dunia."""
         facts = self.get_world_facts(clock)
+        sym_loc = self.get_symbolic_location()
 
         if self.role == "farmer":
             root_task = HTNTask("daily_routine_farmer", (self.role,))
@@ -386,17 +455,18 @@ class HTNNPCAgent:
         else:
             root_task = HTNTask("daily_routine_farmer", (self.role,))
 
-        ok, plan_ops, tree = self.planner.plan(facts, [root_task], initial_binding={"?npc": self.role, "?from": self.current_location})
+        ok, plan_ops, tree = self.planner.plan(facts, [root_task], initial_binding={"?npc": self.role, "?from": sym_loc})
         if ok and plan_ops:
-            self.active_operator_queue = list(plan_ops)
-            self.active_tree = tree
-            self.current_op_elapsed = 0.0
+            self._install_plan(plan_ops, tree)
             chosen = tree[0].chosen_method if tree else "None"
             log_entry = f"[{time.strftime('%H:%M:%S')}] Replan #{self.replan_count + 1}: Metode '{chosen}' ({len(plan_ops)} operator)"
             self.replan_history.append(log_entry)
             self.replan_count += 1
             return True
-        return False
+        else:
+            # Cegah replan thrashing jika planner tidak menemukan solusi
+            self.replan_cooldown = 1.0
+            return False
 
     def check_and_replan_if_needed(self, clock: Optional[WorldClock] = None) -> bool:
         """
@@ -416,30 +486,44 @@ class HTNNPCAgent:
                 self.expression = ExpressionIcon.CONFUSED
                 self.expression_timer = 2.0
                 self.replan_history.append(f"[{time.strftime('%H:%M:%S')}] ANOMALI: Tanaman matang dipanen pemain! Memicu replanning...")
-                return self.request_htn_plan(clock)
+                ok = self.request_htn_plan(clock)
+                if not ok:
+                    # Rencana baru tidak ditemukan: batalkan rencana usang agar tidak mengeksekusi aksi invalid
+                    self.active_operator_queue = []
+                    self._reset_navigation()
+                    self.replan_cooldown = 1.5
+                    return False
+                return True
 
         return True
 
-    def update(self, dt: float, clock: Optional[WorldClock] = None, hero: Any = None):
+    def update(self, dt: float, clock: Optional[WorldClock] = None, hero: Any = None, game_map: Any = None):
         """Update langkah NPC tiap frame."""
+        # Clamp dt untuk mencegah tunneling atau lonjakan pasca lag spike
+        dt = min(dt, 0.1)
+
+        if self.replan_cooldown > 0:
+            self.replan_cooldown = max(0.0, self.replan_cooldown - dt)
+
         if self.expression_timer > 0:
             self.expression_timer -= dt
             if self.expression_timer <= 0:
                 self.expression = ExpressionIcon.IDLE
 
-        # Cek interaksi hero (chat jika hero dekat < 40px)
+        # Cek interaksi hero (chat jika hero dekat < 45px)
         if hero is not None and hasattr(hero, "px") and hasattr(hero, "py"):
             dist_to_hero = math.hypot(self.px - hero.px, self.py - hero.py)
             if dist_to_hero < 45.0:
                 self.expression = ExpressionIcon.CHAT
 
         if not self.active_operator_queue:
-            self.request_htn_plan(clock)
+            if self.replan_cooldown <= 0:
+                self.request_htn_plan(clock)
             return
 
         # Validasi prasyarat
-        self.check_and_replan_if_needed(clock)
-        if not self.active_operator_queue:
+        replan_ok = self.check_and_replan_if_needed(clock)
+        if not replan_ok or not self.active_operator_queue:
             return
 
         current_op = self.active_operator_queue[0]
@@ -448,23 +532,95 @@ class HTNNPCAgent:
         # Jalankan aksi
         if current_op.name == "!goto":
             dest_loc = current_op.args[2] if len(current_op.args) > 2 else current_op.args[-1]
-            locs = getattr(config, "LOCATIONS", {})
+            locs = getattr(config, "NPC_LOCATIONS", getattr(config, "LOCATIONS", {}))
             target_pos = locs.get(dest_loc, (self.px, self.py))
+            tx_pixel, ty_pixel = float(target_pos[0]), float(target_pos[1])
 
-            # Gerakkan posisi menuju sasaran
-            dx = target_pos[0] - self.px
-            dy = target_pos[1] - self.py
-            dist = math.hypot(dx, dy)
-            speed = 80.0  # piksel per detik
-            if dist > 4.0:
-                self.px += (dx / dist) * speed * dt
-                self.py += (dy / dist) * speed * dt
-                self.sort_y = self.py
-            else:
-                self.px, self.py = float(target_pos[0]), float(target_pos[1])
+            # Pathfinding A* jika path belum ada atau target berbeda
+            if self.path_target_loc != dest_loc or not self.current_path:
+                self.path_target_loc = dest_loc
+                start_cell = (int(round(self.px / config.TILE_SIZE)), int(round(self.py / config.TILE_SIZE)))
+                goal_cell = (int(round(tx_pixel / config.TILE_SIZE)), int(round(ty_pixel / config.TILE_SIZE)))
+
+                if start_cell != goal_cell:
+                    from ai.pathfinding import astar
+                    w_tiles = (game_map.width // config.TILE_SIZE) if game_map is not None else getattr(config, "MAP_W_TILES", 86)
+                    h_tiles = (game_map.height // config.TILE_SIZE) if game_map is not None else getattr(config, "MAP_H_TILES", 48)
+
+                    def is_blocked(cx: int, cy: int) -> bool:
+                        if game_map is not None:
+                            foot = pygame.Rect(cx * config.TILE_SIZE + 9, cy * config.TILE_SIZE + 23, 14, 8)
+                            return not game_map.can_stand(foot)
+                        return False
+
+                    res = astar(w_tiles, h_tiles, start_cell, goal_cell, is_blocked)
+                    if res.found and res.path:
+                        self.current_path = [(float(c[0] * config.TILE_SIZE), float(c[1] * config.TILE_SIZE)) for c in res.path[1:]]
+                        if not self.current_path or self.current_path[-1] != (tx_pixel, ty_pixel):
+                            self.current_path.append((tx_pixel, ty_pixel))
+                    else:
+                        self.stuck_timer += dt
+                        if self.stuck_timer > 3.0:
+                            self.px, self.py = self.last_valid_pos
+                            self.stuck_timer = 0.0
+                            self.current_path = []
+                        return
+                else:
+                    self.current_path = [(tx_pixel, ty_pixel)]
+
+            # Ikuti waypoint di self.current_path
+            if self.current_path:
+                next_wp = self.current_path[0]
+                dx = next_wp[0] - self.px
+                dy = next_wp[1] - self.py
+                dist = math.hypot(dx, dy)
+                speed = 80.0  # piksel per detik
+
+                if dist <= speed * dt or dist < 2.0:
+                    self.px, self.py = next_wp
+                    self.current_path.pop(0)
+                    self.stuck_timer = 0.0
+                    self.last_valid_pos = (self.px, self.py)
+                else:
+                    step = speed * dt
+                    step_dx = (dx / dist) * step
+                    step_dy = (dy / dist) * step
+
+                    old_x, old_y = self.px, self.py
+                    if game_map is not None:
+                        hb = self.feet_hitbox()
+                        rdx, rdy = game_map.move_and_slide(hb, step_dx, step_dy)
+                        self.px = hb.x - (config.TILE_SIZE - 14) / 2
+                        self.py = hb.y - config.TILE_SIZE + 8 + 1
+                    else:
+                        self.px += step_dx
+                        self.py += step_dy
+
+                    self.sort_y = self.py + config.TILE_SIZE
+
+                    moved_dist = math.hypot(self.px - old_x, self.py - old_y)
+                    if moved_dist < 0.2:
+                        self.stuck_timer += dt
+                        if self.stuck_timer >= 2.5:
+                            # Macet: pulihkan ke titik valid terakhir
+                            self.px, self.py = self.last_valid_pos
+                            self.stuck_timer = 0.0
+                            self.current_path = []
+                    else:
+                        self.stuck_timer = 0.0
+                        if game_map is None or game_map.can_stand(self.feet_hitbox()):
+                            self.last_valid_pos = (self.px, self.py)
+
+            # Jika path selesai dan dekat tujuan akhir
+            dist_to_final = math.hypot(tx_pixel - self.px, ty_pixel - self.py)
+            if not self.current_path and dist_to_final <= 4.0:
+                self.px, self.py = tx_pixel, ty_pixel
+                self.sort_y = self.py + config.TILE_SIZE
                 self.current_location = dest_loc
                 self.active_operator_queue.pop(0)
                 self.current_op_elapsed = 0.0
+                self._reset_navigation()
+                self.last_valid_pos = (self.px, self.py)
 
         elif current_op.name in ("!harvest_crop", "!water_crop", "!plant_crop", "!mill_wheat", "!feed_animals"):
             self.expression = ExpressionIcon.WORKING

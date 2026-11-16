@@ -1,0 +1,28 @@
+{
+  "metadata": {
+    "n_events": 200,
+    "seed": 20261021
+  },
+  "measured_delay_sec": {
+    "mean": 1.7783,
+    "std_dev": 0.0979,
+    "ci95_low": 1.7647,
+    "ci95_high": 1.7918,
+    "min": 1.7174,
+    "max": 1.9348
+  },
+  "components": {
+    "animation_lock_sec": 1.5,
+    "mean_rewalk_diff_sec": 0.2783,
+    "min_rewalk_diff_sec": 0.2174,
+    "max_rewalk_diff_sec": 0.4348
+  },
+  "comparison_to_calibrated_model_b": {
+    "calibrated_delay_sec": 2.7,
+    "calibrated_f_star": 0.1333,
+    "measured_delay_sec": 1.7783,
+    "measured_f_star": 0.2024,
+    "note": "Kedua f* (0.1333 vs 0.2024) menghasilkan kebijakan yang identik: Pintas pada prior normal (0.10) dan Raya saat Berita (0.50)."
+  },
+  "all_dry_tiles_reachable": true
+}

@@ -1,0 +1,234 @@
+article "Message 10 of 10" [ref=e1125]:
+                        - generic [ref=e887]:
+                          - 'heading "Claude responded: Saya tidak melihat peta atau kodenya, jadi koordinat di bawah adalah prinsip yang harus kalian verifikasi, bukan angka final." [level=3] [ref=e1126]'
+                          - generic [ref=e889]:
+                            - generic [ref=e911]:
+                              - generic [ref=e912]:
+                                - generic [ref=e937]: Merancang prompt interaksi dan panel pesan di layar
+                                - button "Merancang prompt interaksi dan panel pesan di layar" [ref=e958] [cursor=pointer]:
+                                  - generic [aria-hidden] [ref=e945]:
+                                    - generic [aria-hidden]: 
+                              - status [ref=e946]: Merancang prompt interaksi dan panel pesan di layar
+                            - generic [ref=e963]:
+                              - paragraph [ref=e964]: Saya tidak melihat peta atau kodenya, jadi koordinat di bawah adalah prinsip yang harus kalian verifikasi, bukan angka final.
+                              - heading "Dampak ke angka sign-off" [level=3] [ref=e965]
+                              - paragraph [ref=e966]: "Perubahan ini menyentuh data yang sudah dikunci. Sebelum mengeksekusi, buat branch atau tag dari versi sign-off. Yang akan ikut berubah:"
+                              - list [ref=e967]:
+                                - listitem [ref=e968]: Jumlah bangunan (20), rect (29), metrik 4,21%, dan checksum.
+                                - listitem [ref=e969]: Zona banjir (22/24 tile, 2096/848), kalau gubuk pantai ada di dalamnya.
+                                - listitem [ref=e970]: Jarak dan durasi STRIPS (118,48 s, 37 langkah), kalau gerbang atau lokasi kunci berpindah.
+                                - listitem [ref=e971]: Angka koridor 480/608 px, kalau rutenya melewati area itu.
+                              - paragraph [ref=e972]:
+                                - text: "Urutan kerja: ubah peta, regenerasi mask, jalankan ulang semua skrip analisis dan benchmark, baru perbarui laporan. Test yang gagal karena menyimpan angka dunia lama harus diubah"
+                                - strong [ref=e973]: dengan nilai baru dari data hasil regenerasi
+                                - text: ", bukan dilonggarkan. “213 test tetap lulus” bukan tujuan, tujuannya test mencerminkan dunia yang baru."
+                              - heading "1. Gerbang" [level=3] [ref=e974]
+                              - paragraph [ref=e975]:
+                                - strong [ref=e976]: Lokasi.
+                                - text: Taruh gerbang di
+                                - emphasis [ref=e977]: chokepoint
+                                - text: "sungguhan: celah sempit antara dinding tebing menuju arena bos, bukan di titik yang kelihatan bagus. Syaratnya:"
+                              - list [ref=e978]:
+                                - listitem [ref=e979]: Lebar celah 1-3 tile, dengan tebing atau air di kiri dan kanan.
+                                - listitem [ref=e980]: Gerbang berada di satu-satunya jalur ke arena. Verifikasi lewat BFS dari titik spawn ke arena dengan sel gerbang diblokir. Arena harus tidak terjangkau. Dari sini kalian juga bisa mencari sel pemotong minimum untuk kandidat lokasi secara otomatis.
+                                - listitem [ref=e1005]: Kunci harus dapat dijangkau sebelum gerbang. Tulis ini sebagai test reachability.
+                              - paragraph [ref=e1006]: Kalau celahnya lebih lebar dari gerbang, tambahkan pilar atau segmen dinding batu supaya visualnya menjelaskan kenapa tidak bisa dilewati dari samping.
+                              - paragraph [ref=e1007]:
+                                - strong [ref=e1008]: Pisahkan visual dari logika.
+                                - text: Beri
+                                - code [ref=e1009]: LockedGate
+                                - text: "tiga atribut terpisah:"
+                              - list [ref=e1010]:
+                                - listitem [ref=e1011]:
+                                  - code [ref=e1012]: blocking_tiles
+                                  - text: ": sel yang diblokir sebagai overlay dinamis. Jangan dibakar ke"
+                                  - code [ref=e1013]: walkable_mask.png
+                                  - text: ; kosongkan overlay saat terbuka.
+                                - listitem [ref=e1014]:
+                                  - code [ref=e1015]: approach_tile
+                                  - text: ": tile tempat hero berdiri untuk berinteraksi."
+                                - listitem [ref=e1016]:
+                                  - code [ref=e1017]: interact_anchor
+                                  - text: ": titik tempat prompt [E] dihitung."
+                              - paragraph [ref=e1018]:
+                                - text: STRIPS cukup mengenal lokasi simbolik
+                                - code [ref=e1019]: at_gate
+                                - text: (jarak dihitung ke
+                                - code [ref=e1020]: approach_tile
+                                - text: ) dan predikat
+                                - code [ref=e1021]: gate_unlocked
+                                - text: yang tidak berubah. Dengan begitu memindahkan gerbang di masa depan hanya mengubah konfigurasi.
+                              - heading "2. Pembersihan bangunan" [level=3] [ref=e1022]
+                              - paragraph [ref=e1023]:
+                                - strong [ref=e1024]: "Cara terbaik:"
+                                - text: cek dulu apakah kalian punya renderer yang membakar
+                                - code [ref=e1025]: island_map.png
+                                - text: dari
+                                - code [ref=e1026]: Room1.yy
+                                - text: . Kalau ada, hapus instance atau tile terkait dari data lalu render ulang. Hasilnya paling bersih. Krat itu tile asli, jadi hapus dari tile layer.
+                              - paragraph [ref=e1027]:
+                                - text: Kalau tidak ada renderer, buat skrip offline
+                                - code [ref=e1032]: tools/patch_map.py
+                                - text: yang menghasilkan
+                                - code [ref=e1033]: island_map_clean.png
+                                - text: "secara deterministik. Skrip ini membaca daftar patch dari JSON (rect tujuan ← rect sumber, selaras grid 32 px) dan menyalin tile pasir atau rumput bersih dari dekat lokasi. Alasan memilih offline daripada blit saat runtime:"
+                              - list [ref=e1034]:
+                                - listitem [ref=e1035]: Hasilnya masuk checksum dan bisa direproduksi.
+                                - listitem [ref=e1036]: Tidak ada biaya init, dan tidak ada dua sumber kebenaran.
+                                - listitem [ref=e1037]: Patch bisa ditinjau sebagai gambar.
+                              - paragraph [ref=e1038]: "Hati-hati dengan garis pantai: pilih tile sumber yang gradien pasir-airnya cocok, jangan menyalin dari tepi ombak."
+                              - paragraph [ref=e1039]:
+                                - strong [ref=e1040]: Mask dan footprint.
+                                - text: Dalam rect yang dibersihkan, set walkable hanya untuk tile yang memang pasir atau rumput. Jangan menyentuh tepi air dan tebing. Hapus entri terkait dari
+                                - code [ref=e1041]: building_footprints.json
+                                - text: ", lalu hitung ulang 20 → 18, rect, dan metrik 4,21%. Cek juga apakah HTN, STRIPS, atau titik spawn ternak mereferensikan gubuk atau rumah itu (misalnya ranjang, ladang labu). Cari dengan grep sebelum menghapus."
+                              - paragraph [ref=e1042]:
+                                - strong [ref=e1043]: Rumah tebing.
+                                - text: Setelah dihapus, area itu menjadi plateau terbuka. Pastikan tetap ada petunjuk visual menuju arena bos, misalnya batu atau rumput yang membingkai jalur, supaya tidak terasa kosong tanpa arah.
+                              - heading "3. Tata letak UI (1024×768)" [level=3] [ref=e1044]
+                              - paragraph [ref=e1045]:
+                                - text: "Prinsipnya: satu slot per jenis informasi, semua posisi dihitung dari satu modul layout, tidak ada koordinat hardcode seperti"
+                                - code [ref=e1127]: (560, 50)
+                                - text: .
+                              - group "Code" [ref=e1049]:
+                                - generic [ref=e1050]:
+                                  - button "Copy to clipboard" [ref=e1051] [cursor=pointer]:
+                                    - generic [aria-hidden] [ref=e1055]: 
+                                  - status [ref=e1056]
+                                - code [ref=e1059]: ┌──────────────────────────────────────────────────────┐ │ [AUTO] Hari 3 · 14:20 · ☀ Cerah [F7 AI] │ top bar ~36px ├──────────────────────────────────────────────────────┤ │ log (maks 3 baris, fade 5s) ┌─ advisor ───┐ │ │ │ rute/status │ │ │ └─────────────┘ │ │ (dunia) │ │ ┌─ panel F7 ─┐ │ │ [E] Buka Gerbang │ dock kanan │ │ │ └────────────┘ │ ├──────────────────────────────────────────────────────┤ │ ♥ ████░░ 80/100 ◎ 42 [▢][▢][▢][▢] E F7 H │ HUD ~64px └──────────────────────────────────────────────────────┘
+                              - paragraph [ref=e1060]:
+                                - strong [ref=e1061]: Top bar.
+                                - text: "Kiri: chip mode MANUAL/AUTO. Tengah: hari, jam, dan ikon cuaca. Kanan: hint singkat atau tombol panel. Cukup tiga hal."
+                              - paragraph [ref=e1062]:
+                                - strong [ref=e1063]:
+                                  - code [ref=e1064]: ON OVERSEER
+                                  - text: .
+                                - text: Itu hampir pasti sisa pemanggilan render judul lama. Cari string-nya dengan grep, hapus pemanggilannya, dan pastikan tidak ada surface lama yang masih di-blit. Jangan hanya menutupinya dengan panel baru.
+                              - paragraph [ref=e1065]:
+                                - strong [ref=e1066]: Prompt interaksi.
+                              - list [ref=e1067]:
+                                - listitem [ref=e1068]: Satu slot, tampilkan hanya interactable terdekat (prioritas, bukan tumpukan).
+                                - listitem [ref=e1069]: Posisi tetap di tengah-bawah, tepat di atas HUD, bukan melayang di atas objek. Ini mencegah tumpang tindih dan terpotong di tepi layar.
+                                - listitem [ref=e1070]:
+                                  - text: "Format pill: keycap"
+                                  - code [ref=e1080]: "[E]"
+                                  - text: + kata kerja + objek, mis.
+                                  - code [ref=e1081]: "[E] Buka Gerbang"
+                                  - text: .
+                                - listitem [ref=e1075]:
+                                  - text: "Kondisi terkunci: pill abu-abu atau merah tanpa keycap, mis."
+                                  - code [ref=e1082]: Terkunci · butuh Kunci Gerbang
+                                  - text: . Ini menggantikan
+                                  - code [ref=e1083]: Butuh Kunci Gerbang [E]
+                                  - text: yang membingungkan karena tombolnya ditampilkan padahal tidak bisa dipakai.
+                                - listitem [ref=e1079]: Fade in/out singkat.
+                              - paragraph [ref=e1084]:
+                                - strong [ref=e1085]: Advisor autopilot.
+                                - text: Jadikan kartu kecil di bawah top bar sisi kanan, hanya muncul saat AUTO. Label rute (15 tile / 3,26 s vs 19 tile / 4,13 s) masuk ke kartu ini.
+                              - paragraph [ref=e1086]:
+                                - strong [ref=e1087]: Panel F7.
+                                - text: Panel debug yang di-dock di kanan, bisa dilipat, semi-transparan, di antara top bar dan HUD. Buat advisor dan F7 saling menumpuk secara vertikal dengan aturan tetap, bukan saling menimpa.
+                              - paragraph [ref=e1088]:
+                                - strong [ref=e1089]: HUD bawah.
+                                - text: "Kiri: HP (bar + angka) dan koin. Tengah: 4 slot perlengkapan dari hasil CSP, sehingga loadout kalian ikut terlihat di demo. Kanan: maksimal tiga chip hint (E, F7, H). Sisanya pindah ke overlay bantuan yang dibuka dengan H."
+                              - paragraph [ref=e1090]:
+                                - strong [ref=e1091]: Struktur kode.
+                              - list [ref=e1092]:
+                                - listitem [ref=e1093]:
+                                  - code [ref=e1094]: ui/layout.py
+                                  - text: berisi konstanta (
+                                  - code [ref=e1095]: MARGIN
+                                  - text: ","
+                                  - code [ref=e1096]: TOPBAR_H
+                                  - text: ","
+                                  - code [ref=e1097]: HUD_H
+                                  - text: ) dan semua
+                                  - code [ref=e1098]: Rect
+                                  - text: widget yang dihitung sekali.
+                                - listitem [ref=e1099]: "Token gaya bersama: warna panel (RGBA gelap), radius, border 1 px, dan dua ukuran font saja."
+                                - listitem [ref=e1100]: Render ke permukaan logis 1024×768 lalu skala ke layar. Ini sekaligus menjawab kekhawatiran soal resolusi proyektor.
+                                - listitem [ref=e1101]: Test headless yang meng-assert tidak ada dua rect widget yang saling tumpang tindih, dan semuanya berada di dalam layar. Test ini cocok dengan budaya pengujian kalian dan mencegah regresi layout.
+                                - listitem [ref=e1102]: Screenshot referensi untuk tiap state (manual, auto, F7 terbuka, prompt terkunci, prompt aktif) dipakai juga di laporan dan slide.
+                              - heading "Urutan eksekusi yang saya sarankan" [level=3] [ref=e1103]
+                              - list [ref=e1104]:
+                                - listitem [ref=e1105]: Tag versi sign-off.
+                                - listitem [ref=e1106]: Tentukan lokasi gerbang dengan analisis chokepoint, lalu tulis test reachability.
+                                - listitem [ref=e1128]: Patch peta dan regenerasi mask serta footprint.
+                                - listitem [ref=e1129]:
+                                  - text: Jalankan ulang benchmark, analisis banjir, dan analisis koridor, lalu perbarui angka di laporan dan
+                                  - code [ref=e1130]: check_report.py
+                                  - text: .
+                                - listitem [ref=e1131]: Kerjakan UI (layout, lalu widget satu per satu).
+                                - listitem [ref=e1132]: Ambil ulang semua screenshot demo dan latihan ulang naskah 5-8 menit.
+                              - paragraph [ref=e1133]:
+                                - text: Kalau mau, kirimkan potongan kode
+                                - code [ref=e1134]: LockedGate
+                                - text: dan fungsi render HUD saat ini, dan saya bantu merancang
+                                - code [ref=e1135]: layout.py
+                                - text: serta daftar test-nya.
+                          - toolbar "Message actions" [ref=e1137]:
+                            - button "Copy" [ref=e1138] [cursor=pointer]:
+                              - generic [aria-hidden] [ref=e1142]: 
+                            - status [ref=e1143]
+                            - button "Read aloud" [ref=e1144] [cursor=pointer]:
+                              - generic [aria-hidden] [ref=e1148]: 
+                            - button "Good response" [ref=e1149] [cursor=pointer]:
+                              - generic [aria-hidden] [ref=e1153]: 
+                            - button "Bad response" [ref=e1154] [cursor=pointer]:
+                              - generic [aria-hidden] [ref=e1158]: 
+                            - button "Retry" [ref=e1159] [cursor=pointer]:
+                              - generic [aria-hidden] [ref=e1163]: 
+                            - time [ref=e1164]: just now
+                - status [ref=e680]
+                - generic:
+                  - button "Scroll to bottom" [ref=e983] [cursor=pointer]:
+                    - generic [aria-hidden] [ref=e984]: 
+                  - group [ref=e681]:
+                    - generic [ref=e682]:
+                      - generic:
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic:
+                                - generic:
+                                  - status
+                            - generic:
+                              - status
+                          - status
+                          - status [ref=e683]
+                          - status
+                      - generic [ref=e685]:
+                        - generic [ref=e687]:
+                          - generic [ref=e690]:
+                            - generic [aria-hidden]: Write a message…
+                            - generic [ref=e691]:
+                              - textbox "Write your prompt to Claude" [active] [ref=e692]:
+                                - paragraph [ref=e756]
+                              - status [ref=e694]
+                          - generic [ref=e695]:
+                            - button "Add files, connectors, and more" [ref=e699] [cursor=pointer]:
+                              - generic [aria-hidden] [ref=e703]: 
+                            - generic:
+                              - group "Dictate" [ref=e707]:
+                                - button "Dictate" [ref=e710] [cursor=pointer]:
+                                  - generic [aria-hidden] [ref=e714]: 
+                                - button "Microphone" [ref=e717] [cursor=pointer]:
+                                  - generic [aria-hidden] [ref=e721]: 
+                              - button "Use voice mode" [ref=e1166] [cursor=pointer]
+                        - generic [ref=e733]:
+                          - note [ref=e735]:
+                            - link "Claude is AI and can make mistakes." [ref=e736] [cursor=pointer]:
+                              - /url: https://support.claude.com/articles/8525154-claude-is-providing-incorrect-or-misleading-responses-what-s-going-on
+                          - 'button "Model: Sonnet 5.5 Medium" [ref=e744] [cursor=pointer]':
+                            - generic [ref=e748]:
+                              - generic [ref=e749]: Sonnet 5.5
+                              - generic [ref=e750]: Medium
+            - status [ref=e752]: Claude finished the response
+          - status [ref=e753]
+  - status [ref=e755]
+  - generic:
+    - generic:
+      - generic:
+        - status
+        - region "Notifications"
+```

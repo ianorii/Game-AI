@@ -196,6 +196,22 @@ class AutopilotController:
         desc = descriptions.get(act.name, f"Lakukan {act.name} {act.params}")
         return f"[ADVISOR Langkah {step_num}/{total_steps}] {desc}"
 
+    def on_belief_updated(self, weather_manager: Any):
+        """
+        Merespons pembaruan keyakinan cuaca dari Papan Pengumuman Cuaca.
+        Jika kebijakan optimal berubah menjadi 'Raya' (detour aman memutar),
+        memicu evaluasi ulang rencana (TRIGGER_BELIEF_UPDATE).
+        """
+        if not weather_manager:
+            return
+        policy = getattr(weather_manager, "optimal_policy", "Pintas")
+        belief = getattr(weather_manager, "belief_flood", 0.10)
+        self.status_message = f"[TRIGGER_BELIEF_UPDATE] P(Banjir)={belief*100:.1f}% -> Kebijakan={policy.upper()}"
+        if policy == "Raya":
+            if self.mode == PlannerMode.AUTO:
+                self._request_new_plan()
+                self.status_message = f"[TRIGGER_BELIEF_UPDATE] {self.status_message}"
+
     def update(self, dt: float):
         """
         Loop update autopilot yang dipanggil setiap frame permainan.

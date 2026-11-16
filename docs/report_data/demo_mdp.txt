@@ -1,0 +1,46 @@
+Perintah: /usr/bin/python3 src/main.py --demo-mdp
+Waktu Eksekusi: 0.186 s
+Waktu: 2026-11-16T13:31:23.840662
+
+<frozen importlib._bootstrap>:491: RuntimeWarning: Your system is avx2 capable but pygame was not built with support for it. The performance of some of your blits could be adversely affected. Consider enabling compile time detection with environment variables like PYGAME_DETECT_AVX2=1 if you are compiling without cross compilation.
+pygame 2.6.1 (SDL 2.32.72, Python 3.14.7)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+
+================================================================================
+ DEMO 1: VALUE ITERATION & BELLMAN EQUATION PADA MODEL BANJIR (Slide 13-21)
+================================================================================
+
+[SKENARIO A] Kasus f = 0.1 (Hari Normal, Cuaca Mendukung)
+------------------------------------------------------------------------------------------------
+Iter  | V(Rumah)  | Q(Pintas)  | Q(Raya)   | Q(Balik)  | V(Warung)  | Aksi Warung  | V(Jln Raya)
+------------------------------------------------------------------------------------------------
+0     | 0.00      | -          | -         | -         | 0.00       | -            | 0.00      
+1     | -2.00     | 7.00       | -2.00     | -2.00     | 7.00       | Pintas       | 10.00     
+2     | 3.60      | 7.00       | 6.00      | -3.60     | 7.00       | Pintas       | 10.00     
+3     | 3.60      | 7.00       | 6.00      | 0.88      | 7.00       | Pintas       | 10.00     
+------------------------------------------------------------------------------------------------
+Hasil Akhir Konvergensi (Iterasi 3):
+  V(Rumah)      = 3.60
+  V(Warung)     = 7.00 -> Aksi Terpilih: 'Pintas'
+  V(Jalan Raya) = 10.00
+  Kebijakan Optimal (Policy): {'Rumah': 'Jalan', 'Warung': 'Pintas', 'Jalan Raya': 'Jalan'}
+
+[SKENARIO B] Kasus f = 0.25 (Risiko Tinggi, Berita Banjir Beredar)
+------------------------------------------------------------------------------------------------
+Iter  | V(Rumah)  | Q(Pintas)  | Q(Raya)   | Q(Balik)  | V(Warung)  | Aksi Warung  | V(Jln Raya)
+------------------------------------------------------------------------------------------------
+0     | 0.00      | -          | -         | -         | 0.00       | -            | 0.00      
+1     | -2.00     | 2.50       | -2.00     | -2.00     | 2.50       | Pintas       | 10.00     
+2     | 0.00      | 2.50       | 6.00      | -3.60     | 6.00       | Raya         | 10.00     
+3     | 2.80      | 2.50       | 6.00      | -2.00     | 6.00       | Raya         | 10.00     
+4     | 2.80      | 2.50       | 6.00      | 0.24      | 6.00       | Raya         | 10.00     
+------------------------------------------------------------------------------------------------
+Hasil Akhir Konvergensi (Iterasi 4):
+  V(Rumah)      = 2.80
+  V(Warung)     = 6.00 -> Aksi Terpilih: 'Raya'
+  V(Jalan Raya) = 10.00
+  Kebijakan Optimal (Policy): {'Rumah': 'Jalan', 'Warung': 'Raya', 'Jalan Raya': 'Jalan'}
+
+KESIMPULAN:
+  Pada f=0.1, agen memilih 'Pintas' (V=7.0).
+  Pada f=0.25, risiko banjir naik sehingga agen beralih ke 'Raya' (V=6.0 > 2.5).

@@ -1,0 +1,147 @@
+{
+  "route_corridor": {
+    "start_location": "warung_corridor",
+    "start_pos": [
+      1984.0,
+      880.0
+    ],
+    "start_cell": [
+      62,
+      27
+    ],
+    "end_location": "gate (INTERACT_GATE_POS)",
+    "end_pos": [
+      2384.0,
+      880.0
+    ],
+    "end_cell": [
+      74,
+      27
+    ],
+    "map_status": "100% Alami pada walkable_mask.png peta asli Sunnyside (Bukan Rute Sintetis, tanpa bridge override)",
+    "hero_speed_tps": 4.6,
+    "hero_speed_px_per_s": 147.2,
+    "corridor_natural": {
+      "pintas": {
+        "tiles": 15,
+        "distance_px": 480.0,
+        "duration_sec": 3.26
+      },
+      "aman": {
+        "tiles": 19,
+        "distance_px": 608.0,
+        "duration_sec": 4.13
+      },
+      "delta_tiles": 4,
+      "delta_distance_px": 128.0,
+      "delta_duration_sec": 0.87,
+      "pct_longer": 26.67
+    },
+    "subsegment_narrow": {
+      "pintas": {
+        "distance_px": 168.2,
+        "duration_planner_147px_s": 1.14,
+        "duration_old_assumed_60px_s": 2.8
+      },
+      "aman": {
+        "distance_px": 220.4,
+        "duration_planner_147px_s": 1.5,
+        "duration_old_assumed_60px_s": 3.67
+      },
+      "delta_distance_px": 52.2,
+      "delta_duration_sec": 0.35,
+      "pct_longer": 31.03
+    }
+  },
+  "model_comparison": {
+    "model_slide": {
+      "type": "Model Slide Kuliah 10-22 (Abstrak)",
+      "unit": "Poin Utilitas",
+      "rewards": {
+        "Kampus": 10.0,
+        "Banjir": -20.0,
+        "Langkah": -2.0
+      },
+      "gamma": 0.8,
+      "f_star": 0.1333,
+      "f_star_fraction": "2/15 (~0.1333)",
+      "normal_prior_01_choice": "Pintas (EU 7.0 > 6.0)",
+      "news_posterior_05_choice": "Raya (EU 6.0 > -5.0)"
+    },
+    "model_a_real_seconds_uncalibrated": {
+      "type": "Model Waktu Nyata Murni Tanpa Kalibrasi",
+      "unit": "Detik",
+      "t_pintas": 1.14,
+      "t_aman": 1.5,
+      "t_penalty": 20.0,
+      "f_star": 0.018,
+      "f_star_explanation": "f* = 0.36 / 20.0 = 0.018 (1.8%)",
+      "normal_prior_01_choice": "Aman (1.50s < 3.14s) [PARADOKS: Papan Tidak Berguna]",
+      "news_posterior_05_choice": "Aman (1.50s < 11.14s)"
+    },
+    "model_b_game_calibrated": {
+      "type": "Model Game Nyata Terkalibrasi (Config Calibration)",
+      "unit": "Detik & Utilitas Game",
+      "t_pintas": 1.14,
+      "t_aman": 1.5,
+      "delta_t": 0.36,
+      "effective_physical_delay": 2.7,
+      "f_star": 0.1333,
+      "f_star_fraction": "2/15 (~0.1333)",
+      "normal_prior_01_choice": "Pintas (1.41s < 1.50s) [Pintas Menang Hari Normal]",
+      "news_posterior_05_choice": "Aman (2.49s > 1.50s) [Aman Menang Setelah Berita]",
+      "alignment_reason": "Kalibrasi fisik recovery renang (1.5s) + jarak mundur (1.2s) = 2.7s menjaga f* pada 2/15 sehingga papan informasi cuaca memberikan nilai nyata (VPI > 0)"
+    }
+  },
+  "state_action_mapping": [
+    {
+      "state": "Rumah",
+      "action": "Jalan",
+      "game_origin": "Spawn Hero (1440, 1056) -> Koridor Warung (1984, 880)",
+      "step_cost": "-2 poin / ~3.7s",
+      "transition": "Deterministik ke Warung"
+    },
+    {
+      "state": "Warung",
+      "action": "Pintas",
+      "game_origin": "Jalur Pantai x=2016..2368 y=864..960",
+      "step_cost": "1.14s (168px) / 3.26s (480px)",
+      "transition": "(1-f) Kampus, f Banjir"
+    },
+    {
+      "state": "Warung",
+      "action": "Raya",
+      "game_origin": "Detour Utara Desa y=848",
+      "step_cost": "1.50s (220px) / 4.13s (608px)",
+      "transition": "Deterministik ke Jalan Raya"
+    },
+    {
+      "state": "Warung",
+      "action": "Balik",
+      "game_origin": "Kembali ke Rumah / Alun-alun",
+      "step_cost": "-2 poin",
+      "transition": "Deterministik ke Rumah"
+    },
+    {
+      "state": "Jalan Raya",
+      "action": "Jalan",
+      "game_origin": "Menuju Gerbang Boss (2384, 880)",
+      "step_cost": "Deterministik (+6.0 utilitas pasti)",
+      "transition": "Deterministik ke Kampus"
+    },
+    {
+      "state": "Kampus",
+      "action": "Terminal",
+      "game_origin": "Tiba di Gerbang Boss / Misi Sukses",
+      "step_cost": "Reward +10.0 poin",
+      "transition": "Terminal"
+    },
+    {
+      "state": "Banjir",
+      "action": "Terminal/Penalty",
+      "game_origin": "Terseret arus ke tile kering terdekat + animasi swimming",
+      "step_cost": "Penalti -20.0 poin / physical delay",
+      "transition": "Terminal / Retreat"
+    }
+  ]
+}

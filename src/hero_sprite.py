@@ -105,6 +105,10 @@ class HeroSpriteManager:
                 "folder": "WATERING", "base": "base_watering_strip5.png",
                 "hair": "{style}_watering_strip5.png", "tools": "tools_watering_strip5.png", "count": 5
             },
+            "swimming": {
+                "folder": "SWIMMING", "base": "base_swimming_strip12.png",
+                "hair": "{style}_swimming_strip12.png", "tools": None, "count": 12
+            },
         }
 
     def clear_cache(self):

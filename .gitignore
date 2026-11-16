@@ -29,3 +29,10 @@ data/*.bak
 .DS_Store
 Thumbs.db
 
+# Claude Browser Profile & Budget Tracking
+.claude-browser-profile
+.claude-browser-profile/
+.agent/
+.playwright-mcp/
+
+

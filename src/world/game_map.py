@@ -63,6 +63,8 @@ class GameMap:
         ]
         self.solid_rects: list = []
         self.dynamic_obstacles: List[pygame.Rect] = []
+        self.building_footprints: List[pygame.Rect] = []
+        self.collision_editor: Optional[Any] = None
 
         # Walkable Mask Runtime
         self.walkable_mask: pygame.mask.Mask = None
@@ -124,7 +126,31 @@ class GameMap:
             except Exception:
                 pass
 
-        # 4. Buat surface visualisasi debug semi-transparan (Hijau = Walkable, Merah = Blocked)
+        # 4. Muat Footprint Bangunan (exact decomposed bounding rects)
+        self.building_footprints = []
+        fp_file = os.path.join(os.path.dirname(self.mask_path), "building_footprints.json")
+        if os.path.exists(fp_file):
+            try:
+                with open(fp_file, "r", encoding="utf-8") as f:
+                    fp_data = json.load(f)
+                    for r in fp_data.get("footprints", []):
+                        self.building_footprints.append(pygame.Rect(r["x"], r["y"], r["w"], r["h"]))
+                print(f"[GameMap] Berhasil memuat {len(self.building_footprints)} footprint bangunan dari '{fp_file}'")
+            except Exception as e:
+                print(f"[GameMap] Gagal membaca building_footprints.json: {e}")
+        elif os.path.exists(config.MAP_COLLISION_PATH):
+            try:
+                with open(config.MAP_COLLISION_PATH, "r", encoding="utf-8") as f:
+                    colliders = json.load(f)
+                    for item in colliders:
+                        if item.get("type") == "house" and "footprints" in item:
+                            for r in item["footprints"]:
+                                self.building_footprints.append(pygame.Rect(r["x"], r["y"], r["w"], r["h"]))
+                print(f"[GameMap] Berhasil memuat {len(self.building_footprints)} footprint dari collision.json")
+            except Exception as e:
+                print(f"[GameMap] Gagal membaca footprint dari collision.json: {e}")
+
+        # 5. Buat surface visualisasi debug semi-transparan (Hijau = Walkable, Merah = Blocked)
         self._prepare_debug_overlay()
 
     def _create_fallback_surface(self) -> pygame.Surface:
@@ -183,40 +209,90 @@ class GameMap:
             (right, mid_y),     # 8. Tengah Kanan
         ]
 
-    def is_solid(self, rect: pygame.Rect) -> bool:
+    def can_stand(self, foot_rect: pygame.Rect, is_water_animal: bool = False,
+                  collision_editor: Optional[Any] = None) -> bool:
+        """
+        Satu fungsi terpadu untuk memeriksa apakah kotak kaki entitas (foot_rect)
+        dapat berpijak dengan aman di koordinat map.
+        Memeriksa:
+          1. Batas kanvas map (perimeter)
+          2. Collision Editor overrides
+          3. Dynamic obstacles (gerbang tertutup, kincir angin, dekorasi pasir)
+          4. Footprint bangunan (22 bangunan)
+          5. Walkable mask (8 titik sampel)
+        """
+        w, h = self.width, self.height
+        # 1. Batas kanvas map
+        if foot_rect.left < 0 or foot_rect.right > w or foot_rect.top < 0 or foot_rect.bottom > h:
+            return False
+
+        ce = collision_editor if collision_editor is not None else getattr(self, "collision_editor", None)
+
+        # 2. Collision Editor overrides
+        if ce is not None and hasattr(ce, "overrides"):
+            t_left = max(0, foot_rect.left // config.TILE_SIZE)
+            t_right = min(self.width // config.TILE_SIZE - 1, (foot_rect.right - 1) // config.TILE_SIZE)
+            t_top = max(0, foot_rect.top // config.TILE_SIZE)
+            t_bottom = min(self.height // config.TILE_SIZE - 1, (foot_rect.bottom - 1) // config.TILE_SIZE)
+            for ty in range(t_top, t_bottom + 1):
+                for tx in range(t_left, t_right + 1):
+                    if (tx, ty) in ce.overrides:
+                        if ce.overrides[(tx, ty)]:  # True = BLOCKED
+                            return False
+
+        # 3. Dynamic obstacles (mis. gerbang tertutup, kincir angin)
+        for obs in self.dynamic_obstacles:
+            r = obs.get_obstacle_rect() if hasattr(obs, "get_obstacle_rect") else obs
+            if r is not None and hasattr(r, "colliderect") and r.colliderect(foot_rect):
+                return False
+
+        # 4. Footprint bangunan
+        for bf in self.building_footprints:
+            if bf.colliderect(foot_rect):
+                # Izinkan jika collision editor secara eksplisit memaksa walkable
+                if ce is not None and hasattr(ce, "overrides"):
+                    ctx = foot_rect.centerx // config.TILE_SIZE
+                    cty = foot_rect.centery // config.TILE_SIZE
+                    if (ctx, cty) in ce.overrides and not ce.overrides[(ctx, cty)]:
+                        continue
+                return False
+
+        # 5. Walkable mask
+        if is_water_animal:
+            return True
+
+        mask = self.walkable_mask
+        if mask is not None:
+            for px, py in self.get_hitbox_sample_points(foot_rect):
+                if px < 0 or px >= w or py < 0 or py >= h:
+                    return False
+                if mask.get_at((px, py)) == 0:
+                    if ce is not None and hasattr(ce, "overrides"):
+                        tx = px // config.TILE_SIZE
+                        ty = py // config.TILE_SIZE
+                        if (tx, ty) in ce.overrides and not ce.overrides[(tx, ty)]:
+                            continue
+                    return False
+
+        return True
+
+    def is_solid(self, rect: pygame.Rect, is_water_animal: bool = False,
+                 collision_editor: Optional[Any] = None) -> bool:
         """
         Cek apakah hitbox 'rect' menabrak halangan.
-        Gerakan HANYA diizinkan jika SEMUA 8 titik sampel walkable di mask
-        dan tidak bertabrakan dengan dynamic obstacles (footprint kincir angin, gerbang tertutup).
-        Jika ada 1 saja titik sampel yang terhalang (0) atau di luar peta, kotak SOLID (True).
+        Menyerahkan evaluasi sepenuhnya ke fungsi tunggal can_stand().
         """
-        for obs in self.dynamic_obstacles:
-            if obs.colliderect(rect):
-                return True
+        return not self.can_stand(rect, is_water_animal=is_water_animal, collision_editor=collision_editor)
 
-        w, h = self.width, self.height
-        mask = self.walkable_mask
-
-        for px, py in self.get_hitbox_sample_points(rect):
-            # Di luar kanvas map = BLOCKED
-            if px < 0 or px >= w or py < 0 or py >= h:
-                return True
-            # Nilai mask 0 = BLOCKED
-            if mask.get_at((px, py)) == 0:
-                return True
-
-        return False
-
-    def is_walkable_at(self, map_x: int, map_y: int) -> bool:
+    def is_walkable_at(self, map_x: int, map_y: int, is_water_animal: bool = False,
+                       collision_editor: Optional[Any] = None) -> bool:
         """Mengecek apakah satu titik piksel koordinat map berstatus walkable."""
-        for obs in self.dynamic_obstacles:
-            if obs.collidepoint(map_x, map_y):
-                return False
-        if 0 <= map_x < self.width and 0 <= map_y < self.height:
-            return bool(self.walkable_mask.get_at((map_x, map_y)))
-        return False
+        pt_rect = pygame.Rect(map_x, map_y, 1, 1)
+        return self.can_stand(pt_rect, is_water_animal=is_water_animal, collision_editor=collision_editor)
 
-    def move_and_slide(self, hitbox: pygame.Rect, dx: float, dy: float) -> Tuple[float, float]:
+    def move_and_slide(self, hitbox: pygame.Rect, dx: float, dy: float,
+                       is_water_animal: bool = False,
+                       collision_editor: Optional[Any] = None) -> Tuple[float, float]:
         """
         Gerakkan hitbox secara terpisah per sumbu (X dulu, lalu Y) untuk efek sliding.
         Mencegah tunneling dengan sub-stepping (langkah maksimal SUBSTEP_MAX_PIXELS = 2.0 px).
@@ -234,7 +310,7 @@ class GameMap:
 
             for _ in range(steps):
                 hitbox.x += int(round(step_dx))
-                if self.is_solid(hitbox):
+                if not self.can_stand(hitbox, is_water_animal=is_water_animal, collision_editor=collision_editor):
                     hitbox.x -= int(round(step_dx))
                     break
                 resolved_dx += step_dx
@@ -247,7 +323,7 @@ class GameMap:
 
             for _ in range(steps):
                 hitbox.y += int(round(step_dy))
-                if self.is_solid(hitbox):
+                if not self.can_stand(hitbox, is_water_animal=is_water_animal, collision_editor=collision_editor):
                     hitbox.y -= int(round(step_dy))
                     break
                 resolved_dy += step_dy
@@ -255,12 +331,15 @@ class GameMap:
         return resolved_dx, resolved_dy
 
     def clamp_camera(self, tx: float, ty: float,
-                      view_w: int = config.MAP_PIXEL_W,
-                      view_h: int = config.MAP_PIXEL_H) -> Tuple[float, float]:
-        """Batasi koordinat kamera agar tidak melihat ke luar batas map."""
+                      view_w: int = config.WINDOW_SIZE[0],
+                      view_h: int = config.WINDOW_SIZE[1]) -> Tuple[float, float]:
+        """
+        Batasi koordinat kamera agar seluruh viewport berada di dalam batas map [0..width, 0..height].
+        Tidak akan pernah memperlihatkan area di luar batas peta (mencegah strip hitam di tepi).
+        """
         max_x = max(0, self.width - view_w)
         max_y = max(0, self.height - view_h)
-        return max(0.0, min(float(max_x), tx)), max(0.0, min(float(max_y), ty))
+        return max(0.0, min(float(max_x), float(tx))), max(0.0, min(float(max_y), float(ty)))
 
     # ==========================================================================
     # RENDERING & DEBUG MODE [F1]
@@ -301,6 +380,25 @@ class GameMap:
             clip = view_rect.clip(self.debug_overlay_surf.get_rect())
             if clip.w > 0 and clip.h > 0:
                 surface.blit(self.debug_overlay_surf, (clip.x - cam_x, clip.y - cam_y), clip)
+
+        # 1b. Gambar Outline & Footprint Bangunan (F1 Audit)
+        for bf in self.building_footprints:
+            if view_rect.colliderect(bf):
+                bf_screen = pygame.Rect(bf.x - cam_x, bf.y - cam_y, bf.w, bf.h)
+                bf_surf = pygame.Surface((bf_screen.w, bf_screen.h), pygame.SRCALPHA)
+                bf_surf.fill((255, 60, 60, 70))
+                surface.blit(bf_surf, bf_screen.topleft)
+                pygame.draw.rect(surface, (255, 140, 0), bf_screen, 2)
+
+        # 1c. Gambar Dynamic Obstacles (Gerbang, Kincir Angin, dll.)
+        for obs in self.dynamic_obstacles:
+            r = obs.get_obstacle_rect() if hasattr(obs, "get_obstacle_rect") else obs
+            if r is not None and hasattr(r, "colliderect") and view_rect.colliderect(r):
+                obs_screen = pygame.Rect(r.x - cam_x, r.y - cam_y, r.w, r.h)
+                obs_surf = pygame.Surface((obs_screen.w, obs_screen.h), pygame.SRCALPHA)
+                obs_surf.fill((220, 180, 20, 80))
+                surface.blit(obs_surf, obs_screen.topleft)
+                pygame.draw.rect(surface, (255, 220, 0), obs_screen, 2)
 
         # 2. Gambar Player Feet Hitbox & 8 Titik Sampel
         if player_hitbox is not None:
@@ -377,6 +475,17 @@ class GameMap:
         # Cek batas kanvas
         if map_x < 16 or map_x >= self.width - 16 or map_y < 16 or map_y >= self.height - 16:
             return "batas peta (perimeter)"
+
+        # Cek dynamic obstacles
+        for obs in self.dynamic_obstacles:
+            r = obs.get_obstacle_rect() if hasattr(obs, "get_obstacle_rect") else obs
+            if r is not None and hasattr(r, "collidepoint") and r.collidepoint(map_x, map_y):
+                return "obstacle dinamis"
+
+        # Cek footprint bangunan
+        for bf in self.building_footprints:
+            if bf.collidepoint(map_x, map_y):
+                return "footprint bangunan"
 
         if is_walkable:
             return "permukaan diizinkan"

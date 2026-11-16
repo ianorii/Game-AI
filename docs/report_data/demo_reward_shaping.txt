@@ -1,0 +1,26 @@
+Perintah: /usr/bin/python3 src/main.py --demo-reward-shaping
+Waktu Eksekusi: 0.180 s
+Waktu: 2026-11-16T13:31:24.336535
+
+<frozen importlib._bootstrap>:491: RuntimeWarning: Your system is avx2 capable but pygame was not built with support for it. The performance of some of your blits could be adversely affected. Consider enabling compile time detection with environment variables like PYGAME_DETECT_AVX2=1 if you are compiling without cross compilation.
+pygame 2.6.1 (SDL 2.32.72, Python 3.14.7)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+
+================================================================================
+ DEMO 3: KESALAHAN REWARD SHAPING / OBJECTIVE MIS-SPECIFICATION (Slide 23)
+================================================================================
+Skenario: Setiap aksi melangkah (Jalan, Balik) diberi bonus reward +3.0.
+Konvergensi Value Iteration tercapai pada iterasi 68:
+  V(Rumah)  = 15.00
+  V(Warung) = 15.00
+  Kebijakan Terpilih: {'Rumah': 'Jalan', 'Warung': 'Balik', 'Jalan Raya': 'Jalan'}
+
+ANALISIS MATEMATIS LOOP ABADI:
+  Jika agen bergerak bolak-balik antara Warung dan Rumah:
+    V = 3 + 0.8 * (3 + 0.8 * (3 + ...))
+    V = 3 / (1 - 0.8) = 3 / 0.2 = 15.0
+  Bandingkan dengan jalur normal:
+    Q(Warung, Raya)   = 3 + 0.8 * 10 = 11.0
+    Q(Warung, Pintas) = 0.9 * 10 + 0.1 * (-20) = 7.0
+  Karena 15.0 > 11.0 > 7.0, agen lebih memilih loop bolak-balik Rumah <-> Warung selamanya!
+  Inti Pelajaran: Yang diberi insentif adalah 'aktivitas bergerak' (+3), bukan hasil akhir 'sampai ke kampus'.

@@ -405,8 +405,10 @@ class Hero(Entity):
 
         hb = self.feet_hitbox()
         resolved_dx, resolved_dy = game_map.move_and_slide(hb, final_dx, final_dy)
-        self.px += resolved_dx
-        self.py += resolved_dy
+        w = hb.width
+        h = hb.height
+        self.px = float(hb.x - (config.TILE_SIZE - w) / 2)
+        self.py = float(hb.y - config.TILE_SIZE + h + 1)
 
         self.gx = int(self.px // config.TILE_SIZE)
         self.gy = int(self.py // config.TILE_SIZE)

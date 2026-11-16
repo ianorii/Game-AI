@@ -43,7 +43,7 @@ from asset_loader import AssetManager  # noqa: E402
 from asset_catalog import get_asset_catalog  # noqa: E402
 from world.game_map import GameMap  # noqa: E402
 from world.collision_editor import CollisionEditor  # noqa: E402
-from world.village_deco import VillageDecorations  # noqa: E402
+from world.village_deco import VillageDecorations, BeachDecorations  # noqa: E402
 from world_state import WorldState  # noqa: E402
 import world_actions  # noqa: E402
 from inventory import InventoryUI  # noqa: E402
@@ -193,8 +193,10 @@ class Game:
 
         # ---- Dekorasi Desa Sunnyside (Kincir Angin & Asap Cerobong) ------
         self.village_deco = VillageDecorations(seed=self.seed)
+        self.beach_deco = BeachDecorations()
         if hasattr(self, "game_map") and self.game_map:
             self.game_map.dynamic_obstacles.extend(self.village_deco.get_collision_rects())
+            self.game_map.dynamic_obstacles.extend(self.beach_deco.get_collision_rects())
 
         self.tile_map = TileMap(seed=self.seed, assets=self.assets)
         spawn_gx = int(self.game_map.spawn_x // config.TILE_SIZE)
@@ -218,6 +220,8 @@ class Game:
 
         # ---- Collision Editor (Overlay, Editing, Persistensi) ------------
         self.collision_editor = CollisionEditor(self.game_map, self.tile_map, world_seed=self.seed, override_path=self.collision_override_path)
+        if self.game_map:
+            self.game_map.collision_editor = self.collision_editor
         self.ensure_hero_spawn_walkable()
 
         # ---- Sistem Real-Time Combat (Goblins & Visual Effects) ----------
@@ -236,6 +240,7 @@ class Game:
         self.initial_battle_potions = 0
         self.show_expedition_panel = False
         self.show_htn_panel = False
+        self.show_spatial_debug = False
         self.planner_mode = "OFF"  # "OFF", "ADVISOR", "AUTO"
 
         # ---- Sistem Perencanaan Klasik & Otonom Sub-fase 2B, 2C, 2D ----
@@ -255,6 +260,13 @@ class Game:
         self.farmer_npc = HTNNPCAgent("Pak Tani", "farmer", "farm", self.htn_domain, self.world_state, hair_style="curly")
         self.miller_npc = HTNNPCAgent("Kang Penggiling", "miller", "windmill", self.htn_domain, self.world_state, hair_style="mop")
         self.npcs = [self.farmer_npc, self.miller_npc]
+
+        # ---- Sistem Ketidakpastian & Bayesian Weather (Putaran 3) ----
+        from decision.weather_manager import WeatherManager
+        from world.village_deco import WeatherNoticeBoardProp
+        self.weather_manager = WeatherManager(seed=self.seed)
+        board_pos = getattr(config, "INTERACT_WEATHER_BOARD_POS", (1504, 1024))
+        self.weather_board_prop = WeatherNoticeBoardProp(x=board_pos[0] - 18, y=board_pos[1] - 20)
 
         # Sinkronkan obstacle gerbang tertutup ke dynamic_obstacles game_map
         if self.game_map:
@@ -337,8 +349,12 @@ class Game:
     @property
     def camera(self):
         if hasattr(self, "collision_editor") and self.collision_editor and self.collision_editor.mode == config.EDITOR_MODE_EDIT:
-            return (int(self.collision_editor.free_cam_x), int(self.collision_editor.free_cam_y))
-        return (int(self.cam_x), int(self.cam_y))
+            cx, cy = self.collision_editor.free_cam_x, self.collision_editor.free_cam_y
+        else:
+            cx, cy = self.cam_x, self.cam_y
+        if hasattr(self, "game_map") and self.game_map is not None:
+            cx, cy = self.game_map.clamp_camera(cx, cy, config.WINDOW_SIZE[0], config.WINDOW_SIZE[1])
+        return (int(cx), int(cy))
 
     def is_walkable(self, tx: int, ty: int) -> bool:
         """Single source of truth walkability: delegasikan ke collision_editor jika ada."""
@@ -353,7 +369,10 @@ class Game:
             px = tx * config.TILE_SIZE + config.TILE_SIZE // 2
             py = ty * config.TILE_SIZE + config.TILE_SIZE // 2
             for obs in getattr(self.game_map, "dynamic_obstacles", []):
-                if obs.collidepoint(px, py):
+                rect = getattr(obs, "collision_rect", obs)
+                if hasattr(obs, "is_open") and obs.is_open:
+                    continue
+                if hasattr(rect, "collidepoint") and rect.collidepoint(px, py):
                     return False
         return True
 
@@ -988,7 +1007,7 @@ class Game:
         elif event.type == pygame.MOUSEBUTTONDOWN and event.button in (1, 3):
             if event.button == 1 and hasattr(self, "unified_panel") and self.unified_panel.handle_click(event.pos):
                 self.show_expedition_panel = self.unified_panel.visible and (self.unified_panel.active_tab == 0)
-                self.show_htn_panel = self.unified_panel.visible and (self.unified_panel.active_tab == 1)
+                self.show_htn_panel = False
                 return
             if self.state == config.STATE_BATTLE:
                 if event.button == 1 and not self.battle_ui.is_animating() and self.battle and self.battle.get("phase") == "HERO":
@@ -1106,10 +1125,6 @@ class Game:
             self.reset(self.seed)
             self.log("Game di-restart (posisi awal & HP penuh)", config.CYAN)
             return
-        if key == pygame.K_n:
-            self.reset(random.randrange(1, 10 ** 6))
-            self.log("Level BARU dibuat (seed acak)", config.GREY)
-            return
         if key == pygame.K_p and self.state != config.STATE_GAME_OVER:
             self.paused = not self.paused
             return
@@ -1152,19 +1167,38 @@ class Game:
             if hasattr(self, "unified_panel"):
                 self.unified_panel.toggle(tab=0)
                 self.show_expedition_panel = self.unified_panel.visible and (self.unified_panel.active_tab == 0)
-                self.show_htn_panel = self.unified_panel.visible and (self.unified_panel.active_tab == 1)
+                self.show_htn_panel = False
             else:
                 self.show_expedition_panel = not self.show_expedition_panel
-            self.log(f"Panel Expedition Plan: {'DITAMPILKAN' if self.show_expedition_panel else 'DISEMBUNYIKAN'}", config.GREEN if self.show_expedition_panel else config.GREY)
+            self.log(f"Panel Planning Inspector [F7]: {'DITAMPILKAN' if getattr(self, 'unified_panel', None) and self.unified_panel.visible else 'DISEMBUNYIKAN'}", config.CYAN)
             return
         if key == pygame.K_F8:
             if hasattr(self, "unified_panel"):
-                self.unified_panel.toggle(tab=2)
-                self.show_expedition_panel = self.unified_panel.visible and (self.unified_panel.active_tab == 0)
-                self.show_htn_panel = self.unified_panel.visible and (self.unified_panel.active_tab == 2)
+                self.unified_panel.toggle(tab=3)
+                self.show_expedition_panel = False
+                self.show_htn_panel = False
             else:
                 self.show_htn_panel = not self.show_htn_panel
-            self.log(f"Panel HTN: {'DITAMPILKAN (Opsional)' if self.show_htn_panel else 'DISEMBUNYIKAN'}", config.GREEN if self.show_htn_panel else config.GREY)
+            self.log(f"Panel Decisions Under Uncertainty [F8]: {'DITAMPILKAN' if getattr(self, 'unified_panel', None) and self.unified_panel.visible else 'DISEMBUNYIKAN'}", config.GOLD)
+            return
+        if key == pygame.K_g:
+            self.show_spatial_debug = not getattr(self, "show_spatial_debug", False)
+            self.log(f"Visualizer Spasial Peta [G]: {'DITAMPILKAN' if self.show_spatial_debug else 'DISEMBUNYIKAN'}",
+                     config.CYAN if self.show_spatial_debug else config.GREY)
+            return
+        if key == pygame.K_n:
+            if hasattr(self, "autopilot_controller") and self.autopilot_controller:
+                from planning.autopilot import AutopilotState
+                self.autopilot_controller.is_paused_by_player = True
+                self.autopilot_controller.state = AutopilotState.PAUSED
+                self.presenter_paused = True  # Jeda jam dunia & timer cuaca/banjir saat mode presenter
+                act = self.autopilot_controller.monitor.current_action
+                if act:
+                    step_res = self.autopilot_controller.executor.execute_action(act, advance_crops=True)
+                    self.autopilot_controller.monitor.advance_step()
+                    self.log(f"[PRESENTER STEP] Aksi #{self.autopilot_controller.monitor.current_step_idx}: {act.name} -> {step_res.message}", config.GOLD)
+                else:
+                    self.log("[PRESENTER STEP] Seluruh aksi dalam rencana telah selesai.", config.GREEN)
             return
         if key == pygame.K_F9:
             if hasattr(self, "autopilot_controller"):
@@ -1178,6 +1212,7 @@ class Game:
         if key == pygame.K_F10:
             if hasattr(self, "autopilot_controller"):
                 paused = self.autopilot_controller.toggle_pause()
+                self.presenter_paused = paused
                 self.log(f"Autopilot Planner: {'DIJEDA' if paused else 'DILANJUTKAN'}", config.GOLD)
             return
         if key == pygame.K_e:
@@ -1211,16 +1246,29 @@ class Game:
 
     # ================================================================ UPDATE
     def update(self, dt):
+        if self.paused or getattr(self, "presenter_paused", False):
+            return
         self.time += dt
         if hasattr(self, "village_deco") and self.village_deco:
             self.village_deco.update(dt)
+        if hasattr(self, "beach_deco") and self.beach_deco:
+            self.beach_deco.update(dt)
         if hasattr(self, "world_state") and self.world_state:
             self.world_state.update(dt)
         if hasattr(self, "world_clock") and self.world_clock:
             self.world_clock.update(dt)
         if hasattr(self, "npcs") and self.npcs:
             for npc in self.npcs:
-                npc.update(dt, clock=self.world_clock, hero=self.hero)
+                npc.update(dt, clock=self.world_clock, hero=self.hero, game_map=self.game_map)
+        if hasattr(self, "weather_manager") and self.weather_manager:
+            w_msg = self.weather_manager.update(dt)
+            if w_msg:
+                self.log(w_msg, config.CYAN)
+            flushed, flush_msg = self.weather_manager.trigger_flood_flush(self.hero, game_map=self.game_map)
+            if flushed:
+                self.log(flush_msg, config.RED)
+                if hasattr(self, "autopilot_controller") and self.autopilot_controller:
+                    self.autopilot_controller.on_belief_updated(self.weather_manager)
         if hasattr(self, "autopilot_controller") and self.planner_mode != "OFF":
             keys = pygame.key.get_pressed()
             move_keys = [pygame.K_w, pygame.K_a, pygame.K_s, pygame.K_d, pygame.K_UP, pygame.K_DOWN, pygame.K_LEFT, pygame.K_RIGHT]
@@ -1336,8 +1384,9 @@ class Game:
 
         # ---- Update hewan ternak beranimasi di desa -----------------------
         if hasattr(self, "tile_map") and hasattr(self.tile_map, "animals"):
+            pass_fn = getattr(self.tile_map, "is_animal_passable", None)
             for animal in self.tile_map.animals:
-                animal.update(dt, hero=self.hero)
+                animal.update(dt, is_passable_fn=pass_fn, hero=self.hero, game_map=self.game_map)
 
         # ---- Hit detection: Senjata player mengenai Goblin ----------------
         if self.hero.is_attack_active():
@@ -1611,16 +1660,36 @@ class Game:
         else:
             self.tile_map.draw(screen, self.assets, self.time, render_cam)
 
-        # Render Ladang Pertanian, Gerbang Reruntuhan, dan Titik Interaksi POI (Fase 1A & 1B)
+        # Visualisasi Genangan Banjir Sederhana di Zona Rawan (Putaran 3 Bagian 5.2)
+        # Visual Zona Banjir di pesisir pantai: genangan air organik di bibir pantai (tidak menutupi bangunan/kios)
+        if hasattr(self, "weather_manager") and self.weather_manager and self.weather_manager.actual_flood:
+            fz = self.weather_manager.flood_zone_rect
+            tile_alpha = int(55 + 20 * math.sin(self.time * 2.5))
+            for tx in range(fz.x, fz.x + fz.width, 32):
+                for ty in range(fz.y, fz.y + fz.height, 32):
+                    hb = pygame.Rect(tx + 9, ty + 12, 14, 8)
+                    if self.game_map and self.game_map.can_stand(hb):
+                        scr_x = tx - render_cam[0]
+                        scr_y = ty - render_cam[1]
+                        if -32 <= scr_x <= config.WINDOW_SIZE[0] + 32 and -32 <= scr_y <= config.WINDOW_SIZE[1] + 32:
+                            tile_surf = pygame.Surface((32, 32), pygame.SRCALPHA)
+                            # Genangan air elips halus organik
+                            pygame.draw.ellipse(tile_surf, (25, 90, 195, tile_alpha), (2, 6, 28, 20))
+                            pygame.draw.ellipse(tile_surf, (90, 180, 245, tile_alpha + 25), (6, 9, 20, 14), 1)
+                            # Riak air kecil
+                            wave_off = int(2 * math.sin(self.time * 3.0 + tx * 0.1))
+                            pygame.draw.arc(tile_surf, (170, 225, 255, tile_alpha + 35), (8, 11 + wave_off, 16, 8), 0, 3.14, 1)
+                            screen.blit(tile_surf, (scr_x, scr_y))
+
+        # Render Ladang Pertanian dan Titik Interaksi POI (Fase 1A & 1B)
         if hasattr(self, "world_state") and self.world_state:
             self.world_state.farm.draw(screen, render_cam, (self.hero.px, self.hero.py), debug_mode=getattr(self, "debug_map_collision", False))
-            self.world_state.gate.draw(screen, render_cam, (self.hero.px, self.hero.py))
             self._draw_interaction_markers(screen, render_cam)
 
         for trap in self.traps.values():
             trap.draw(screen, render_cam)
 
-        # Hero, Boss (jika belum kalah / kerangka), goblin, dan kincir angin digambar dengan y-sort
+        # Hero, Boss, goblin, gerbang, kincir angin, dan peti pantai digambar dengan y-sort
         if hasattr(self, "game_map") and self.game_map is not None:
             entities = [self.hero]
             if self.boss:
@@ -1633,6 +1702,12 @@ class Game:
                 entities.append(self.boss)
             if hasattr(self, "village_deco") and self.village_deco:
                 entities.extend(self.village_deco.get_y_sort_entities())
+        if hasattr(self, "world_state") and self.world_state and hasattr(self.world_state, "gate"):
+            entities.append(self.world_state.gate)
+        if hasattr(self, "beach_deco") and self.beach_deco:
+            entities.extend(self.beach_deco.get_y_sort_entities())
+        if hasattr(self, "weather_board_prop") and self.weather_board_prop:
+            entities.append(self.weather_board_prop)
         for gob in self.goblins:
             if gob.alive:
                 entities.append(gob)
@@ -1647,13 +1722,19 @@ class Game:
             return (y, getattr(o, "py", 0))
 
         for obj in sorted(drawables, key=_depth_key):
-            if hasattr(obj, "image") or hasattr(obj, "hair_style"):
+            if hasattr(obj, "is_open"):
+                # LockedGate
+                obj.draw(screen, render_cam, (self.hero.px, self.hero.py))
+            elif hasattr(obj, "image") or hasattr(obj, "hair_style"):
                 obj.draw(screen, render_cam, self.time)
             else:
                 try:
                     obj.draw(screen, render_cam, self.time)
                 except TypeError:
-                    obj.draw(screen, render_cam)
+                    try:
+                        obj.draw(screen, render_cam, (self.hero.px, self.hero.py))
+                    except TypeError:
+                        obj.draw(screen, render_cam)
 
         # Render Efek Asap Cerobong di Atap Rumah Desa
         if hasattr(self, "village_deco") and self.village_deco:
@@ -1674,6 +1755,10 @@ class Game:
         # Mode Debug Enemy Spawns [F2]
         if getattr(self, "debug_show_spawns", False):
             self._draw_enemy_spawns_debug(screen, render_cam)
+
+        # Visualizer Spasial Peta Dunia (Layer 2 - Shortcut [G])
+        if getattr(self, "show_spatial_debug", False):
+            self._draw_spatial_debug(screen, render_cam)
 
         self._draw_cursor(screen)
 
@@ -1714,7 +1799,7 @@ class Game:
             if getattr(self, "planner_mode", "OFF") in ("ADVISOR", "AUTO"):
                 self._draw_planner_banner(screen)
             if hasattr(self, "unified_panel") and self.unified_panel.visible:
-                self.unified_panel.draw(screen, self.autopilot_controller, self.farmer_npc, self.miller_npc, self.world_clock)
+                self.unified_panel.draw(screen, self.autopilot_controller, self.farmer_npc, self.miller_npc, self.world_clock, weather_mgr=getattr(self, "weather_manager", None), camera=render_cam, hero=self.hero)
             else:
                 if getattr(self, "show_expedition_panel", False) and hasattr(self, "expedition_panel") and hasattr(self, "autopilot_controller"):
                     self.expedition_panel.draw(screen, self.autopilot_controller)
@@ -1779,12 +1864,13 @@ class Game:
             ("SHOP", getattr(config, "INTERACT_SHOP_POS", (1600, 944)), 54.0),
             ("WORKSHOP", getattr(config, "INTERACT_WORKSHOP_POS", (1712, 944)), 54.0),
             ("BED", getattr(config, "INTERACT_BED_POS", (1344, 960)), 54.0),
-            ("GATE", getattr(config, "INTERACT_GATE_POS", (2384, 880)), 64.0),
+            ("GATE", getattr(config, "INTERACT_GATE_POS", (2544, 560)), 64.0),
             ("CHICKEN", getattr(config, "INTERACT_CHICKEN_POS", (1072, 976)), 54.0),
             ("COW", getattr(config, "INTERACT_COW_POS", (1744, 528)), 54.0),
             ("FISHING", getattr(config, "INTERACT_FISHING_POS", (1424, 688)), 54.0),
             ("TREE", getattr(config, "INTERACT_TREE_POS", (1488, 592)), 54.0),
             ("ROCK", getattr(config, "INTERACT_ROCK_POS", (1904, 656)), 54.0),
+            ("WEATHER_BOARD", getattr(config, "INTERACT_WEATHER_BOARD_POS", (1504, 1024)), 54.0),
         ]
 
         min_d = 9999.0
@@ -2042,6 +2128,14 @@ class Game:
                 self.hero.play_action_animation("mining", 1.2)
             self.log(res.message, config.GREEN if res.success else config.YELLOW)
             return True
+        elif target_type == "WEATHER_BOARD":
+            if hasattr(self, "weather_manager") and self.weather_manager:
+                success, msg, belief = self.weather_manager.read_notice_board()
+                color = config.GREEN if success else config.YELLOW
+                self.log(msg, color)
+                if success and hasattr(self, "autopilot_controller") and self.autopilot_controller:
+                    self.autopilot_controller.on_belief_updated(self.weather_manager)
+                return True
         elif target_type == "FARM":
             plot = target_data
             if plot.is_mature:
@@ -2063,7 +2157,7 @@ class Game:
         return False
 
     def _draw_world_interaction_prompt(self, screen: pygame.Surface):
-        """Menampilkan prompt interaksi [E] di bagian bawah layar saat dekat objek."""
+        """Menampilkan prompt interaksi aksi di bagian tengah-bawah layar di atas HUD."""
         if not hasattr(self, "near_interaction_target") or not self.near_interaction_target:
             return
         if self.state != config.STATE_EXPLORATION or getattr(self, "battle_transition", None) is not None:
@@ -2072,61 +2166,99 @@ class Game:
             return
 
         ttype, tdata = self.near_interaction_target
+        badge_txt = "[E]"
+        badge_col = config.GOLD
+        badge_bg = (50, 42, 18, 230)
+
         if ttype == "FARM":
             plot = tdata
             if plot.is_mature:
-                text = f"Tekan [E] untuk Panen {plot.crop_type.capitalize()} (Petak #{plot.plot_id + 1})"
+                text = f"Panen {plot.crop_type.capitalize()} (Petak #{plot.plot_id + 1})"
                 sub = "Hasil panen akan disimpan ke tas hero"
             elif plot.crop_type is not None:
-                text = f"Tekan [E] untuk Siram Air (Petak #{plot.plot_id + 1})"
+                text = f"Siram Air (Petak #{plot.plot_id + 1})"
                 sub = f"Tahap {plot.stage}/5 {'(Basah)' if plot.is_watered else '(Kering - Perlu Air)'}"
             else:
-                text = f"Tekan [E] untuk Tanam Benih (Petak #{plot.plot_id + 1})"
+                text = f"Tanam Benih (Petak #{plot.plot_id + 1})"
                 sub = "Memerlukan benih lobak/gandum di tas"
         elif ttype == "SHOP":
-            text = "Tekan [E] untuk Membuka Toko Desa"
+            text = "Buka Toko Desa"
             sub = "Beli benih, botol, senjata, & jual hasil panen"
         elif ttype == "WORKSHOP":
-            text = "Tekan [E] untuk Meracik di Bengkel"
+            text = "Meracik di Bengkel"
             sub = "Health Potion (Lobak+Botol) / Kunci (Kayu+Batu)"
         elif ttype == "BED":
-            text = "Tekan [E] untuk Istirahat (Rest) di Rumah"
+            text = "Istirahat di Ranjang"
             sub = "Memulihkan 100% HP hero ke kondisi prima"
         elif ttype == "GATE":
-            st = "Sudah Terbuka" if self.world_state.gate.is_open else "Terkunci (Butuh Kunci)"
-            text = f"Tekan [E] untuk Gerbang Reruntuhan [{st}]"
-            sub = "Akses menuju sarang Boss Skeleton Overlord"
+            if self.world_state.gate.is_open:
+                return  # Sudah terbuka, tidak perlu prompt
+            has_key = self.world_state.inventory.has_item("key", 1)
+            if has_key:
+                badge_txt = "[E]"
+                badge_col = config.GREEN
+                badge_bg = (20, 50, 30, 230)
+                text = "Buka Gerbang Reruntuhan"
+                sub = "Kunci gerbang tersedia di tas hero"
+            else:
+                badge_txt = "TERKUNCI"
+                badge_col = (240, 90, 90)
+                badge_bg = (54, 20, 20, 230)
+                text = "Gerbang Reruntuhan Obsidian"
+                sub = "Terkunci · Butuh Kunci Gerbang (Tempa di Bengkel: 1 Kayu + 1 Batu)"
         elif ttype == "CHICKEN":
-            text = "Tekan [E] untuk Ambil Telur Ayam"
+            text = "Ambil Telur Ayam"
             sub = "Sumber daya segar untuk dijual ke toko"
         elif ttype == "COW":
-            text = "Tekan [E] untuk Perah Susu Sapi"
+            text = "Perah Susu Sapi"
             sub = "Susu murni bergizi tinggi untuk dijual"
         elif ttype == "FISHING":
-            text = "Tekan [E] untuk Memancing Ikan"
+            text = "Memancing Ikan"
             sub = "Pancingan di dermaga kayu sungai desa"
         elif ttype == "TREE":
-            text = "Tekan [E] untuk Menebang Kayu"
+            text = "Tebang Pohon"
             sub = "Bahan baku membuat kunci gerbang reruntuhan"
         elif ttype == "ROCK":
-            text = "Tekan [E] untuk Menambang Batu"
+            text = "Menambang Batu"
             sub = "Bahan baku logam & batu tempa kunci"
+        elif ttype == "WEATHER_BOARD":
+            text = "Baca Papan Ramalan Cuaca"
+            sub = "Perbarui keyakinan P(Banjir) via Bayesian Update (1x per hari)"
         else:
             return
 
-        txt_surf = self.font.render(text, True, config.GOLD)
-        sub_surf = self.font_s.render(sub, True, config.CYAN)
-        w = max(txt_surf.get_width(), sub_surf.get_width()) + 36
-        h = 44
-        bx = (config.WINDOW_SIZE[0] - w) // 2
-        by = config.MAP_PIXEL_H - h - 16
+        txt_surf = self.font.render(text, True, (255, 255, 255))
+        sub_surf = self.font_xs.render(sub, True, (180, 195, 215))
+        badge_surf = self.font_s.render(badge_txt, True, badge_col)
 
-        bg = pygame.Surface((w, h), pygame.SRCALPHA)
-        bg.fill((20, 20, 36, 230))
-        screen.blit(bg, (bx, by))
-        pygame.draw.rect(screen, config.GOLD, (bx, by, w, h), 2, border_radius=4)
-        screen.blit(txt_surf, (bx + (w - txt_surf.get_width()) // 2, by + 5))
-        screen.blit(sub_surf, (bx + (w - sub_surf.get_width()) // 2, by + 23))
+        badge_pad_x = 8
+        badge_w = badge_surf.get_width() + badge_pad_x * 2
+        badge_h = badge_surf.get_height() + 4
+
+        content_w = max(txt_surf.get_width(), sub_surf.get_width())
+        total_w = badge_w + 14 + content_w + 20
+        total_h = 44
+        bx = (config.WINDOW_SIZE[0] - total_w) // 2
+        by = config.MAP_PIXEL_H - total_h - 14
+
+        # Pill background
+        pill = pygame.Surface((total_w, total_h), pygame.SRCALPHA)
+        pill.fill((16, 20, 28, 235))
+        pygame.draw.rect(pill, (60, 72, 96), (0, 0, total_w, total_h), 1, border_radius=8)
+
+        # Keycap / status badge
+        badge_rect = pygame.Rect(10, (total_h - badge_h) // 2, badge_w, badge_h)
+        badge_s = pygame.Surface((badge_w, badge_h), pygame.SRCALPHA)
+        badge_s.fill(badge_bg)
+        pill.blit(badge_s, badge_rect.topleft)
+        pygame.draw.rect(pill, badge_col, badge_rect, 1, border_radius=4)
+        pill.blit(badge_surf, (badge_rect.x + badge_pad_x, badge_rect.y + 2))
+
+        # Text labels
+        pill.blit(txt_surf, (badge_rect.right + 10, 5))
+        pill.blit(sub_surf, (badge_rect.right + 10, 23))
+
+        screen.blit(pill, (bx, by))
 
     def _draw_battle_transition(self, screen):
         """Efek transisi masuk battle: layar flash putih / fade out 0.5 detik."""
@@ -2239,6 +2371,104 @@ class Game:
             txt = self.font_xs.render(f"SPAWN: {pt['type']}", True, (255, 200, 255))
             screen.blit(txt, (sx, sy - 14))
 
+    def _draw_spatial_debug(self, screen: pygame.Surface, camera: Tuple[int, int]):
+        """
+        Layer 2: In-World Spatial Visualizer (Shortcut [G]).
+        Menggambar elemen spasial langsung di atas peta dunia:
+          1. Highlight zona risiko banjir (26 tile pesisir) dengan hazard tint transparan.
+          2. Penanda percabangan rute di (1984, 880): [PERCABANGAN: PINTAS vs RAYA].
+          3. Polyline jalur navigasi A* Hero aktual dengan waypoint cyan & destination ping.
+        """
+        cam_x, cam_y = camera
+        w_w, w_h = config.WINDOW_SIZE
+
+        # 1. Highlight Zona Risiko Banjir (26 Tile Pesisir)
+        if hasattr(self, "weather_manager") and self.weather_manager is not None:
+            fz = self.weather_manager.flood_zone_rect
+            scr_fx = fz.x - cam_x
+            scr_fy = fz.y - cam_y
+
+            if scr_fx + fz.width >= -50 and scr_fx <= w_w + 50 and scr_fy + fz.height >= -50 and scr_fy <= w_h + 50:
+                is_risky = (self.weather_manager.belief_flood >= 0.1333) or self.weather_manager.actual_flood
+                fz_surf = pygame.Surface((fz.width, fz.height), pygame.SRCALPHA)
+                if is_risky:
+                    fz_surf.fill((255, 60, 40, 75))
+                    border_col = (255, 80, 60)
+                    badge_str = "[AREA BANJIR (26 TILE WALKABLE): RISIKO TINGGI]"
+                else:
+                    fz_surf.fill((255, 180, 0, 45))
+                    border_col = (255, 205, 60)
+                    badge_str = "[AREA BANJIR (26 TILE WALKABLE): AMAN]"
+
+                screen.blit(fz_surf, (scr_fx, scr_fy))
+                pygame.draw.rect(screen, border_col, (scr_fx, scr_fy, fz.width, fz.height), 2)
+                lbl = self.font_xs.render(badge_str, True, border_col)
+                screen.blit(lbl, (scr_fx + 8, scr_fy + 6))
+
+        # 2. Penanda Percabangan Rute di (1984, 880) - Tile (62, 27)
+        fork_x = 1984 - cam_x
+        fork_y = 880 - cam_y
+        if -60 <= fork_x <= w_w + 60 and -60 <= fork_y <= w_h + 60:
+            d_pts = [
+                (fork_x, fork_y - 10),
+                (fork_x + 10, fork_y),
+                (fork_x, fork_y + 10),
+                (fork_x - 10, fork_y)
+            ]
+            pygame.draw.polygon(screen, (255, 220, 60), d_pts)
+            pygame.draw.polygon(screen, (40, 30, 20), d_pts, 2)
+
+            fork_txt = "[PERCABANGAN: PINTAS vs RAYA]"
+            f_surf = self.font_xs.render(fork_txt, True, (255, 240, 150))
+            f_bg = pygame.Surface((f_surf.get_width() + 8, f_surf.get_height() + 4), pygame.SRCALPHA)
+            f_bg.fill((16, 20, 28, 220))
+            f_rect = f_bg.get_rect(center=(fork_x, fork_y - 18))
+            screen.blit(f_bg, f_rect)
+            pygame.draw.rect(screen, (255, 215, 80), f_rect, 1)
+            screen.blit(f_surf, (f_rect.x + 4, f_rect.y + 2))
+
+            # Panah visual indikator cabang
+            pygame.draw.line(screen, (255, 120, 60), (fork_x, fork_y), (fork_x + 32, fork_y + 14), 2)
+            pygame.draw.line(screen, (80, 200, 255), (fork_x, fork_y), (fork_x - 18, fork_y - 28), 2)
+
+        # 3. Polyline Jalur Navigasi A* Hero Aktual
+        path_tiles = []
+        if hasattr(self, "autopilot_controller") and self.autopilot_controller:
+            if self.autopilot_controller.current_path:
+                path_tiles = self.autopilot_controller.current_path
+            elif self.autopilot_controller.monitor.current_action:
+                act = self.autopilot_controller.monitor.current_action
+                if act.name in ("goto", "goto_through_gate"):
+                    loc_a = act.params[0]
+                    loc_b = act.params[1]
+                    gate_open = self.world_state.gate.is_open if hasattr(self, "world_state") else False
+                    _, _, p_astar = self.autopilot_controller.distance_matrix.get_distance(loc_a, loc_b, gate_open=gate_open)
+                    path_tiles = p_astar
+
+        # Fallback jalur ke boss/tujuan jika hero punya path aktif
+        if not path_tiles and hasattr(self, "hero") and getattr(self.hero, "target_path", None):
+            path_tiles = self.hero.target_path
+
+        if path_tiles and len(path_tiles) >= 2:
+            scr_pts = []
+            for pt in path_tiles:
+                if isinstance(pt, (tuple, list)) and len(pt) == 2:
+                    gx, gy = pt
+                    px = gx * 32 + 16 if (gx < 200 and gy < 200) else gx
+                    py = gy * 32 + 16 if (gx < 200 and gy < 200) else gy
+                    scr_pts.append((int(px - cam_x), int(py - cam_y)))
+
+            if len(scr_pts) >= 2:
+                pygame.draw.lines(screen, (0, 230, 255), False, scr_pts, 3)
+                for i, (sx, sy) in enumerate(scr_pts):
+                    if i % 3 == 0:
+                        pygame.draw.circle(screen, (120, 255, 255), (sx, sy), 3)
+
+                dst_x, dst_y = scr_pts[-1]
+                ping_r = int(7 + 3 * math.sin(self.time * 4.0))
+                pygame.draw.circle(screen, (255, 235, 90), (dst_x, dst_y), ping_r, 2)
+                pygame.draw.circle(screen, (255, 255, 255), (dst_x, dst_y), 3)
+
     def _draw_combat_game_over(self, screen):
         """Tampilan Game Over sederhana saat player kalah dalam combat."""
         overlay = pygame.Surface(config.WINDOW_SIZE, pygame.SRCALPHA)
@@ -2331,23 +2561,46 @@ class Game:
 
     def _draw_control_mode(self, screen):
         """
-        Indikator CONTROL MODE di pojok kiri atas area peta.
-        Sumber state tunggal: konsisten dengan planner_mode / AutopilotController.
+        Indikator Mode Kontrol, Hari, Waktu, & Cuaca di pojok kiri atas layar.
         """
         rx, ry, rw, rh = config.OVERLAY_CONTROL_RECT
         is_auto = (getattr(self, "planner_mode", "OFF") == "AUTO") or (self.control_mode == config.CONTROL_AUTOPILOT)
-        manual = not is_auto
-        key = (rw, rh, manual)
-        panel = self._control_panel_cache.get(key)
-        if panel is None:
-            color = config.CYAN if manual else config.GREEN
-            panel = pygame.Surface((rw, rh), pygame.SRCALPHA)
-            panel.fill(config.PANEL_BG)
-            pygame.draw.rect(panel, color, panel.get_rect(), 1)
-            label = "CONTROL MODE: [AI AUTO-PILOT - A*]" if is_auto else "CONTROL MODE: [MANUAL - WASD]"
-            surf = self._txt(label, color, self.font)
-            panel.blit(surf, surf.get_rect(center=(rw // 2, rh // 2)))
-            self._control_panel_cache[key] = panel
+
+        mode_str = "AI AUTO [TAB]" if is_auto else "MANUAL [TAB]"
+        mode_col = config.GREEN if is_auto else config.CYAN
+
+        # Waktu & Cuaca
+        day_str = "HARI 1"
+        phase_str = "SIANG"
+        if hasattr(self, "weather_manager") and self.weather_manager:
+            day_str = f"HARI {self.weather_manager.day}"
+        if hasattr(self, "world_clock") and self.world_clock:
+            phase_str = self.world_clock.phase
+
+        if hasattr(self, "weather_manager") and self.weather_manager and self.weather_manager.actual_flood:
+            w_str = "BANJIR"
+        else:
+            w_str = "CERAH"
+
+        panel = pygame.Surface((rw, rh), pygame.SRCALPHA)
+        panel.fill((18, 22, 34, 235))
+        pygame.draw.rect(panel, (54, 68, 92), panel.get_rect(), 1, border_radius=6)
+
+        # Mode badge
+        badge_w = 90
+        b_rect = pygame.Rect(4, 4, badge_w, rh - 8)
+        b_s = pygame.Surface((badge_w, rh - 8), pygame.SRCALPHA)
+        b_s.fill((20, 50, 30, 220) if is_auto else (18, 38, 56, 220))
+        panel.blit(b_s, b_rect.topleft)
+        pygame.draw.rect(panel, mode_col, b_rect, 1, border_radius=4)
+        m_surf = self.font_xs.render(mode_str, True, mode_col)
+        panel.blit(m_surf, m_surf.get_rect(center=b_rect.center))
+
+        # Time & Weather string
+        info_str = f"{day_str} · {phase_str} · {w_str}"
+        i_surf = self.font_xs.render(info_str, True, (215, 225, 240))
+        panel.blit(i_surf, (b_rect.right + 10, (rh - i_surf.get_height()) // 2))
+
         screen.blit(panel, (rx, ry))
 
     def _draw_planner_banner(self, screen):
@@ -2365,8 +2618,13 @@ class Game:
         if mode == "ADVISOR":
             bg_col = (20, 32, 54, 230)
             border_col = (80, 180, 240)
-            title = "[ADVISOR: SARAN] Langkah Berikutnya [F9:AUTO]"
-            title_col = (140, 215, 255)
+            if hasattr(self, "weather_manager") and self.weather_manager:
+                wm = self.weather_manager
+                title = f"[ADVISOR] Rute MDP: {wm.optimal_policy.upper()} [F9:AUTO]"
+                title_col = (130, 240, 180) if wm.optimal_policy == "Pintas" else (255, 180, 120)
+            else:
+                title = "[ADVISOR: SARAN] Langkah Berikutnya [F9:AUTO]"
+                title_col = (140, 215, 255)
         elif mode == "AUTO":
             if ctrl and (ctrl.state == "PAUSED" or ctrl.is_paused_by_player):
                 bg_col = (54, 28, 16, 235)
@@ -2386,7 +2644,7 @@ class Game:
             else:
                 bg_col = (18, 44, 28, 230)
                 border_col = (70, 220, 130)
-                title = "[AUTOPILOT: AUTO] Misi Berjalan [F9:OFF]"
+                title = "[AUTOPILOT: AUTO] [F9: Ganti Mode]"
                 title_col = (130, 245, 170)
         else:
             return
@@ -2417,6 +2675,10 @@ class Game:
         # Di ADVISOR, jangan tampilkan pesan jeda kontrol manual (kontrol manual normal di ADVISOR)
         if mode == "ADVISOR" and "Kontrol manual terdeteksi" in sub_txt:
             sub_txt = "Kontrol manual bebas. Ikuti petunjuk target di peta."
+        if mode == "ADVISOR" and hasattr(self, "weather_manager") and self.weather_manager:
+            wm = self.weather_manager
+            qp, qr = wm.get_expected_utilities()
+            sub_txt = f"{sub_txt} [EU: Pintas={qp:.1f}, Raya={qr:.1f}]"
 
         # Ukuran banner dinamis agar pesan panjang tidak terpotong (unclipped),
         # tetap bebas tumpang tindih dengan CONTROL MODE (8..276) dan Panel F7 (660..1020).
@@ -2512,105 +2774,98 @@ class Game:
     # ------------------------------------------------------------------- HUD
     def _draw_hud(self, screen):
         y0 = config.MAP_PIXEL_H
-        pygame.draw.rect(screen, (18, 18, 26),
+        pygame.draw.rect(screen, (16, 18, 26),
                          (0, y0, config.WINDOW_SIZE[0], config.HUD_H))
-        pygame.draw.line(screen, config.CYAN, (0, y0), (config.WINDOW_SIZE[0], y0), 2)
+        pygame.draw.line(screen, (48, 64, 92), (0, y0), (config.WINDOW_SIZE[0], y0), 2)
 
         cat = get_asset_catalog()
         hero = self.hero
-        # ---- kolom kiri: HP / MANA / ENERGI --------------------------------
-        hp_frac = max(0.0, min(1.0, hero.hp / max(1, hero.max_hp)))
-        self._bar(14, y0 + 21, 150, 12, hp_frac, config.RED,
-                  f"HERO HP {hero.hp}/{hero.max_hp}")
 
-        # Sprite Bar HP Otentik Sunnyside (greenbar / redbar saat kritis)
+        # ---- kolom kiri: STATUS HERO (HP, MANA, KOIN, POTION) -------------
+        hp_frac = max(0.0, min(1.0, hero.hp / max(1, hero.max_hp)))
+        self._bar(14, y0 + 16, 136, 14, hp_frac, config.RED,
+                  f"HP {hero.hp}/{hero.max_hp}")
+
         hp_bar_name = "greenbar" if hp_frac >= 0.25 else "redbar"
         hp_bar_idx = max(0, min(6, int(round(hp_frac * 6))))
         hp_sprite = cat.get_ui_icon(f"{hp_bar_name}_0{hp_bar_idx}.png", scale=2)
-        screen.blit(hp_sprite, (170, y0 + 19))
+        screen.blit(hp_sprite, (156, y0 + 14))
 
-        # Ikon Hati Status dari UI Sunnyside
         heart_icon = cat.get_ui_icon("expression_love.png", scale=1)
-        screen.blit(heart_icon, (206, y0 + 17))
+        screen.blit(heart_icon, (192, y0 + 13))
 
-        mx = 14
-        screen.blit(self._txt("MANA:", config.CYAN), (mx, y0 + 45))
-        # Bluebar otentik untuk Mana
         mana_frac = max(0.0, min(1.0, hero.mana / max(1, config.HERO_MAX_MANA)))
+        self._bar(14, y0 + 40, 136, 12, mana_frac, config.BLUE,
+                  f"MANA {hero.mana}/{config.HERO_MAX_MANA}")
         mana_idx = max(0, min(5, int(round(mana_frac * 5))))
         mana_sprite = cat.get_ui_icon(f"bluebar_0{mana_idx}.png", scale=2)
-        screen.blit(mana_sprite, (mx + 48, y0 + 44))
-        for i in range(config.HERO_MAX_MANA):
-            pygame.draw.rect(screen, config.BLUE if hero.mana > i else config.DARK_GREY,
-                             (mx + 84 + i * 14, y0 + 45, 10, 12))
-            pygame.draw.rect(screen, config.GREY, (mx + 84 + i * 14, y0 + 45, 10, 12), 1)
-        if hero.buff_turns > 0:
-            screen.blit(self._txt(f"BUFF x{hero.buff_turns}", config.PURPLE),
-                        (mx + 116, y0 + 45))
+        screen.blit(mana_sprite, (156, y0 + 38))
 
-        used = self.csp_report.energy_used
-        cap = self.csp_report.capacity
-        e_frac = max(0.0, min(1.0, used / max(1, cap)))
-        self._bar(14, y0 + 79, 160, 12, e_frac, config.PURPLE,
-                  f"ENERGI CORE {used}/{cap}")
-        # Bluebar otentik untuk Energi Core
-        energy_idx = max(0, min(5, int(round(e_frac * 5))))
-        energy_sprite = cat.get_ui_icon(f"bluebar_0{energy_idx}.png", scale=2)
-        screen.blit(energy_sprite, (180, y0 + 77))
-
-        # ---- kolom tengah: info dunia / AI --------------------------------
-        cx = 252
-        zone = self.zone_name or "PADANG LIAR ELDORIA"
-        # Nama wilayah terpanjang (mis. RERUNTUHAN OBSIDIAN KEEP) memakai font
-        # kecil agar tidak menabrak kolom legenda di sebelah kanan.
-        screen.blit(self._txt(f"AREA: {zone}", config.GOLD, self.font_s),
-                    (cx, y0 + 8))
-        screen.blit(self._txt(f"DUNIA {self.tile_map.width}x{self.tile_map.height} tile"
-                             f"   SEED {self.seed}   {self.state}",
-                             config.GREY, self.font_xs), (cx, y0 + 28))
-        screen.blit(self._txt(f"DIFFICULTY SCORE: {self.difficulty:.1f}",
-                             config.YELLOW, self.font_xs), (cx, y0 + 44))
-        tool = config.ITEM_LABEL[self.selected_kind]
-        cstat = "CSP OK" if self.csp_report.satisfied else "CSP VIOLATION!"
-        
-        # Ikon alat Sunnyside di samping teks item
-        tool_icons = {"fire_trap": "sword.png", "ice_trap": "water.png", "ice_monster": "hammer.png"}
-        t_icon = cat.get_ui_icon(tool_icons.get(self.selected_kind, "sword.png"), scale=1)
-        screen.blit(t_icon, (cx, y0 + 58))
-
-        screen.blit(self._txt(
-            f"   ITEM: {tool} (energi {config.ITEM_ENERGY[self.selected_kind]})   {cstat}",
-            config.GREEN if self.csp_report.satisfied else config.RED,
-            self.font_xs), (cx + 12, y0 + 60))
-        nx = len(self.path_result.path) if self.path_result else 0
-        alg = (self.path_result.algorithm if self.path_result else "-")
-        screen.blit(self._txt(
-            f"A* ke Core: {nx} langkah [{alg}]  re-plan {self.plan_monitor.replan_count}",
-            config.GREY, self.font_xs), (cx, y0 + 76))
-        done, total = self.plan_monitor.progress()
-        screen.blit(self._txt(
-            f"PLAN {done}/{total}  {self.plan_monitor.status}   "
-            f"Minimax n={self.battle_ai.last_stats.nodes} "
-            f"p={self.battle_ai.last_stats.pruned}",
-            config.GREEN if self.plan_monitor.status == "OK" else config.RED,
-            self.font_xs), (cx, y0 + 92))
-
-        # Dompet Koin & Potion Hero di HUD (Fase 1A)
+        # Koin dan Ramuan
         if hasattr(self, "world_state") and self.world_state:
+            coins = self.world_state.coins
+            potions = self.world_state.inventory.get_item_count("potion_red")
             coin_icon = cat.get_generated_icon("coin", scale=1)
-            screen.blit(coin_icon, (cx, y0 + 108))
-            screen.blit(self._txt(f": {self.world_state.coins} Koin  |  [I] Tas: {self.world_state.inventory.get_item_count('potion_red')} Potion", config.GOLD, self.font_xs), (cx + 18, y0 + 108))
+            screen.blit(coin_icon, (14, y0 + 68))
+            screen.blit(self._txt(f"{coins} Koin", config.GOLD, self.font_s), (34, y0 + 68))
 
-        # ---- legenda kontrol ----------------------------------------------
-        lx = 520
+            pot_icon = cat.get_ui_icon("potion_red.png", scale=1)
+            screen.blit(pot_icon, (114, y0 + 66))
+            screen.blit(self._txt(f"{potions} Potion", config.CYAN, self.font_s), (136, y0 + 68))
+
+        if hero.buff_turns > 0:
+            screen.blit(self._txt(f"BUFF AKTIF x{hero.buff_turns}", config.PURPLE, self.font_xs),
+                        (14, y0 + 96))
+        else:
+            exp_text = f"Expedisi: {self.planner_mode.upper()}"
+            screen.blit(self._txt(exp_text, config.GREY, self.font_xs), (14, y0 + 96))
+
+        # ---- kolom tengah: PERLENGKAPAN TEMPUR (CSP LOADOUT) --------------
+        cx = 240
+        screen.blit(self._txt("GEAR & LOADOUT (CSP SOLVER)", config.GOLD, self.font_s),
+                    (cx, y0 + 10))
+
+        # Ambil data loadout aktif
+        cur_loadout = getattr(self, "last_loadout", None) or {}
+        if hasattr(self, "world_state") and self.world_state and hasattr(self.world_state.inventory, "equipped"):
+            eq = self.world_state.inventory.equipped
+            if eq:
+                cur_loadout = eq
+
+        w_name = cur_loadout.get("weapon") or cur_loadout.get("WEAPON") or "Pedang Biasa"
+        a_name = cur_loadout.get("armor") or cur_loadout.get("ARMOR") or "Baju Kain"
+        c_name = cur_loadout.get("charm") or cur_loadout.get("CHARM") or "Tanpa Jimat"
+        p_name = cur_loadout.get("consumable") or cur_loadout.get("CONSUMABLE") or "Potion Standar"
+
+        def _draw_gear_slot(sx, sy, label, item_name, color):
+            slot_w, slot_h = 142, 24
+            s_bg = pygame.Surface((slot_w, slot_h), pygame.SRCALPHA)
+            s_bg.fill((24, 28, 40, 220))
+            screen.blit(s_bg, (sx, sy))
+            pygame.draw.rect(screen, (56, 68, 92), (sx, sy, slot_w, slot_h), 1, border_radius=3)
+            screen.blit(self._txt(label, color, self.font_xs), (sx + 5, sy + 5))
+            screen.blit(self._txt(item_name[:14], (230, 235, 245), self.font_xs), (sx + 34, sy + 5))
+
+        _draw_gear_slot(cx, y0 + 34, "[W]", w_name, config.GOLD)
+        _draw_gear_slot(cx + 148, y0 + 34, "[A]", a_name, config.CYAN)
+        _draw_gear_slot(cx, y0 + 64, "[C]", c_name, config.PURPLE)
+        _draw_gear_slot(cx + 148, y0 + 64, "[I]", p_name, config.GREEN)
+
+        zone = self.zone_name or "PADANG LIAR ELDORIA"
+        screen.blit(self._txt(f"WILAYAH: {zone}", (180, 195, 215), self.font_xs),
+                    (cx, y0 + 96))
+
+        # ---- kolom kanan: PETUNJUK KONTROL CEPAT --------------------------
+        lx = 550
+        screen.blit(self._txt("KONTROL CEPAT", config.GOLD, self.font_s), (lx, y0 + 10))
         legend = [
-            ("[WASD] Gerak   [SPACE/KLIK] Serang   [TAB] Mode Kontrol", config.CYAN),
-            ("[E] Interaksi/Toko   [I] Tas   [F5/F6] Simpan/Muat Game", config.GOLD),
-            (f"[F7] Planner   [F8] HTN (opsional)   [F9] Mode: {self.planner_mode}   [F10] Jeda/Lanjut", config.GREEN),
-            ("[F1] Debug Hitbox   [F2] Spawn   [R] Restart   [ESC] Keluar", config.GREY),
+            ("[F7] Planning  | [F8] Uncertainty", config.CYAN),
+            ("[G] Spatial    | [N] Step Aksi", config.GOLD),
+            ("[TAB] Mode AI  | [E] Interaksi", config.GREEN),
+            ("[H] Bantuan Kontrol Lengkap", config.GREY),
         ]
         for i, (line, color) in enumerate(legend):
-            screen.blit(self._txt(line, color, self.font_xs), (lx, y0 + 8 + i * 16))
+            screen.blit(self._txt(line, color, self.font_xs), (lx, y0 + 34 + i * 20))
 
         # ---- minimap -------------------------------------------------------
         self.tile_map.draw_minimap(screen, (854, y0 + 3, 160, 122),
@@ -2904,7 +3159,39 @@ def main(argv=None):
                         help="jalankan demonstrasi planning graph & relasi mutex (Slide 31-35)")
     parser.add_argument("--demo-detour", action="store_true",
                         help="jalankan demonstrasi detour jembatan dan rerouting A*")
+    parser.add_argument("--demo-mdp", action="store_true",
+                        help="jalankan demo Value Iteration & Bellman Equation model banjir (Slide 13-21)")
+    parser.add_argument("--demo-bayes", action="store_true",
+                        help="jalankan demo Teorema Bayes & Maximum Expected Utility (Slide 3-8)")
+    parser.add_argument("--demo-reward-shaping", action="store_true",
+                        help="jalankan demo kesalahan reward shaping (+3 langkah) & loop abadi (Slide 23)")
+    parser.add_argument("--demo-sensitivity", action="store_true",
+                        help="jalankan analisis sensitivitas f & batas analitik f* = 0.1333")
+    parser.add_argument("--demo-weather", type=str, choices=["berita", "cerah", "random"], default="random",
+                        help="tentukan status berita cuaca untuk demo deterministik (berita/cerah)")
+    parser.add_argument("--demo-replan", action="store_true",
+                        help="picu replan STRIPS deterministik untuk demonstrasi sidang")
     args = parser.parse_args(argv)
+
+    if args.demo_mdp:
+        from decision.demo_cli import run_demo_mdp
+        run_demo_mdp()
+        return
+
+    if args.demo_bayes:
+        from decision.demo_cli import run_demo_bayes
+        run_demo_bayes()
+        return
+
+    if args.demo_reward_shaping:
+        from decision.demo_cli import run_demo_reward_shaping
+        run_demo_reward_shaping()
+        return
+
+    if args.demo_sensitivity:
+        from decision.demo_cli import run_demo_sensitivity
+        run_demo_sensitivity()
+        return
 
     if args.demo_ojek:
         from planning.demo_cli import run_demo_ojek
@@ -2939,10 +3226,35 @@ def main(argv=None):
     pygame.display.set_caption(config.TITLE)
     assets = AssetManager()            # memuat aset + fallback otomatis
     game = Game(screen, assets, seed=args.seed)
-    if args.autopilot:
+    if args.demo_weather == "berita":
+        game.weather_manager.forced_evidence = "air mulai naik"
+        game.weather_manager.is_flooded = True
+        if hasattr(game, "unified_panel"):
+            game.unified_panel.visible = True
+            game.unified_panel.active_tab = 3
+        game.show_spatial_debug = True
+    elif args.demo_weather == "cerah":
+        game.weather_manager.forced_evidence = "langit cerah"
+        game.weather_manager.is_flooded = False
+        if hasattr(game, "unified_panel"):
+            game.unified_panel.visible = True
+            game.unified_panel.active_tab = 3
+        game.show_spatial_debug = True
+
+    if args.autopilot or args.demo_replan:
         game.control_mode = config.CONTROL_AUTOPILOT
         game.hero.manual_mode = False
         game.recompute_hero_path()
+        if hasattr(game, "unified_panel"):
+            game.unified_panel.visible = True
+            game.unified_panel.active_tab = 0
+        game.show_spatial_debug = True
+        if args.demo_replan and hasattr(game, "autopilot_controller") and game.autopilot_controller:
+            game.autopilot_controller.monitor.trigger_demo_replan(
+                hero=game.hero, game_map=game.game_map,
+                reason="precondition gagal (jembatan terhalang)"
+            )
+            game.log("[DEMO REPLAN] Replan STRIPS berhasil dipicu secara deterministik!", config.GOLD)
     clock = pygame.time.Clock()
 
     frames = 0

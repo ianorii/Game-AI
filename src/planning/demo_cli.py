@@ -8,9 +8,12 @@ Mendukung opsi:
 """
 
 import sys
+import os
 import time
 import tempfile
 import pygame
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from planning.pddl_parser import parse_domain, parse_problem
 from planning.grounding import ground_problem
@@ -269,3 +272,25 @@ def run_demo_detour():
     max_ft = max(frame_times)
     print(f"  Frame time maksimum: {max_ft:.2f} ms (Target: <= 20 ms -> {'LOLOS' if max_ft <= 20.0 else 'GAGAL'})")
     print("=" * 80 + "\n")
+
+
+if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser(description="Demo CLI Automated Planning")
+    parser.add_argument("--demo-ojek", action="store_true", help="Demo 1: Ojek Delivery")
+    parser.add_argument("--demo-regression", action="store_true", help="Demo 2: Backward Search Regression")
+    parser.add_argument("--demo-graph", action="store_true", help="Demo 3: Planning Graph & Mutex")
+    parser.add_argument("--demo-detour", action="store_true", help="Demo 4: Detour Replan & Re-routing")
+    parser.add_argument("--all", action="store_true", help="Jalankan semua demo")
+    args = parser.parse_args()
+
+    if args.all or args.demo_ojek:
+        run_demo_ojek()
+    if args.all or args.demo_regression:
+        run_demo_regression()
+    if args.all or args.demo_graph:
+        run_demo_planning_graph()
+    if args.all or args.demo_detour:
+        run_demo_detour()
+    if not (args.all or args.demo_ojek or args.demo_regression or args.demo_graph or args.demo_detour):
+        parser.print_help()

@@ -19,7 +19,7 @@ Seluruh komponen perencanaan dalam proyek ini diturunkan langsung dari konsep-ko
 | **Slide 31–32: Heuristik Relaksasi Ignore-Delete** | Ignore-delete-lists ($h_{\max}$ admissible, $h_{\text{add}}$ non-admissible, $h_{\text{FF}}$ relaxed plan). | `src/planning/heuristics.py` (`h_max`, `h_add`, `h_ff`, `check_relaxed_reachability`) | `tests/test_strips_planner.py:test_05`, `test_06` |
 | **Slide 32–35: Planning Graph & Mutex Reasoning** | Graf berlapis: $S_0, A_0, S_1, A_1, \dots$, persistensi *No-Op*, Action Mutex (Inconsistent Effects, Interference, Competing Needs), Fact Mutex (Inconsistent Support), $h_{\text{level}}$, GraphPlan. | `src/planning/planning_graph.py` (`PlanningGraph`, `compute_h_level`, `extract_graphplan`) | `tests/test_lecture_planning.py:test_08`, `test_09` |
 | **Knowledge Base Data-Driven** | Modifikasi katalog item, prasyarat PDDL, dan aksi baru tanpa ubah kode Python. | `data/catalog.json`, `tools/gen_readiness.py`, `data/planning/expedition.domain` | `tests/test_lecture_planning.py:test_13, 14, 15`, `tests/test_strips_planner.py:test_26` |
-| **HTN (Opsional)** | *Hierarchical Task Network* (SHOP-style forward decomposition). Engine dan 9 unit test tersedia, namun belum ada NPC HTN yang diaktifkan di dunia permainan nyata. | `src/planning/htn.py`, `data/planning/npc.htn`, `tests/test_htn.py` | *Catatan Khusus*: Pengayaan opsional di luar 35 slide kuliah. |
+| **HTN (Desa Hidup)** | *Hierarchical Task Network* (SHOP-style forward decomposition). 2 NPC otonom aktif penuh di main loop (`Pak Tani` & `Kang Penggiling`), dekomposisi task dinamis, A* pathfinding dengan `can_stand`, ekspresi reaktif, replan adaptif, dan visualisasi panel F8. | `src/planning/htn.py`, `src/planning/planner_ui.py`, `data/planning/npc.htn` | `tests/test_htn.py`, `tests/test_npc_collision_fix.py`, runtime main loop |
 
 ---
 
@@ -353,3 +353,43 @@ Sistem dirancang *fully data-driven*:
 2. **Modifikasi Prasyarat PDDL:** Menambahkan prasyarat baru (misalnya `(has-permit)`) pada file `data/planning/ojek.domain` langsung menolak rencana hingga fakta tersebut disertakan di problem init, tanpa menyentuh kode Python (`test_14_knowledge_base_pddl_precondition_change`).
 3. **Penambahan Aksi Baru di PDDL:** Menambahkan aksi baru (misalnya `(:action refuel)`) di file PDDL langsung di-ground dan diikutsertakan dalam pembentukan rencana oleh planner secara otonom (`test_15_knowledge_base_new_action_in_pddl`).
 4. **Penambahan Item di Level Planner Penuh:** Menambahkan item tempur baru (`pedang_naga`, atk_bonus=8, harga toko 50 koin) pada file data/konfigurasi secara otomatis membuat CSP solver memilih `pedang_naga` sebagai loadout terbaik dan WA* planner menghasilkan rencana dengan aksi `buy_pedang_naga` dan `equip(pedang_naga, cloth_armor)` secara otonom tanpa modifikasi kode Python perencana (`test_16_knowledge_base_new_weapon_item_planner_level`).
+
+---
+
+## 10. Implementasi Hierarchical Task Network (HTN) Desa Hidup
+
+Modul `src/planning/htn.py` menggerakkan dua NPC otonom di dunia permainan nyata (*live world loop*):
+1. **Pak Tani** (`HTNNPCAgent`, gaya rambut *curly*, lokasi awal ladang/rumah petani).
+2. **Kang Penggiling** (`HTNNPCAgent`, gaya rambut *mop*, lokasi awal kincir angin/rumah penggiling).
+
+### A. Dekomposisi Task Nyata (Bukan Path Statis)
+NPC tidak digerakkan oleh waypoints atau timer statis, melainkan 100% didekomposisi secara hierarkis oleh HTN planner (SHOP-style forward decomposition) dari file domain `data/planning/npc.htn`:
+- **Pak Tani** (`daily_routine_farmer`):
+  - Saat Siang (`m_farmer_day_shift`):
+    - Jika petak kosong $\to$ `!goto(farm, shop)` $\to$ `!buy_seed(radish)` $\to$ `!goto(shop, farm)` $\to$ `!plant_crop(plot0)`.
+    - Jika petak kering $\to$ `!water_crop(plot0)`.
+    - Jika petak matang $\to$ `!harvest_crop(plot0)` $\to$ `!goto(farm, shop)` $\to$ `!sell_crop(radish)`.
+  - Saat Malam (`m_farmer_night_shift`):
+    - `!goto(farm, home_farmer)` $\to$ `!sleep_at_night`.
+- **Kang Penggiling** (`daily_routine_miller`):
+  - Saat Siang (`m_miller_day_shift`):
+    - `!goto(windmill, shop)` $\to$ `!take_wheat` $\to$ `!goto(shop, windmill)` $\to$ `!grind_flour` $\to$ `!goto(windmill, shop)` $\to$ `!sell_flour`.
+  - Saat Malam (`m_miller_night_shift`):
+    - `!goto(windmill, home_miller)` $\to$ `!sleep_at_night`.
+
+### B. Navigasi & Collision Terpadu
+- Ketika mengeksekusi operator primitif `!goto(?from, ?to)`, NPC memanggil algoritma **A\*** pada grid peta permainan (`game_map`).
+- Pengecekan rintangan `is_blocked(cx, cy)` menggunakan kotak kaki hitbox $14 \times 8$ px dan memverifikasi `game_map.can_stand(foot)`.
+- Gerak NPC dilakukan per sumbu (X lalu Y) dengan deteksi macet: jika terhalang entitas lain selama 3 detik, NPC melakukan recovery ke posisi valid terdekat atau menunggu jalurnya bebas.
+
+### C. Replan Reaktif Terhadap Intervensi Pemain
+- Jika Hero memanen tanaman matang di ladang sebelum Pak Tani sempat memanennya, pemeriksaan prasyarat `check_and_replan_if_needed()` mendeteksi bahwa fakta `(has_mature_crop)` tidak lagi berlaku.
+- Pak Tani seketika memunculkan ikon ekspresi bingung (`ExpressionIcon.CONFUSED`), mencatat entri anomali ke log riwayat replan, dan memicu dekomposisi HTN ulang untuk beralih ke tugas lain (misal menyiram petak kering atau membeli bibit baru).
+
+### D. Visualisasi Panel F8 (`HTNPlanPanel`)
+Menekan tombol **`F8`** (atau tab ke-2 pada Unified Planner Panel `[F7]`) menampilkan:
+- Jam dunia dan siklus waktu (`WorldClock.time_string`, indikator siang/malam).
+- Ringkasan status Pak Tani dan Kang Penggiling: nama, lokasi, metode aktif, dan alasan prasyarat.
+- Antrean operator primitif yang sedang berjalan beserta durasi elapsed.
+- Riwayat replanning otonom (waktu dan alasan dekomposisi).
+- Ikon ekspresi interaktif (bekerja, bingung, atau menyapa ketika Hero berada dalam radius 45 px).

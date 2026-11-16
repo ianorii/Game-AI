@@ -1,0 +1,36 @@
+{
+  "n_days": 10000,
+  "seed": 20261021,
+  "results": {
+    "fast": {
+      "mean": 7.06,
+      "ci95_low": 6.8852,
+      "ci95_high": 7.2348,
+      "std_err": 0.0892
+    },
+    "safe": {
+      "mean": 6.0,
+      "ci95_low": 6.0,
+      "ci95_high": 6.0,
+      "std_err": 0.0
+    },
+    "mdp_blind": {
+      "mean": 7.06,
+      "ci95_low": 6.8852,
+      "ci95_high": 7.2348,
+      "std_err": 0.0892
+    },
+    "mdp_adaptive": {
+      "mean": 9.0286,
+      "ci95_low": 8.967,
+      "ci95_high": 9.0902,
+      "std_err": 0.0314
+    }
+  },
+  "eu_theory": {
+    "fast": 7.0,
+    "safe": 6.0,
+    "mdp_blind": 7.0,
+    "mdp_adaptive": 8.98
+  }
+}

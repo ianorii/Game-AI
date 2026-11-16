@@ -173,6 +173,49 @@ class ChimneySmoke:
             screen.blit(self.frames[idx], (draw_x, draw_y))
 
 
+class WeatherNoticeBoardProp:
+    """Papan Pengumuman Ramalan Cuaca di Alun-Alun Desa (1504, 1024)."""
+    def __init__(self, x: int = 1486, y: int = 1000):
+        self.x = x
+        self.y = y
+        self.w = 36
+        self.h = 36
+        self.surf = self._create_surface()
+        self.footprint = pygame.Rect(x + 4, y + 24, 28, 8)
+
+    @property
+    def sort_y(self) -> float:
+        return float(self.y + 28)
+
+    def _create_surface(self) -> pygame.Surface:
+        surf = pygame.Surface((36, 36), pygame.SRCALPHA)
+        # Bayangan tanah
+        pygame.draw.ellipse(surf, (0, 0, 0, 75), (4, 26, 28, 8))
+        # Dua tiang kayu
+        c_wood_dark = (68, 44, 28)
+        c_wood_mid = (118, 81, 48)
+        pygame.draw.rect(surf, c_wood_dark, (6, 10, 4, 20))
+        pygame.draw.rect(surf, c_wood_dark, (26, 10, 4, 20))
+        # Papan kayu horizontal
+        pygame.draw.rect(surf, c_wood_dark, (2, 2, 32, 22), border_radius=2)
+        pygame.draw.rect(surf, c_wood_mid, (4, 4, 28, 18), border_radius=1)
+        # Kertas pengumuman cuaca (parchment)
+        c_paper = (235, 225, 195)
+        pygame.draw.rect(surf, c_paper, (6, 6, 24, 14))
+        # Simbol cuaca kecil (matahari & gelombang air)
+        pygame.draw.circle(surf, (220, 160, 40), (12, 13), 3)  # matahari
+        pygame.draw.line(surf, (50, 120, 210), (17, 11), (26, 11), 2)  # awan/air
+        pygame.draw.line(surf, (50, 120, 210), (18, 15), (25, 15), 1)
+        # Paku besi di sudut
+        for px, py in [(6, 6), (28, 6)]:
+            pygame.draw.circle(surf, (45, 48, 55), (px, py), 1)
+        return surf
+
+    def draw(self, screen: pygame.Surface, camera: Tuple[int, int]):
+        cam_x, cam_y = camera
+        screen.blit(self.surf, (self.x - cam_x, self.y - cam_y))
+
+
 class VillageDecorations:
     """Manajer terpadu dekorasi visual desa (Kincir Angin & Asap Cerobong)."""
 
@@ -225,3 +268,97 @@ class VillageDecorations:
         """Menggambar efek visual di atas layer atap bangunan (asap cerobong)."""
         for ch in self.chimneys:
             ch.draw(screen, camera)
+
+
+class BeachProp:
+    """Objek peti atau tong dekorasi di area pantai/dermaga."""
+    def __init__(self, kind: str, gx: int, gy: int):
+        self.kind = kind
+        self.gx = gx
+        self.gy = gy
+        self.x = gx * 32
+        self.y = gy * 32
+        self.w = 32
+        self.h = 32
+        # Footprint solid HANYA di bagian dasar (10px paling bawah)
+        self.footprint = pygame.Rect(self.x + 4, self.y + 20, 24, 10)
+        self.image = self._create_surface()
+
+    @property
+    def footprint_rect(self) -> pygame.Rect:
+        return self.footprint
+
+    @property
+    def sort_y(self) -> float:
+        return float(self.y + 32)
+
+    def _create_surface(self) -> pygame.Surface:
+        surf = pygame.Surface((32, 32), pygame.SRCALPHA)
+        # Bayangan lembut di bawah
+        pygame.draw.ellipse(surf, (0, 0, 0, 70), (4, 22, 24, 10))
+
+        if self.kind == "crate":
+            # Peti kayu rapi dengan palang silang dan paku sudut
+            c_dark = (68, 44, 28)
+            c_mid = (118, 81, 48)
+            c_light = (165, 119, 72)
+            c_iron = (45, 48, 55)
+
+            pygame.draw.rect(surf, c_dark, (4, 6, 24, 24), border_radius=2)
+            pygame.draw.rect(surf, c_mid, (6, 8, 20, 20))
+            # Garis papan kayu
+            pygame.draw.line(surf, c_dark, (6, 17), (25, 17), 1)
+            # Palang silang kayu
+            pygame.draw.line(surf, c_dark, (7, 9), (24, 26), 2)
+            pygame.draw.line(surf, c_light, (8, 9), (25, 26), 1)
+            pygame.draw.line(surf, c_dark, (24, 9), (7, 26), 2)
+            pygame.draw.line(surf, c_light, (24, 10), (8, 26), 1)
+            # Bingkai & pelat sudut besi
+            pygame.draw.rect(surf, c_dark, (4, 6, 24, 24), 2, border_radius=2)
+            for cx, cy in [(4, 6), (24, 6), (4, 26), (24, 26)]:
+                pygame.draw.rect(surf, c_iron, (cx, cy, 4, 4))
+        else:
+            # Tong kayu dengan sabuk besi
+            c_dark = (55, 38, 25)
+            c_mid = (110, 75, 45)
+            c_light = (150, 105, 65)
+            c_iron = (50, 52, 60)
+            c_highlight = (190, 145, 95)
+
+            # Badan tong cembung
+            pygame.draw.ellipse(surf, c_dark, (5, 4, 22, 26))
+            pygame.draw.ellipse(surf, c_mid, (6, 5, 20, 24))
+            # Tutup atas tong
+            pygame.draw.ellipse(surf, c_dark, (7, 4, 18, 8))
+            pygame.draw.ellipse(surf, c_highlight, (8, 5, 16, 6))
+            # Sabuk besi penahan (lingkar atas & bawah)
+            pygame.draw.line(surf, c_iron, (6, 12), (25, 12), 2)
+            pygame.draw.line(surf, c_iron, (6, 22), (25, 22), 2)
+            # Garis kayu vertikal
+            pygame.draw.line(surf, c_dark, (11, 7), (11, 26), 1)
+            pygame.draw.line(surf, c_dark, (16, 7), (16, 27), 1)
+            pygame.draw.line(surf, c_dark, (21, 7), (21, 26), 1)
+
+        return surf
+
+    def draw(self, screen: pygame.Surface, camera: Tuple[int, int], *args, **kwargs):
+        cam_x, cam_y = camera
+        screen.blit(self.image, (int(self.x - cam_x), int(self.y - cam_y)))
+
+
+class BeachDecorations:
+    """
+    Manajer dekorasi area pantai/dermaga tenggara.
+    Area pantai dikosongkan total dari tumpukan peti dan bangunan agar lapang dan alami.
+    """
+    def __init__(self, assets=None):
+        self.props: List[BeachProp] = []
+
+    def get_y_sort_entities(self) -> List[BeachProp]:
+        return list(self.props)
+
+    def get_collision_rects(self) -> List[pygame.Rect]:
+        return [p.footprint for p in self.props]
+
+    def update(self, dt: float):
+        pass

@@ -1,0 +1,45 @@
+{
+  "corridor_start": [
+    1984,
+    880
+  ],
+  "corridor_goal": [
+    2384,
+    880
+  ],
+  "hero_speed_px_per_sec": 147.2,
+  "hero_speed_tiles_per_sec": 4.6,
+  "corridor_full": {
+    "fast_tiles": 15,
+    "fast_px": 480.0,
+    "fast_time_sec": 3.2609,
+    "safe_tiles": 19,
+    "safe_px": 608.0,
+    "safe_time_sec": 4.1304,
+    "delta_t_sec": 0.8696,
+    "f_star_calibrated_2_70s": 0.3221,
+    "f_star_measured_1_78s": 0.489,
+    "raw_savings_calibrated_2_70s": 0.0865,
+    "raw_savings_measured_1_78s": 0.0035,
+    "net_single_trip_calibrated_2_70s": -0.1135,
+    "net_single_trip_measured_1_78s": -0.1965,
+    "breakeven_k_calibrated_2_70s": 2.31,
+    "breakeven_k_measured_1_78s": "Tidak Pernah Impas (56.7 trip/hari > batas fisik 12-15 trip)"
+  },
+  "subsegment_local": {
+    "fast_px": 168.2,
+    "fast_time_sec": 1.1427,
+    "safe_px": 220.4,
+    "safe_time_sec": 1.4973,
+    "delta_t_sec": 0.3546,
+    "f_star_calibrated_2_70s": 0.1313,
+    "f_star_measured_1_78s": 0.1994,
+    "raw_savings_calibrated_2_70s": 0.1772,
+    "raw_savings_measured_1_78s": 0.0952,
+    "net_single_trip_calibrated_2_70s": -0.0228,
+    "net_single_trip_measured_1_78s": -0.1048,
+    "breakeven_k_calibrated_2_70s": 1.13,
+    "breakeven_k_measured_1_78s": 2.1
+  },
+  "explanation_difference": "Nilai 0.36s adalah divergensi sub-segmen lokal tempat jalur memutar langsung batu karang pantai lalu kembali menyatu. Nilai 0.87s adalah koridor transit penuh dari mulut chokepoint pantai (1984, 880) hingga gerbang pantai (2384, 880) mencakup jalur lurus sebelum dan sesudah titik belok."
+}

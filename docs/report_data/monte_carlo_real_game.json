@@ -1,0 +1,45 @@
+{
+  "metadata": {
+    "n_days": 10000,
+    "seed": 20261021,
+    "description": "Simulasi Monte Carlo Game Nyata (Detik)",
+    "vpi_note": "VPI adalah metrik ekstensi analisis keputusan formal di luar silabus slide kuliah."
+  },
+  "real_game_seconds": {
+    "fast_always": {
+      "mean": 1.4046,
+      "std_dev": 0.8028,
+      "std_err": 0.008,
+      "ci95_low": 1.3889,
+      "ci95_high": 1.4203
+    },
+    "safe_always": {
+      "mean": 1.5,
+      "std_dev": 0.0,
+      "std_err": 0.0,
+      "ci95_low": 1.5,
+      "ci95_high": 1.5
+    },
+    "blind_mdp": {
+      "mean": 1.4046,
+      "std_dev": 0.8028,
+      "std_err": 0.008,
+      "ci95_low": 1.3889,
+      "ci95_high": 1.4203
+    },
+    "adaptive_bayes": {
+      "mean": 1.2274,
+      "std_dev": 0.283,
+      "std_err": 0.0028,
+      "ci95_low": 1.2219,
+      "ci95_high": 1.233
+    },
+    "theory_expected_seconds": {
+      "fast": 1.41,
+      "safe": 1.5,
+      "blind": 1.41,
+      "adaptive": 1.2318
+    },
+    "time_saved_by_notice_sec": 0.1772
+  }
+}

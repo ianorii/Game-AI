@@ -1,0 +1,25 @@
+RINGKASAN KEPUTUSAN DI BAWAH KETIDAKPASTIAN (Slide 3-23)
+========================================================
+
+1. Evaluasi Monte Carlo (10.000 Hari) - Model Slide Abstrak:
+   - FAST        : Mean Payoff = 7.0600 (95% CI: [6.8852, 7.2348])
+   - SAFE        : Mean Payoff = 6.0000 (95% CI: [6.0, 6.0])
+   - MDP_BLIND   : Mean Payoff = 7.0600 (95% CI: [6.8852, 7.2348])
+   - MDP_ADAPTIVE: Mean Payoff = 9.0286 (95% CI: [8.967, 9.0902])
+
+   Teori EU:
+   - FAST        : EU Teori = 7.0000
+   - SAFE        : EU Teori = 6.0000
+   - MDP_BLIND   : EU Teori = 7.0000
+   - MDP_ADAPTIVE: EU Teori = 8.9800
+
+2. Evaluasi Monte Carlo Game Nyata (10.000 Hari, Satuan Detik):
+   - FAST_ALWAYS   : Mean Waktu = 1.4046s (95% CI: [1.3889, 1.4203])
+   - SAFE_ALWAYS   : Mean Waktu = 1.5000s (95% CI: [1.5, 1.5])
+   - BLIND_MDP     : Mean Waktu = 1.4046s (95% CI: [1.3889, 1.4203])
+   - ADAPTIVE_BAYES: Mean Waktu = 1.2274s (95% CI: [1.2219, 1.233])
+
+3. Titik Kritis Analitik:
+   - f* analitik = 4/30 = 2/15 (~0.1333)
+   - Policy: f < f* -> Pintas, f >= f* -> Raya
+   - Catatan VPI: VPI adalah metrik ekstensi analisis keputusan formal di luar silabus slide kuliah.

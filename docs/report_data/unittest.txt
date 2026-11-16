@@ -1,6 +1,6 @@
 Perintah: /usr/bin/python3 -m unittest discover -s tests -v
-Waktu Eksekusi: 68.683 s
-Waktu: 2026-11-08T21:03:37.852484
+Waktu Eksekusi: 72.850 s
+Waktu: 2026-11-16T13:31:18.536863
 
 <frozen importlib._bootstrap>:491: RuntimeWarning: Your system is avx2 capable but pygame was not built with support for it. The performance of some of your blits could be adversely affected. Consider enabling compile time detection with environment variables like PYGAME_DETECT_AVX2=1 if you are compiling without cross compilation.
 test_caching_behavior (test_asset_catalog.TestAssetCatalog.test_caching_behavior)
@@ -45,6 +45,54 @@ test_potion_heals_correctly (test_battle_mode.TestBattleRulesAndActions.test_pot
 Potion memulihkan 30 HP dan mengurangi jumlah potion. ... ok
 test_no_ui_rect_overlaps (test_battle_mode.TestBattleUILayout.test_no_ui_rect_overlaps)
 Uji bahwa tidak ada komponen Rect UI yang tumpang tindih secara tidak sengaja. ... ok
+test_boss_skeleton_is_static_position_invariant (test_collision_and_decor_fixes.TestCollisionAndDecorFixes.test_boss_skeleton_is_static_position_invariant)
+6. Skeleton Overlord Boss statis: update(dt) tidak mengubah posisi atau cell. ... ok
+test_camera_bounds_clamp_no_black_strip (test_collision_and_decor_fixes.TestCollisionAndDecorFixes.test_camera_bounds_clamp_no_black_strip)
+Memastikan kamera strictly clamped ke batas map [0, map_w - view_w] pada jendela 1024x768. ... ok
+test_cliff_plateau_reachability_and_orientation (test_collision_and_decor_fixes.TestCollisionAndDecorFixes.test_cliff_plateau_reachability_and_orientation)
+12. Verifikasi orientasi spasial dan BFS keterjangkauan plateau tebing saat gerbang tertutup vs terbuka. ... ok
+test_closed_gate_blocks_entities (test_collision_and_decor_fixes.TestCollisionAndDecorFixes.test_closed_gate_blocks_entities)
+Memastikan gerbang tertutup memblokir entitas dan terbuka saat open. ... ok
+test_collision_editor_overrides (test_collision_and_decor_fixes.TestCollisionAndDecorFixes.test_collision_editor_overrides)
+Memastikan can_stand merespon override forced blocked dan forced walkable. ... ok
+test_contact_sheet_contains_22_building_ids (test_collision_and_decor_fixes.TestCollisionAndDecorFixes.test_contact_sheet_contains_22_building_ids)
+4. Contact sheet contact_sheet_footprints.png tersedia dan memuat 22 bangunan. ... ok
+test_decor_code_placed_clearance_at_least_2_tiles (test_collision_and_decor_fixes.TestCollisionAndDecorFixes.test_decor_code_placed_clearance_at_least_2_tiles)
+5. Clearance >= 2 tile (64px) dari jalur kritis (gerbang, dermaga, pintu bangunan). ... ok
+test_decor_code_placed_footprint_base_only (test_collision_and_decor_fixes.TestCollisionAndDecorFixes.test_decor_code_placed_footprint_base_only)
+3. Collision footprint prop buatan kode HANYA di bagian dasar (tinggi <= 12px). ... ok
+test_decor_code_placed_grid_snapped_32px (test_collision_and_decor_fixes.TestCollisionAndDecorFixes.test_decor_code_placed_grid_snapped_32px)
+1. Semua dekorasi pantai buatan kode harus snapped ke grid 32px (X dan Y). ... ok
+test_decor_code_placed_no_mutual_overlap (test_collision_and_decor_fixes.TestCollisionAndDecorFixes.test_decor_code_placed_no_mutual_overlap)
+4. Tidak ada tumpang tindih (overlap) antar footprint dekorasi buatan kode. ... ok
+test_decor_code_placed_not_on_water (test_collision_and_decor_fixes.TestCollisionAndDecorFixes.test_decor_code_placed_not_on_water)
+2. Tidak ada dekorasi buatan kode yang berdiri di atas tile air (harus walkable daratan). ... ok
+test_footprint_precision_and_no_phantom (test_collision_and_decor_fixes.TestCollisionAndDecorFixes.test_footprint_precision_and_no_phantom)
+Memastikan phantom building 0 footprint, coverage >= 95%, dan wasted area <= 15%. ... ok
+test_footprint_table_matches_recomputation (test_collision_and_decor_fixes.TestCollisionAndDecorFixes.test_footprint_table_matches_recomputation)
+3. Verifikasi recomputasi footprint: coverage rata-rata >= 95% dan wasted area <= 15%. ... ok
+test_game_loop_20min_simulation_zero_violations (test_collision_and_decor_fixes.TestCollisionAndDecorFixes.test_game_loop_20min_simulation_zero_violations)
+7. Verifikasi hasil simulasi 20 menit (24.000 langkah x 15 entitas) menghasilkan 0 pelanggaran. ... ok
+test_gate_geodesic_invariance_and_step_bounds (test_collision_and_decor_fixes.TestCollisionAndDecorFixes.test_gate_geodesic_invariance_and_step_bounds)
+11. Invariansi geodesik A* dan validasi batas geometris Manhattan. ... ok
+test_gate_reachability_and_hero_pass_through (test_collision_and_decor_fixes.TestCollisionAndDecorFixes.test_gate_reachability_and_hero_pass_through)
+9. Reachability BFS: arena boss terisolasi saat gerbang tertutup, terjangkau saat terbuka, dan hero dapat melintas mulus. ... ok
+test_gate_stands_on_land_not_water (test_collision_and_decor_fixes.TestCollisionAndDecorFixes.test_gate_stands_on_land_not_water)
+1. Gerbang berdiri di chokepoint tebing: lorong tengah walkable (32px), diapit tebing solid kiri-kanan (0% air). ... ok
+test_gate_visual_closed_differs_from_open (test_collision_and_decor_fixes.TestCollisionAndDecorFixes.test_gate_visual_closed_differs_from_open)
+2. Perbedaan visual gerbang tertutup vs terbuka signifikan (> 1000 piksel berbeda). ... ok
+test_gate_visual_vs_obstacle_alignment (test_collision_and_decor_fixes.TestCollisionAndDecorFixes.test_gate_visual_vs_obstacle_alignment)
+Memastikan lebar visual gerbang, lebar obstacle, dan koridor chokepoint selaras presisi 96px. ... ok
+test_live_game_loop_60s_simulation_in_test (test_collision_and_decor_fixes.TestCollisionAndDecorFixes.test_live_game_loop_60s_simulation_in_test)
+8. Simulasi live game loop 60 detik (3.600 langkah @ 60 FPS) berjalan langsung di unittest dengan 0 pelanggaran. ... ok
+test_penetration_per_building (test_collision_and_decor_fixes.TestCollisionAndDecorFixes.test_penetration_per_building)
+Uji penetrasi terarah ke pusat semua 22 bangunan dari 4 arah mata angin. ... ok
+test_random_walk_10000_steps_zero_violations (test_collision_and_decor_fixes.TestCollisionAndDecorFixes.test_random_walk_10000_steps_zero_violations)
+Random walk 10.000 langkah untuk seluruh 7 jenis entitas bergerak dan 3 seed tanpa pelanggaran. ... ok
+test_random_walk_includes_npcs_and_ducks (test_collision_and_decor_fixes.TestCollisionAndDecorFixes.test_random_walk_includes_npcs_and_ducks)
+5. Random walk mencakup seluruh 8 jenis entitas (Hero, Cow, Sheep, Pig, Chicken, Duck, NPC, Goblin). ... ok
+test_ui_layout_no_overlap (test_collision_and_decor_fixes.TestCollisionAndDecorFixes.test_ui_layout_no_overlap)
+10. Layout UI: seluruh elemen berada di dalam layar 1024x768 dan bebas tumpang tindih. ... ok
 test_atomic_save_load (test_collision_editor.TestCollisionEditor.test_atomic_save_load)
 Verifikasi penyimpanan JSON atomik dan reload ke instance baru pada path terisolasi. ... ok
 test_bresenham_line_no_gaps (test_collision_editor.TestCollisionEditor.test_bresenham_line_no_gaps)
@@ -106,6 +154,40 @@ test_centralized_validation_across_192_combinations (test_csp_local_search.TestP
 Validasi sentral: menguji seluruh 192 kombinasi domain loadout (4 x 3 x 4 x 4). ... ok
 test_get_prep_layout_rects_no_overlap (test_csp_local_search.TestPrepUIRedesign.test_get_prep_layout_rects_no_overlap)
 Memastikan fungsi get_prep_layout_rects menghasilkan panel struktural yang tidak saling tumpang tindih. ... ok
+test_bayes_update_berita_banjir (test_decision_under_uncertainty.TestDecisionUnderUncertainty.test_bayes_update_berita_banjir)
+Memverifikasi pembaruan Bayes bukti Berita: P(Berita)=0.18, P(Banjir|Berita)=0.5. ... ok
+test_bayes_update_cuaca_cerah (test_decision_under_uncertainty.TestDecisionUnderUncertainty.test_bayes_update_cuaca_cerah)
+Memverifikasi pembaruan Bayes bukti Cerah: P(Banjir|Cerah) = 0.01 / 0.82 ~ 0.0122. ... ok
+test_bisection_search_convergence (test_decision_under_uncertainty.TestDecisionUnderUncertainty.test_bisection_search_convergence)
+Memverifikasi pencarian bisection konvergen presisi tinggi ke f* = 4/30 = 0.133333... ... ok
+test_expected_utility_custom_fn (test_decision_under_uncertainty.TestDecisionUnderUncertainty.test_expected_utility_custom_fn)
+Memverifikasi expected utility dengan fungsi utilitas non-linear (risk-averse). ... ok
+test_expected_value_and_meu_slide_example (test_decision_under_uncertainty.TestDecisionUnderUncertainty.test_expected_value_and_meu_slide_example)
+Memverifikasi EV dan MEU pada hari biasa (f=0.1): EV Pintas = 7 vs Jalan Utama = 6. ... ok
+test_extract_policy_consistency (test_decision_under_uncertainty.TestDecisionUnderUncertainty.test_extract_policy_consistency)
+Memastikan extract_policy menghasilkan pemetaan aksi terbaik konsisten dengan Q. ... ok
+test_extreme_cases_f_0_and_f_1 (test_decision_under_uncertainty.TestDecisionUnderUncertainty.test_extreme_cases_f_0_and_f_1)
+Memverifikasi kasus ekstrim f = 0 dan f = 1: ... ok
+test_iteration_0_format_guarantee (test_decision_under_uncertainty.TestDecisionUnderUncertainty.test_iteration_0_format_guarantee)
+Memverifikasi iterasi 0 hanya memuat V0=0.0 dan Q kosong (tanda '-' di tabel, sesuai Slide 17). ... ok
+test_mdp_probability_validation (test_decision_under_uncertainty.TestDecisionUnderUncertainty.test_mdp_probability_validation)
+Memastikan kelas MDP memvalidasi total probabilitas == 1.0 dan menolak probabilitas cacat. ... ok
+test_reward_shaping_loop_infinite_value_15 (test_decision_under_uncertainty.TestDecisionUnderUncertainty.test_reward_shaping_loop_infinite_value_15)
+Memverifikasi varian reward shaping (+3/langkah) konvergen ke V=15.0 dan loop abadi Balik-Jalan. ... ok
+test_sensitivity_analytic_threshold (test_decision_under_uncertainty.TestDecisionUnderUncertainty.test_sensitivity_analytic_threshold)
+Memverifikasi batas analitik f* = 4/30 = 0.133333... dan transisi kebijakan. ... ok
+test_sensitivity_chart_generation (test_decision_under_uncertainty.TestDecisionUnderUncertainty.test_sensitivity_chart_generation)
+Memastikan pembuatan file grafik sensitivitas PNG di temporary directory berjalan tanpa error. ... ok
+test_stopping_condition_tolerance (test_decision_under_uncertainty.TestDecisionUnderUncertainty.test_stopping_condition_tolerance)
+Memastikan value iteration berhenti saat delta < tolerance. ... ok
+test_synchronous_update_guarantee (test_decision_under_uncertainty.TestDecisionUnderUncertainty.test_synchronous_update_guarantee)
+Memastikan update murni SINKRON: Q(Warung, Raya) di Iterasi 1 memakai V0(Jalan Raya)=0 -> Q=-2. ... ok
+test_value_iteration_f_01_exact_slide_numbers (test_decision_under_uncertainty.TestDecisionUnderUncertainty.test_value_iteration_f_01_exact_slide_numbers)
+Memverifikasi seluruh angka iterasi untuk f = 0.1 persis sesuai slide 15-18. ... ok
+test_value_iteration_f_025_exact_slide_numbers (test_decision_under_uncertainty.TestDecisionUnderUncertainty.test_value_iteration_f_025_exact_slide_numbers)
+Memverifikasi seluruh angka iterasi untuk f = 0.25 persis sesuai slide 19-21. ... ok
+test_warung_value_max_formula (test_decision_under_uncertainty.TestDecisionUnderUncertainty.test_warung_value_max_formula)
+Memverifikasi rumus analitik: ... ok
 test_battle_frames_dimensions (test_hero_sprite.TestHeroSprite.test_battle_frames_dimensions)
 Frame battle harus berukuran 196x238 (skala 7x dari crop box 28x34). ... ok
 test_caching_returns_same_objects (test_hero_sprite.TestHeroSprite.test_caching_returns_same_objects)
@@ -189,6 +271,38 @@ test_craft_health_potion (test_phase1a.TestWorldStateAndCrafting.test_craft_heal
 test_locked_gate_interaction (test_phase1a.TestWorldStateAndCrafting.test_locked_gate_interaction) ... ok
 test_rest_hero (test_phase1a.TestWorldStateAndCrafting.test_rest_hero) ... ok
 test_starter_items (test_phase1a.TestWorldStateAndCrafting.test_starter_items) ... ok
+test_01_weather_cycle_and_flood_prior (test_putaran3_uncertainty.TestPutaran3Uncertainty.test_01_weather_cycle_and_flood_prior)
+Verifikasi siklus cuaca 240 detik dan prior P(Banjir) = 0.10. ... ok
+test_02_bayesian_update_likelihood (test_putaran3_uncertainty.TestPutaran3Uncertainty.test_02_bayesian_update_likelihood)
+Verifikasi pembaruan Bayes: Berita -> 0.50, Cerah -> 0.0122. ... ok
+test_03_policy_flip_at_critical_threshold (test_putaran3_uncertainty.TestPutaran3Uncertainty.test_03_policy_flip_at_critical_threshold)
+Verifikasi pembalikan kebijakan pada f* = 2/15 (~0.1333). ... ok
+test_04_notice_board_interaction_once_per_day (test_putaran3_uncertainty.TestPutaran3Uncertainty.test_04_notice_board_interaction_once_per_day)
+Pemain hanya dapat membaca papan ramalan 1x per hari cuaca. ... ok
+test_05_flood_flush_and_retreat (test_putaran3_uncertainty.TestPutaran3Uncertainty.test_05_flood_flush_and_retreat)
+Hero yang berada di zona banjir saat banjir aktif akan terseret dan kena penalti. ... ok
+test_06_autopilot_on_belief_updated (test_putaran3_uncertainty.TestPutaran3Uncertainty.test_06_autopilot_on_belief_updated)
+Autopilot merespons TRIGGER_BELIEF_UPDATE saat kebijakan berubah ke Raya. ... ok
+test_07_planner_panel_tab3_layout_and_font (test_putaran3_uncertainty.TestPutaran3Uncertainty.test_07_planner_panel_tab3_layout_and_font)
+Tab Ketidakpastian di panel F7 harus memiliki font >= 14px dan tidak tumpang tindih. ... ok
+test_08_monte_carlo_payoff_evaluation (test_putaran3_uncertainty.TestPutaran3Uncertainty.test_08_monte_carlo_payoff_evaluation)
+Simulasi Monte Carlo 10.000 hari mengonfirmasi keunggulan strategi Adaptif. ... ok
+test_09_find_nearest_dry_tile_reachability (test_putaran3_uncertainty.TestPutaran3Uncertainty.test_09_find_nearest_dry_tile_reachability)
+Tile kering terdekat dari titik manapun di zona banjir harus selalu valid can_stand dan di luar zona banjir. ... ok
+test_10_policy_matches_argmin_time_utility (test_putaran3_uncertainty.TestPutaran3Uncertainty.test_10_policy_matches_argmin_time_utility)
+Pilihan policy MDP harus konsisten dengan argmin waktu/utility nyata di f in {0, 0.05, f*, 0.25, 0.5}. ... ok
+test_11_route_distance_and_time_consistency (test_putaran3_uncertainty.TestPutaran3Uncertainty.test_11_route_distance_and_time_consistency)
+Label tile dan detik konsisten dihitung dari kecepatan hero 4.6 tile/s (147.2 px/s). ... ok
+test_12_information_cost_and_amortization_breakeven (test_putaran3_uncertainty.TestPutaran3Uncertainty.test_12_information_cost_and_amortization_breakeven)
+Biaya informasi [E] (0.2s) membuat per-single trip selalu negatif, impas hanya via amortisasi multi-trip. ... ok
+test_13_flood_penalty_measured_vs_calibrated (test_putaran3_uncertainty.TestPutaran3Uncertainty.test_13_flood_penalty_measured_vs_calibrated)
+Kedua model penalti (1.78s terukur dan 2.70s terkalibrasi) menghasilkan kebijakan optimal 100% konsisten. ... ok
+test_14_flood_zone_buffer_distance_to_water (test_putaran3_uncertainty.TestPutaran3Uncertainty.test_14_flood_zone_buffer_distance_to_water)
+Zona rawan banjir terbukti merupakan buffer ring 1-2 tile dari bibir air (bukan di daratan pedalaman). ... ok
+test_15_evacuation_reachability_to_gate (test_putaran3_uncertainty.TestPutaran3Uncertainty.test_15_evacuation_reachability_to_gate)
+Seluruh 24 tile zona banjir yang dievakuasi ke tile kering memiliki rute A* aktif menuju gerbang. ... ok
+test_16_flood_flush_message_uses_config_penalty (test_putaran3_uncertainty.TestPutaran3Uncertainty.test_16_flood_flush_message_uses_config_penalty)
+Pesan trigger_flood_flush harus menampilkan penalti waktu sesuai config (FLOOD_PENALTY_TIME). ... ok
 test_01_pddl_parser_domain (test_strips_planner.TestSTRIPSPlanner.test_01_pddl_parser_domain)
 Domain PDDL berhasil diurai dengan aksi dan predikat lengkap. ... ok
 test_02_pddl_parser_problem (test_strips_planner.TestSTRIPSPlanner.test_02_pddl_parser_problem)
@@ -282,108 +396,213 @@ Memverifikasi kelayakan misi mencapai Boss dari state awal Game Baru (20 koin, t
 test_rest_action (test_world_actions.TestWorldActions.test_rest_action) ... ok
 
 ----------------------------------------------------------------------
-Ran 160 tests in 68.249s
+Ran 217 tests in 72.483s
 
 OK
 pygame 2.6.1 (SDL 2.32.72, Python 3.14.7)
 Hello from the pygame community. https://www.pygame.org/contribute.html
 [PERINGATAN ASSET CATALOG] Asset tidak ditemukan: 'completely_invalid_asset_path.png'! Menggunakan fallback placeholder.
 [PERINGATAN ASSET CATALOG] Strip tidak ditemukan: 'invalid_strip_strip5.png'! Menggunakan fallback placeholder.
-[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
-[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
-[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
-[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
-[CollisionEditor] Berhasil memuat 1 collision override dari '/tmp/tmpblnqgc17/collision_overrides.json'
-[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
-[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
-[CollisionEditor] Berhasil memuat 0 collision override dari '/tmp/tmpblnqgc17/collision_overrides.json'
-[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
-[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
-[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
-[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
-[CollisionEditor] Berhasil memuat 0 collision override dari '/tmp/tmpblnqgc17/collision_overrides.json'
-[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
-[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
-[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
-[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
-[CollisionEditor] Berhasil memuat 0 collision override dari '/tmp/tmpblnqgc17/collision_overrides.json'
-[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
-[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
-[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
-[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
-[CollisionEditor] Berhasil memuat 0 collision override dari '/tmp/tmpblnqgc17/collision_overrides.json'
-[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
-[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
-[CollisionEditor] Gagal membaca '/tmp/tmpblnqgc17/corrupt_overrides.json': Expecting value: line 1 column 1 (char 0). Memakai collision asli tanpa crash.
-[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
-[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
-[CollisionEditor] Berhasil memuat 0 collision override dari '/tmp/tmpblnqgc17/collision_overrides.json'
-[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
-[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
-[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
-[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
-[CollisionEditor] Berhasil memuat 0 collision override dari '/tmp/tmpblnqgc17/collision_overrides.json'
-[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
-[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
-[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
-[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
-[CollisionEditor] Berhasil memuat 0 collision override dari '/tmp/tmpblnqgc17/collision_overrides.json'
-[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
-[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[CollisionEditor] Berhasil memuat 1 collision override dari '/tmp/tmp_vs98ejy/collision_overrides.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[CollisionEditor] Berhasil memuat 0 collision override dari '/tmp/tmp_vs98ejy/collision_overrides.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[CollisionEditor] Berhasil memuat 0 collision override dari '/tmp/tmp_vs98ejy/collision_overrides.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[CollisionEditor] Berhasil memuat 0 collision override dari '/tmp/tmp_vs98ejy/collision_overrides.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[CollisionEditor] Berhasil memuat 0 collision override dari '/tmp/tmp_vs98ejy/collision_overrides.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[CollisionEditor] Gagal membaca '/tmp/tmp_vs98ejy/corrupt_overrides.json': Expecting value: line 1 column 1 (char 0). Memakai collision asli tanpa crash.
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[CollisionEditor] Berhasil memuat 0 collision override dari '/tmp/tmp_vs98ejy/collision_overrides.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[CollisionEditor] Berhasil memuat 0 collision override dari '/tmp/tmp_vs98ejy/collision_overrides.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[CollisionEditor] Berhasil memuat 0 collision override dari '/tmp/tmp_vs98ejy/collision_overrides.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
 [CollisionEditor] PERINGATAN: Ukuran peta di file [10, 10] tidak cocok dengan dunia 86x48. Override diabaikan.
-[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
-[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
-[CollisionEditor] Berhasil memuat 0 collision override dari '/tmp/tmpblnqgc17/collision_overrides.json'
-[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
-[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
-[PERINGATAN HERO SPRITE] File hair tidak ditemukan: '/mnt/kuliah/smt3/AI/DungeonGame/assets/sunnyside_world/Characters/Human/IDLE/non_existent_hair_style_xyz_idle_strip9.png'! Menampilkan hero base tanpa hair.
-[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
-[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
-[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
-[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
-[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
-[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
-[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
-[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
-[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
-[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
-[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
-[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
-[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
-[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
-[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
-[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
-[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
-[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
-[ERROR SAVEGAME] File /tmp/tmp395ibs2q/savegame.json korup (Expecting value: line 1 column 1 (char 0))! Mencoba memuat backup .bak...
-[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
-[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
-[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
-[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
-[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
-[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
-[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
-[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
-[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
-[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
-[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
-[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
-[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
-[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
-[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
-[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
-[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
-[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
-[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
-[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
-[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
-[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
-[gen_readiness] Berhasil menghasilkan /tmp/tmpengaw1l7/readiness.json (threshold=0.5, min_potions=1)
-[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
-[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
-[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
-[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
-[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
-[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
-[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
-[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/DungeonGame/assets/maps/walkable_mask.png' (1,571,504 piksel walkable)
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[CollisionEditor] Berhasil memuat 0 collision override dari '/tmp/tmp_vs98ejy/collision_overrides.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[Chart] Berhasil menyimpan grafik sensitivitas ke: '/tmp/tmp1cbpmw3u/sensitivity.png'
+[PERINGATAN HERO SPRITE] File hair tidak ditemukan: '/mnt/kuliah/smt3/AI/Game AI/assets/sunnyside_world/Characters/Human/IDLE/non_existent_hair_style_xyz_idle_strip9.png'! Menampilkan hero base tanpa hair.
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[ERROR SAVEGAME] File /tmp/tmp4ehg4ns8/savegame.json korup (Expecting value: line 1 column 1 (char 0))! Mencoba memuat backup .bak...
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[gen_readiness] Berhasil menghasilkan /tmp/tmp1kcyvsym/readiness.json (threshold=0.5, min_potions=1)
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'
+[GameMap] Walkable mask berhasil dimuat dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/walkable_mask.png' (1,590,552 piksel walkable)
+[GameMap] Berhasil memuat 27 footprint bangunan dari '/mnt/kuliah/smt3/AI/Game AI/assets/maps/building_footprints.json'

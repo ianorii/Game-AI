@@ -1,0 +1,92 @@
+================================================================================
+LOG TRACE EKSEKUSI LIVE HTN NPC DESA SUNNYSIDE
+================================================================================
+Waktu Dunia: day_duration=60.0s, night_duration=30.0s
+Pak Tani Awal      : pos=(528.0, 448.0), lokasi='farm'
+Kang Penggiling Awal: pos=(1328.0, 640.0), lokasi='windmill'
+
+--------------------------------------------------------------------------------
+EVALUASI METODE & CABANG DEKOMPOSISI (DENGAN REJECTED ALTERNATIVES)
+--------------------------------------------------------------------------------
+Fakta Dunia Aktif Saat T=0.00s:
+  + ('at', 'farmer', 'farm')
+  + ('chickens_hungry',)
+  + ('has_empty_plot', 'plot0')
+  + ('is_daytime',)
+  + ('plot_empty', 'plot0')
+  + ('plot_empty', 'plot1')
+  + ('plot_empty', 'plot2')
+  + ('plot_empty', 'plot3')
+  + ('plot_empty', 'plot4')
+  + ('plot_empty', 'plot5')
+  + ('wheat_available',)
+
+1. Analisis Task Root: daily_routine_farmer(farmer)
+  > Memeriksa Metode 'm_farmer_day_shift':
+    - Prasyarat: [('is_daytime',)]
+    - STATUS   : DITERIMA / CHOSEN (Memenuhi prasyarat dengan binding {'?npc': 'farmer'})
+    - Subtasks : ['(manage_farm ?npc)', '(care_animals ?npc)']
+  > Memeriksa Metode 'm_farmer_night_sleep':
+    - Prasyarat: []
+    - STATUS   : DITERIMA / CHOSEN (Memenuhi prasyarat dengan binding {'?npc': 'farmer'})
+    - Subtasks : ['(!goto ?npc bed)', '(!rest ?npc bed)']
+
+2. Analisis Task Majemuk: manage_farm(farmer)
+  > Memeriksa Metode 'm_harvest_and_sell':
+    - Prasyarat: [('has_mature_crop', '?plot')]
+    - STATUS   : DITOLAK / REJECTED (Prekondisi tidak terpenuhi)
+      * Gagal pada prekondisi: ('has_mature_crop', '?plot')
+  > Memeriksa Metode 'm_water_dry_plots':
+    - Prasyarat: [('has_dry_plot', '?plot')]
+    - STATUS   : DITOLAK / REJECTED (Prekondisi tidak terpenuhi)
+      * Gagal pada prekondisi: ('has_dry_plot', '?plot')
+  > Memeriksa Metode 'm_plant_empty_plots':
+    - Prasyarat: [('has_empty_plot', '?plot')]
+    - STATUS   : DITERIMA / CHOSEN (Memenuhi prasyarat dengan binding {'?npc': 'farmer', '?plot': 'plot0'})
+    - Subtasks : ['(!goto ?npc shop)', '(!buy_seed ?npc)', '(!goto ?npc farm)', '(!plant_crop ?npc ?plot)']
+  > Memeriksa Metode 'm_farm_idle_rest':
+    - Prasyarat: []
+    - STATUS   : DITERIMA / CHOSEN (Memenuhi prasyarat dengan binding {'?npc': 'farmer'})
+    - Subtasks : ['(!goto ?npc bed)', '(!rest ?npc bed)']
+
+3. Analisis Task Root: daily_routine_miller(miller)
+  > Memeriksa Metode 'm_miller_day_shift':
+    - Prasyarat: [('is_daytime',)]
+    - STATUS   : DITERIMA / CHOSEN (Memenuhi prasyarat dengan binding {'?npc': 'miller'})
+    - Subtasks : ['(mill_cycle ?npc)']
+  > Memeriksa Metode 'm_miller_night_sleep':
+    - Prasyarat: []
+    - STATUS   : DITERIMA / CHOSEN (Memenuhi prasyarat dengan binding {'?npc': 'miller'})
+    - Subtasks : ['(!goto ?npc bed)', '(!rest ?npc bed)']
+
+--------------------------------------------------------------------------------
+LOG SIMULASI REAL-TIME: GERAKAN & OPERATOR PER DETIK
+--------------------------------------------------------------------------------
+T=00.00s | Clock=SIANG (0.1s / 90.0s) | Pak Tani pos=( 528.0,  448.0) | Op=(!goto farmer shop)        | can_stand=True | Jarak ke Farm=  0.0px, Shop=1096.1px
+T=01.00s | Clock=SIANG (1.1s / 90.0s) | Pak Tani pos=( 464.0,  416.0) | Op=(!goto farmer shop)        | can_stand=True | Jarak ke Farm= 71.6px, Shop=1167.1px
+T=02.00s | Clock=SIANG (2.1s / 90.0s) | Pak Tani pos=( 384.0,  416.0) | Op=(!goto farmer shop)        | can_stand=True | Jarak ke Farm=147.5px, Shop=1234.8px
+T=03.00s | Clock=SIANG (3.0s / 90.0s) | Pak Tani pos=( 304.0,  416.0) | Op=(!goto farmer shop)        | can_stand=True | Jarak ke Farm=226.3px, Shop=1303.9px
+T=04.00s | Clock=SIANG (4.0s / 90.0s) | Pak Tani pos=( 256.0,  448.0) | Op=(!goto farmer shop)        | can_stand=True | Jarak ke Farm=272.0px, Shop=1331.0px
+T=05.00s | Clock=SIANG (5.0s / 90.0s) | Pak Tani pos=( 256.0,  528.0) | Op=(!goto farmer shop)        | can_stand=True | Jarak ke Farm=283.5px, Shop=1296.4px
+--> [SCREENSHOT] In-game HTN F8 Panel tersimpan di docs/screenshots/htn_f8_panel_live.png
+T=06.00s | Clock=SIANG (6.0s / 90.0s) | Pak Tani pos=( 256.0,  608.0) | Op=(!goto farmer shop)        | can_stand=True | Jarak ke Farm=315.6px, Shop=1265.9px
+T=07.00s | Clock=SIANG (7.0s / 90.0s) | Pak Tani pos=( 256.0,  688.0) | Op=(!goto farmer shop)        | can_stand=True | Jarak ke Farm=362.7px, Shop=1239.9px
+T=08.00s | Clock=SIANG (8.0s / 90.0s) | Pak Tani pos=( 320.0,  704.0) | Op=(!goto farmer shop)        | can_stand=True | Jarak ke Farm=329.8px, Shop=1174.0px
+T=09.00s | Clock=SIANG (9.0s / 90.0s) | Pak Tani pos=( 400.0,  704.0) | Op=(!goto farmer shop)        | can_stand=True | Jarak ke Farm=286.2px, Shop=1098.0px
+T=10.00s | Clock=SIANG (10.1s / 90.0s) | Pak Tani pos=( 480.0,  704.0) | Op=(!goto farmer shop)        | can_stand=True | Jarak ke Farm=260.5px, Shop=1022.5px
+T=11.00s | Clock=SIANG (11.1s / 90.0s) | Pak Tani pos=( 544.0,  720.0) | Op=(!goto farmer shop)        | can_stand=True | Jarak ke Farm=272.5px, Shop=956.9px
+T=12.00s | Clock=SIANG (12.1s / 90.0s) | Pak Tani pos=( 608.0,  736.0) | Op=(!goto farmer shop)        | can_stand=True | Jarak ke Farm=298.9px, Shop=891.4px
+T=13.00s | Clock=SIANG (13.1s / 90.0s) | Pak Tani pos=( 640.0,  784.0) | Op=(!goto farmer shop)        | can_stand=True | Jarak ke Farm=354.2px, Shop=845.0px
+T=14.00s | Clock=SIANG (14.1s / 90.0s) | Pak Tani pos=( 640.0,  864.0) | Op=(!goto farmer shop)        | can_stand=True | Jarak ke Farm=430.8px, Shop=822.7px
+T=15.00s | Clock=SIANG (15.1s / 90.0s) | Pak Tani pos=( 656.0,  928.0) | Op=(!goto farmer shop)        | can_stand=True | Jarak ke Farm=496.8px, Shop=794.4px
+
+================================================================================
+ISOLASI EKONOMI: PEMBELIAN BENIH PAK TANI VS HERO WALLET
+================================================================================
+Status Koin Hero Awal   : 20 Gold
+Status Koin Hero Akhir  : 20 Gold (TIDAK BERUBAH / ISOLASI 100%)
+Logika Operator !buy_seed di src/planning/htn.py:573:
+  - Operasi !buy_seed hanya menyimulasikan jeda 0.5 detik barter internal desa.
+  - Tidak ada mutasi ke game.world_state.coins atau inventori pemain.
+  - Stok toko pemain (ShopUI) 100% terisolasi.
+================================================================================

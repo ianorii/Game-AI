@@ -1,6 +1,6 @@
 {
   "command": "/usr/bin/python3 tools/demo_subphase2b.py",
-  "duration_seconds": 28.637,
+  "duration_seconds": 22.459,
   "scenarios": {
     "scenario_a_multiseed": {
       "name": "AUTO Multi-Seed (20 Seed) Rencana P4 Final",

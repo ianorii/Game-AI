@@ -121,6 +121,18 @@ def build():
                 if (gx >= 70 and gy >= 38) or (gx <= 6 and 20 <= gy <= 36):
                     continue
 
+            # Filter area pantai: kosongkan total bangunan gubuk, peti kayu, tong, & bayangan
+            if (68 <= gx <= 75 and 24 <= gy <= 30):
+                if lname in ("building", "walls", "decoration_01", "decoration_02", "decoration_03", "shadows", "paths"):
+                    continue
+
+            # Filter area rumah tebing: kosongkan lantai rumah, perabot, kebun labu, pagar, & bayangan
+            if (71 <= gx <= 86 and 13 <= gy <= 24):
+                if lname in ("building", "walls", "decoration_01", "decoration_02", "decoration_03", "shadows"):
+                    continue
+                if lname == "paths" and gx < 78:
+                    continue
+
             flip_x = bool(raw & 0x10000000)
             flip_y = bool(raw & 0x20000000)
             tid = raw & 0x0FFFFFFF
@@ -171,6 +183,9 @@ def build():
     for y in range(H_TILES):
         for x in range(W_TILES):
             if (x >= 70 and y >= 38) or (x <= 6 and 20 <= y <= 36):
+                continue
+            # Filter bangunan pantai (building_70_26) dan rumah tebing (building_72_14)
+            if (68 <= x <= 75 and 24 <= y <= 30) or (71 <= x <= 86 and 13 <= y <= 24):
                 continue
             idx = y * W_TILES + x
             raw_b = building[idx] & 0x0FFFFFFF
