@@ -96,13 +96,13 @@ def format_action_human(action: GroundAction) -> Tuple[str, str]:
         return "Istirahat di Ranjang", "memulihkan HP hero ke 100%"
 
     if name == "craft_key":
-        return "Tempa Kunci Gerbang", "di bengkel (butuh kayu + batu)"
+        return "Tempa Kunci Segel Bos", "di bengkel (butuh kayu + batu)"
 
     if name == "craft_potion":
         return "Racik Ramuan Merah", "di bengkel (lobak + botol)"
 
     if name == "open_gate":
-        return "Buka Gerbang Boss", "membuka portal arena dungeon"
+        return "Buka Segel Skeleton Overlord", "membuka segel kutukan bos"
 
     if name == "equip":
         w = params[0] if len(params) > 0 else "senjata"

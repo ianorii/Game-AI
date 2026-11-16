@@ -1217,6 +1217,19 @@ class Game:
             return
         if key == pygame.K_e:
             if getattr(self, "near_boss_prompt", False) and self.state == config.STATE_EXPLORATION and not self.battle_transition:
+                has_key = False
+                if hasattr(self, "world_state") and self.world_state:
+                    has_key = self.world_state.inventory.has_item("gate_key", 1) or self.world_state.inventory.has_item("key", 1)
+                is_unlocked = getattr(self.world_state.gate, "is_open", False) if hasattr(self, "world_state") else False
+
+                if not has_key and not is_unlocked:
+                    self.log("[SKELETON OVERLORD: TERSEGEL] Kamu membutuhkan Kunci Bos (1x Kayu + 1x Batu di Bengkel) untuk menantangnya!", config.RED)
+                    return
+
+                if has_key and not is_unlocked:
+                    world_actions.open_gate(self.world_state, self.game_map)
+                    self.log("Kunci Bos digunakan! Segel Skeleton Overlord hancur! Bersiap untuk bertarung!", config.GREEN)
+
                 self.start_battle_transition()
                 return
             if self._handle_world_interaction():
@@ -1824,8 +1837,21 @@ class Game:
 
     def _draw_boss_prompt(self, screen):
         """Tampilkan prompt interaksi untuk menantang Boss saat didekati."""
-        prompt_text = "Tekan [E] untuk menantang BOSS"
-        txt_surf = self.font.render(prompt_text, True, (255, 230, 90))
+        has_key = False
+        if hasattr(self, "world_state") and self.world_state:
+            has_key = self.world_state.inventory.has_item("gate_key", 1) or self.world_state.inventory.has_item("key", 1)
+        is_unlocked = getattr(self.world_state.gate, "is_open", False) if hasattr(self, "world_state") else False
+
+        if not has_key and not is_unlocked:
+            prompt_text = "[TERSEGEL] Butuh Kunci Bos (1 Kayu + 1 Batu di Bengkel)"
+            color = (255, 95, 95)
+            border_color = (220, 60, 60)
+        else:
+            prompt_text = "Tekan [E] untuk membuka segel & menantang BOSS"
+            color = (255, 230, 90)
+            border_color = (240, 180, 50)
+
+        txt_surf = self.font.render(prompt_text, True, color)
         boss_name = self.font_s.render(f"[{self.boss.name}]", True, (255, 120, 140))
         w = max(txt_surf.get_width(), boss_name.get_width()) + 52
         h = 44
@@ -1835,7 +1861,7 @@ class Game:
         bg = pygame.Surface((w, h), pygame.SRCALPHA)
         bg.fill((20, 12, 28, 225))
         screen.blit(bg, (bx, by))
-        pygame.draw.rect(screen, (240, 180, 50), (bx, by, w, h), 2)
+        pygame.draw.rect(screen, border_color, (bx, by, w, h), 2)
 
         icon = getattr(self.assets, "ui_boss_skull", None) or getattr(self.assets, "ui_boss_alert", None)
         if icon:
@@ -1864,7 +1890,6 @@ class Game:
             ("SHOP", getattr(config, "INTERACT_SHOP_POS", (1600, 944)), 54.0),
             ("WORKSHOP", getattr(config, "INTERACT_WORKSHOP_POS", (1712, 944)), 54.0),
             ("BED", getattr(config, "INTERACT_BED_POS", (1344, 960)), 54.0),
-            ("GATE", getattr(config, "INTERACT_GATE_POS", (2544, 560)), 64.0),
             ("CHICKEN", getattr(config, "INTERACT_CHICKEN_POS", (1072, 976)), 54.0),
             ("COW", getattr(config, "INTERACT_COW_POS", (1744, 528)), 54.0),
             ("FISHING", getattr(config, "INTERACT_FISHING_POS", (1424, 688)), 54.0),

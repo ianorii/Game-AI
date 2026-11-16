@@ -205,14 +205,18 @@ class LockedGate:
 
     def unlock(self, inventory: Inventory) -> Tuple[bool, str]:
         if self.is_open:
-            return False, "Gerbang sudah terbuka!"
-        if not inventory.has_item("key", 1):
-            return False, "Gerbang terkunci rapat! Butuh 'Kunci Gerbang' (Key) untuk membukanya."
+            return False, "Segel Skeleton Overlord sudah terbuka!"
+        has_key = inventory.has_item("key", 1) or inventory.has_item("gate_key", 1)
+        if not has_key:
+            return False, "Skeleton Overlord tersegel! Butuh 'Kunci Segel Bos' (1 Kayu + 1 Batu di Bengkel) untuk membukanya."
 
-        inventory.remove_item("key", 1)
+        if inventory.has_item("key", 1):
+            inventory.remove_item("key", 1)
+        elif inventory.has_item("gate_key", 1):
+            inventory.remove_item("gate_key", 1)
         self.is_open = True
         self.open_progress = 1.0
-        return True, "Kunci dimasukkan... KLIK! Gerbang Reruntuhan terbuka lebar!"
+        return True, "Kunci Segel digunakan... KLIK! Segel Skeleton Overlord hancur!"
 
     def update(self, dt: float):
         if self.is_open and self.open_progress < 1.0:
@@ -285,7 +289,7 @@ class WorldState:
         return True, "Berhasil meracik 1x Health Potion di bengkel!"
 
     def craft_gate_key(self) -> Tuple[bool, str]:
-        """Menempa Kunci Gerbang: 1 kayu (wood) + 1 batu (rock)."""
+        """Menempa Kunci Segel Bos: 1 kayu (wood) + 1 batu (rock)."""
         if not self.inventory.has_item("wood", 1):
             return False, "Bahan kurang! Butuh 1x Kayu (Wood)."
         if not self.inventory.has_item("rock", 1):
@@ -294,7 +298,8 @@ class WorldState:
         self.inventory.remove_item("wood", 1)
         self.inventory.remove_item("rock", 1)
         self.inventory.add_item("key", 1)
-        return True, "Berhasil menempa 1x Kunci Gerbang di bengkel!"
+        self.inventory.add_item("gate_key", 1)
+        return True, "Berhasil menempa 1x Kunci Segel Bos di bengkel!"
 
     # ------------------------------------------------------------------ AKSI SUMBER DAYA
     def collect_egg(self) -> Tuple[bool, str]:
