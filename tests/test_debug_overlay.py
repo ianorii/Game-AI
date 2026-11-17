@@ -37,9 +37,9 @@ class TestDebugOverlayArchitecture(unittest.TestCase):
         self.weather_mgr = WeatherManager()
 
     def test_dock_geometry_non_overlapping(self):
-        """1. Memverifikasi dock 504x624 di (512, 8) 100% bebas overlap dengan HUD bawah dan Top Bar."""
+        """1. Memverifikasi dock 418x532 di (596, 8) 100% bebas overlap dengan HUD bawah dan Top Bar."""
         dock = self.panel.rect
-        self.assertEqual(dock, pygame.Rect(512, 8, 504, 624))
+        self.assertEqual(dock, pygame.Rect(596, 8, 418, 532))
 
         # Widget utama pada 1024x768
         top_bar = pygame.Rect(8, 8, 260, 36)

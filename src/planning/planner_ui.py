@@ -432,11 +432,47 @@ class HTNPlanPanel:
 # PANEL TERPADU DUA TAB (SUB-FASE 2D) [F7 / F8]
 # ==============================================================================
 
+def _load_best_font(size: int, bold: bool = False, mono: bool = False) -> pygame.font.Font:
+    """Memuat font TrueType berkualitas tinggi (NotoSans / JetBrainsMono) agar bebas blur dan bebas bug kerning FreeSans."""
+    paths = []
+    if mono:
+        paths = [
+            "/usr/share/fonts/TTF/JetBrainsMonoNerdFont-Regular.ttf",
+            "/usr/share/fonts/liberation/LiberationMono-Regular.ttf",
+            "/usr/share/fonts/noto/NotoSansMono-Regular.ttf",
+        ]
+    elif bold:
+        paths = [
+            "/usr/share/fonts/noto/NotoSans-Bold.ttf",
+            "/usr/share/fonts/TTF/JetBrainsMonoNerdFont-SemiBold.ttf",
+            "/usr/share/fonts/liberation/LiberationSans-Bold.ttf",
+        ]
+    else:
+        paths = [
+            "/usr/share/fonts/noto/NotoSans-Regular.ttf",
+            "/usr/share/fonts/TTF/JetBrainsMonoNerdFont-Regular.ttf",
+            "/usr/share/fonts/liberation/LiberationSans-Regular.ttf",
+        ]
+    for p in paths:
+        if os.path.exists(p):
+            try:
+                return pygame.font.Font(p, size)
+            except Exception:
+                pass
+    try:
+        if mono:
+            return pygame.font.SysFont("monospace,jetbrainsmono,liberationmono", size, bold=bold)
+        return pygame.font.SysFont("notosans,dejavusans,liberationsans,helvetica,arial", size, bold=bold)
+    except Exception:
+        return pygame.font.Font(None, size)
+
+
 class UnifiedPlannerPanel:
     """
-    Panel perencanaan terpadu satu jendela (Unified AI Inspector Dock) - Modern Studio Component:
-      - Desain persis seperti referensi modern UI (macOS window dots, dark toggle, segmented tabs).
-      - Ukuran diperbesar: Rect(512, 8, 504, 624) untuk kenyamanan membaca optimal.
+    Panel perencanaan terpadu satu jendela (Unified AI Inspector Dock) - Clean Compact Studio:
+      - Geometri pas & proporsional: Rect(596, 8, 418, 532) di layar 1024x768.
+      - Header teks profesional: 'DEBUG OVERLAY: AUTOMATED PLANNING' (tanpa dot macOS merah/kuning/hijau).
+      - Font Noto Sans & JetBrains Mono tajam, presisi, anti-aliasing sempurna tanpa bug kerning.
       - 3 Card terstruktur:
         1. Tujuan & Progres: 3 tombol checkbox rounded, helper text, progress bar, footer stats.
         2. Aksi Aktif (STRIPS): Card mint/emerald, action box dengan badge [F9], monospace teal key-values.
@@ -445,21 +481,21 @@ class UnifiedPlannerPanel:
     """
 
     def __init__(self, rect: Optional[pygame.Rect] = None):
-        # Ukuran diperbesar sesuai permintaan user (504 x 624 di 1024x768)
-        self.rect = rect or pygame.Rect(512, 8, 504, 624)
+        # Ukuran proporsional & compact (418 x 532 di 1024x768)
+        self.rect = rect or pygame.Rect(596, 8, 418, 532)
         self.active_tab: int = 0  # 0: Planning, 1: Heuristik, 2: HTN, 3: Ketidakpastian
         self.visible: bool = False
-        self.dark_mode: bool = False
         self.catalog = get_asset_catalog()
 
-        # Tipografi modern
-        self.font_tab = pygame.font.Font(None, 16)
-        self.font_title = pygame.font.Font(None, 20)
-        self.font_body = pygame.font.Font(None, 15)
-        self.font_bold = pygame.font.Font(None, 16)
-        self.font_badge = pygame.font.Font(None, 13)
-        self.font_mono = pygame.font.Font(None, 14)
-        self.font_xs = pygame.font.Font(None, 12)
+        # Tipografi tajam (Noto Sans & JetBrains Mono)
+        self.font_header = _load_best_font(11, bold=True, mono=True)
+        self.font_tab = _load_best_font(12, bold=True)
+        self.font_title = _load_best_font(15, bold=True)
+        self.font_body = _load_best_font(12)
+        self.font_bold = _load_best_font(12, bold=True)
+        self.font_badge = _load_best_font(10, bold=True)
+        self.font_mono = _load_best_font(11, mono=True)
+        self.font_xs = _load_best_font(9, bold=True)
 
         # Shadow kiri halus pra-kalkulasi
         self._shadow_surf = pygame.Surface((10, self.rect.height), pygame.SRCALPHA)
@@ -504,20 +540,14 @@ class UnifiedPlannerPanel:
             return False
         rx, ry = self.rect.x, self.rect.y
 
-        # Klik Dark Mode toggle di kanan atas
-        dark_btn_rect = pygame.Rect(rx + self.rect.width - 74, ry + 7, 64, 20)
-        if dark_btn_rect.collidepoint(pos):
-            self.dark_mode = not self.dark_mode
-            return True
-
-        # Tab bounds (menyesuaikan lebar dock 504px)
-        tab0_rect = pygame.Rect(rx + 12, ry + 32, 115, 28)
-        tab1_rect = pygame.Rect(rx + 130, ry + 32, 90, 28)
-        tab2_rect = pygame.Rect(rx + 224, ry + 32, 85, 28)
-        tab3_rect = pygame.Rect(rx + 312, ry + 32, 180, 28)
+        # Tab bounds
+        tab0_rect = pygame.Rect(rx + 10, ry + 28, 98, 24)
+        tab1_rect = pygame.Rect(rx + 110, ry + 28, 74, 24)
+        tab2_rect = pygame.Rect(rx + 186, ry + 28, 72, 24)
+        tab3_rect = pygame.Rect(rx + 260, ry + 28, 148, 24)
 
         # Kompatibilitas titik uji unit test lama (rx + 230, ry + 10)
-        if (rx + 220 <= pos[0] <= rx + 380 and ry + 4 <= pos[1] <= ry + 64) or tab3_rect.collidepoint(pos):
+        if (rx + 220 <= pos[0] <= rx + 418 and ry <= pos[1] <= ry + 56) or tab3_rect.collidepoint(pos):
             self.active_tab = 3
             return True
         if tab0_rect.collidepoint(pos):
@@ -535,88 +565,82 @@ class UnifiedPlannerPanel:
                     text_col: Tuple[int, int, int], bg_col: Tuple[int, int, int],
                     border_col: Tuple[int, int, int], dot_col: Optional[Tuple[int, int, int]] = None,
                     font: Optional[pygame.font.Font] = None):
-        """Menggambar badge kapsul berpenampilan modern."""
+        """Menggambar badge kapsul berpenampilan modern tajam."""
         f = font or self.font_badge
         pygame.draw.rect(screen, bg_col, rect, border_radius=rect.height // 2)
         pygame.draw.rect(screen, border_col, rect, 1, border_radius=rect.height // 2)
 
-        offset_x = rect.x + 8
+        offset_x = rect.x + 6
         if dot_col is not None:
-            pygame.draw.circle(screen, dot_col, (rect.x + 9, rect.y + rect.height // 2), 3)
+            pygame.draw.circle(screen, dot_col, (rect.x + 8, rect.y + rect.height // 2), 2.5)
             offset_x += 8
 
         t_surf = f.render(text, True, text_col)
         screen.blit(t_surf, (offset_x, rect.y + (rect.height - t_surf.get_height()) // 2))
 
     def _draw_metric_box(self, screen: pygame.Surface, rect: pygame.Rect,
-                         label: str, value: str, subtext: Optional[str] = None):
+                         label: str, value: str):
         """Menggambar satu dari 3 kolom kartu metrik modern."""
-        pygame.draw.rect(screen, (255, 255, 255), rect, border_radius=8)
-        pygame.draw.rect(screen, (226, 232, 240), rect, 1, border_radius=8)
+        pygame.draw.rect(screen, (255, 255, 255), rect, border_radius=6)
+        pygame.draw.rect(screen, (226, 232, 240), rect, 1, border_radius=6)
 
         lbl_surf = self.font_xs.render(label.upper(), True, (100, 116, 139))
-        screen.blit(lbl_surf, (rect.x + 10, rect.y + 7))
+        screen.blit(lbl_surf, (rect.x + 8, rect.y + 5))
 
         val_surf = self.font_bold.render(value, True, (15, 23, 42))
-        screen.blit(val_surf, (rect.x + 10, rect.y + 22))
-
-        if subtext:
-            sub_surf = self.font_xs.render(subtext, True, (148, 163, 184))
-            screen.blit(sub_surf, (rect.x + 10, rect.y + 36))
+        screen.blit(val_surf, (rect.x + 8, rect.y + 19))
 
     def _draw_checkbox_button(self, screen: pygame.Surface, rect: pygame.Rect,
                               label: str, is_checked: bool = False):
         """Menggambar tombol kartu checkbox bulat interaktif."""
-        pygame.draw.rect(screen, (255, 255, 255), rect, border_radius=8)
-        pygame.draw.rect(screen, (226, 232, 240), rect, 1, border_radius=8)
+        pygame.draw.rect(screen, (255, 255, 255), rect, border_radius=6)
+        pygame.draw.rect(screen, (226, 232, 240), rect, 1, border_radius=6)
 
         # Checkbox icon box
-        box_r = pygame.Rect(rect.x + 8, rect.y + (rect.height - 14) // 2, 14, 14)
-        pygame.draw.rect(screen, (255, 255, 255), box_r, border_radius=3)
+        box_r = pygame.Rect(rect.x + 7, rect.y + (rect.height - 12) // 2, 12, 12)
+        pygame.draw.rect(screen, (255, 255, 255), box_r, border_radius=2)
         b_border = (16, 185, 129) if is_checked else (203, 213, 225)
-        pygame.draw.rect(screen, b_border, box_r, 1, border_radius=3)
+        pygame.draw.rect(screen, b_border, box_r, 1, border_radius=2)
 
         if is_checked:
-            inner_r = pygame.Rect(box_r.x + 2, box_r.y + 2, 10, 10)
+            inner_r = pygame.Rect(box_r.x + 2, box_r.y + 2, 8, 8)
             pygame.draw.rect(screen, (16, 185, 129), inner_r, border_radius=2)
 
         txt_col = (15, 23, 42) if is_checked else (71, 85, 105)
         txt_surf = self.font_mono.render(label, True, txt_col)
-        screen.blit(txt_surf, (rect.x + 28, rect.y + (rect.height - txt_surf.get_height()) // 2))
+        screen.blit(txt_surf, (rect.x + 24, rect.y + (rect.height - txt_surf.get_height()) // 2))
 
     def _draw_top_window_bar(self, screen: pygame.Surface):
-        """Menggambar bilah jendela atas lengkap dengan 3 titik macOS dan tombol dark toggle."""
+        """Menggambar bilah jendela atas dengan header teks bersih (tanpa bulatan warna)."""
         rx, ry, rw = self.rect.x, self.rect.y, self.rect.width
 
-        # 3 Dots macOS
-        dot_colors = [(255, 95, 86), (255, 189, 46), (39, 201, 63)]  # Merah, Kuning, Hijau
-        for i, col in enumerate(dot_colors):
-            pygame.draw.circle(screen, col, (rx + 16 + i * 11, ry + 16), 4)
+        # Judul header sesuai tab aktif
+        headers = {
+            0: "DEBUG OVERLAY: AUTOMATED PLANNING",
+            1: "DEBUG OVERLAY: ANALISIS HEURISTIK",
+            2: "DEBUG OVERLAY: HTN TASK DECOMPOSITION",
+            3: "DEBUG OVERLAY: DECISIONS UNDER UNCERTAINTY",
+        }
+        header_text = headers.get(self.active_tab, "DEBUG OVERLAY: AUTOMATED PLANNING")
 
-        # Title runtime
-        title_surf = self.font_mono.render("AI_RUNTIME // INSPECTOR", True, (148, 163, 184))
-        screen.blit(title_surf, (rx + 56, ry + 11))
+        # Ikon status dot kecil monokrom
+        pygame.draw.circle(screen, (71, 85, 105), (rx + 16, ry + 16), 3)
 
-        # Dark toggle button
-        dark_btn = pygame.Rect(rx + rw - 74, ry + 7, 62, 20)
-        pygame.draw.rect(screen, (255, 255, 255), dark_btn, border_radius=10)
-        pygame.draw.rect(screen, (226, 232, 240), dark_btn, 1, border_radius=10)
-        btn_txt = self.font_badge.render("🌙 Dark", True, (71, 85, 105))
-        screen.blit(btn_txt, (dark_btn.x + 7, dark_btn.y + 3))
+        title_surf = self.font_header.render(header_text, True, (71, 85, 105))
+        screen.blit(title_surf, (rx + 26, ry + 10))
 
     def _draw_tabs(self, screen: pygame.Surface):
         """Menggambar bilah tab segmented control kapsul."""
         rx, ry, rw = self.rect.x, self.rect.y, self.rect.width
 
-        # Capsule background bar
-        capsule_rect = pygame.Rect(rx + 12, ry + 32, rw - 24, 30)
-        pygame.draw.rect(screen, (241, 245, 249), capsule_rect, border_radius=8)
-        pygame.draw.rect(screen, (226, 232, 240), capsule_rect, 1, border_radius=8)
+        capsule_rect = pygame.Rect(rx + 10, ry + 28, rw - 20, 26)
+        pygame.draw.rect(screen, (241, 245, 249), capsule_rect, border_radius=6)
+        pygame.draw.rect(screen, (226, 232, 240), capsule_rect, 1, border_radius=6)
 
-        tab0_rect = pygame.Rect(rx + 14, ry + 34, 112, 26)
-        tab1_rect = pygame.Rect(rx + 130, ry + 34, 88, 26)
-        tab2_rect = pygame.Rect(rx + 222, ry + 34, 86, 26)
-        tab3_rect = pygame.Rect(rx + 312, ry + 34, 182, 26)
+        tab0_rect = pygame.Rect(rx + 11, ry + 29, 97, 24)
+        tab1_rect = pygame.Rect(rx + 110, ry + 29, 74, 24)
+        tab2_rect = pygame.Rect(rx + 186, ry + 29, 72, 24)
+        tab3_rect = pygame.Rect(rx + 260, ry + 29, 146, 24)
 
         tabs_data = [
             (0, tab0_rect, "[F7] Planning"),
@@ -628,53 +652,51 @@ class UnifiedPlannerPanel:
         for idx, t_rect, label in tabs_data:
             is_active = (self.active_tab == idx)
             if is_active:
-                pygame.draw.rect(screen, (255, 255, 255), t_rect, border_radius=6)
-                pygame.draw.rect(screen, (203, 213, 225), t_rect, 1, border_radius=6)
+                pygame.draw.rect(screen, (255, 255, 255), t_rect, border_radius=5)
+                pygame.draw.rect(screen, (203, 213, 225), t_rect, 1, border_radius=5)
                 surf = self.font_tab.render(label, True, (15, 23, 42))
             else:
                 surf = self.font_tab.render(label, True, (100, 116, 139))
-            screen.blit(surf, (t_rect.x + (t_rect.width - surf.get_width()) // 2, t_rect.y + 6))
+            screen.blit(surf, (t_rect.x + (t_rect.width - surf.get_width()) // 2, t_rect.y + 4))
 
     def _draw_cross_module_bar(self, screen: pygame.Surface, autopilot: Optional[AutopilotController],
                                 weather_mgr: Optional[Any] = None):
         """Strip status modul mitra dan garis pemisah horizontal."""
         rx, ry, rw = self.rect.x, self.rect.y, self.rect.width
-        cur_y = ry + 70
+        cur_y = ry + 59
 
-        # Badge ungu/biru
-        b_rect = pygame.Rect(rx + 12, cur_y, 168, 20)
+        # Badge status
+        b_rect = pygame.Rect(rx + 10, cur_y, 148, 18)
         self._draw_badge(screen, b_rect, "[UCC] MAB Fishing (5 Spot)", (79, 70, 229), (238, 242, 255), (199, 210, 254))
 
-        # Divider dan status
         div_surf = self.font_badge.render("|", True, (203, 213, 225))
-        screen.blit(div_surf, (rx + 188, cur_y + 3))
+        screen.blit(div_surf, (rx + 164, cur_y + 2))
 
-        sub_txt = "Live Minion Risk Policy" if self.active_tab == 0 else "STRIPS WA* Automated Planner Engine"
+        sub_txt = "Live Minion Risk Policy" if self.active_tab == 0 else "STRIPS WA* Automated Planner"
         sub_surf = self.font_body.render(sub_txt, True, (71, 85, 105))
-        screen.blit(sub_surf, (rx + 200, cur_y + 3))
+        screen.blit(sub_surf, (rx + 174, cur_y + 1))
 
         # Garis pemisah horizontal halus
-        pygame.draw.line(screen, (226, 232, 240), (rx + 12, cur_y + 26), (rx + rw - 12, cur_y + 26), 1)
+        pygame.draw.line(screen, (226, 232, 240), (rx + 10, cur_y + 22), (rx + rw - 10, cur_y + 22), 1)
 
     def _draw_planning_tab(self, screen: pygame.Surface, autopilot: Optional[AutopilotController],
                            weather_mgr: Optional[Any] = None):
-        """Tab 0: [F7] AUTOMATED PLANNING INSPECTOR - Persis Referensi Desain."""
+        """Tab 0: [F7] AUTOMATED PLANNING INSPECTOR - Compact Studio."""
         rx, ry, rw, rh = self.rect.x, self.rect.y, self.rect.width, self.rect.height
 
         # Title Header & Badge
-        cur_y = ry + 104
+        cur_y = ry + 86
         t_surf = self.font_title.render("PLANNING INSPECTOR", True, (15, 23, 42))
-        screen.blit(t_surf, (rx + 12, cur_y))
+        screen.blit(t_surf, (rx + 10, cur_y))
 
-        badge_rect = pygame.Rect(rx + 12 + t_surf.get_width() + 10, cur_y + 1, 92, 20)
+        badge_rect = pygame.Rect(rx + 10 + t_surf.get_width() + 8, cur_y + 1, 84, 18)
         self._draw_badge(screen, badge_rect, "STRIPS WA*", (71, 85, 105), (241, 245, 249), (226, 232, 240))
 
         # Subtitle Domain
-        cur_y += 24
+        cur_y += 20
         dom_surf = self.font_mono.render("[DIR] data/planning/expedition.domain", True, (100, 116, 139))
-        screen.blit(dom_surf, (rx + 12, cur_y))
+        screen.blit(dom_surf, (rx + 10, cur_y))
 
-        # Ambil data live autopilot bila ada
         monitor = getattr(autopilot, "monitor", None) if autopilot else None
         plan = monitor.current_plan if monitor else None
         step_idx = monitor.current_step_idx if monitor else 0
@@ -691,115 +713,108 @@ class UnifiedPlannerPanel:
             boss_done = getattr(getattr(ws, "boss", None), "is_defeated", False)
 
         # ----------------------------------------------------------------------
-        # Card 1: TUJUAN & PROGRES (Rounded Card dengan 3 Checkbox Button)
+        # Card 1: TUJUAN & PROGRES (98px)
         # ----------------------------------------------------------------------
-        c1_rect = pygame.Rect(rx + 12, ry + 152, rw - 24, 116)
-        pygame.draw.rect(screen, (255, 255, 255), c1_rect, border_radius=12)
-        pygame.draw.rect(screen, (226, 232, 240), c1_rect, 1, border_radius=12)
+        c1_rect = pygame.Rect(rx + 10, ry + 124, rw - 20, 98)
+        pygame.draw.rect(screen, (255, 255, 255), c1_rect, border_radius=10)
+        pygame.draw.rect(screen, (226, 232, 240), c1_rect, 1, border_radius=10)
 
-        # Header Card 1
-        pygame.draw.circle(screen, (37, 99, 235), (c1_rect.x + 16, c1_rect.y + 16), 4)  # Blue dot
+        pygame.draw.circle(screen, (37, 99, 235), (c1_rect.x + 14, c1_rect.y + 14), 3.5)
         c1_title = self.font_bold.render("TUJUAN & PROGRES", True, (15, 23, 42))
-        screen.blit(c1_title, (c1_rect.x + 26, c1_rect.y + 8))
+        screen.blit(c1_title, (c1_rect.x + 22, c1_rect.y + 6))
 
-        mode_badge_r = pygame.Rect(c1_rect.right - 92, c1_rect.y + 6, 82, 20)
+        mode_badge_r = pygame.Rect(c1_rect.right - 84, c1_rect.y + 5, 76, 18)
         self._draw_badge(screen, mode_badge_r, f"Mode: {mode_str}", (71, 85, 105), (241, 245, 249), (226, 232, 240), dot_col=(148, 163, 184))
 
         # 3 Checkbox Buttons
-        btn_w = (c1_rect.width - 24 - 16) // 3
-        b1_r = pygame.Rect(c1_rect.x + 12, c1_rect.y + 32, btn_w, 28)
-        b2_r = pygame.Rect(c1_rect.x + 12 + btn_w + 8, c1_rect.y + 32, btn_w, 28)
-        b3_r = pygame.Rect(c1_rect.x + 12 + (btn_w + 8) * 2, c1_rect.y + 32, btn_w, 28)
+        btn_w = (c1_rect.width - 20 - 12) // 3
+        b1_r = pygame.Rect(c1_rect.x + 10, c1_rect.y + 27, btn_w, 24)
+        b2_r = pygame.Rect(c1_rect.x + 10 + btn_w + 6, c1_rect.y + 27, btn_w, 24)
+        b3_r = pygame.Rect(c1_rect.x + 10 + (btn_w + 6) * 2, c1_rect.y + 27, btn_w, 24)
 
         self._draw_checkbox_button(screen, b1_r, "gate_key", is_checked=key_done)
         self._draw_checkbox_button(screen, b2_r, "gate_open", is_checked=gate_done)
         self._draw_checkbox_button(screen, b3_r, "boss_defeated", is_checked=boss_done)
 
-        # Subtitle simulasi
-        sim_txt = self.font_xs.render("Klik target predicate di atas untuk simulasi progres eksekusi.", True, (148, 163, 184))
-        screen.blit(sim_txt, (c1_rect.x + 12, c1_rect.y + 65))
-
-        # Progress bar rounded
-        bar_r = pygame.Rect(c1_rect.x + 12, c1_rect.y + 80, c1_rect.width - 24, 7)
-        pygame.draw.rect(screen, (235, 239, 245), bar_r, border_radius=4)
+        # Progress bar
+        bar_r = pygame.Rect(c1_rect.x + 10, c1_rect.y + 57, c1_rect.width - 20, 6)
+        pygame.draw.rect(screen, (235, 239, 245), bar_r, border_radius=3)
         pct = min(1.0, max(0.0, step_idx / max(1, total_steps)))
         if pct > 0:
             fill_r = pygame.Rect(bar_r.x, bar_r.y, int(bar_r.width * pct), bar_r.height)
-            pygame.draw.rect(screen, (59, 130, 246), fill_r, border_radius=4)
+            pygame.draw.rect(screen, (59, 130, 246), fill_r, border_radius=3)
 
-        # Footer row: Langkah, Biaya, Mode
+        # Footer stats
         tot_cost = sum(a.cost for a in plan) if plan else 118.5
-        f_y = c1_rect.y + 94
-        screen.blit(self.font_xs.render(f"Langkah {step_idx} / {total_steps}", True, (15, 23, 42)), (c1_rect.x + 12, f_y))
-        screen.blit(self.font_xs.render("·", True, (148, 163, 184)), (c1_rect.x + 150, f_y))
-        screen.blit(self.font_xs.render(f"Biaya: {tot_cost:.1f}s", True, (15, 23, 42)), (c1_rect.x + 180, f_y))
-        screen.blit(self.font_xs.render("·", True, (148, 163, 184)), (c1_rect.x + 310, f_y))
-        screen.blit(self.font_xs.render(f"Mode: {mode_str}", True, (71, 85, 105)), (c1_rect.x + 340, f_y))
+        f_y = c1_rect.y + 71
+        screen.blit(self.font_xs.render(f"Langkah {step_idx}/{total_steps}", True, (15, 23, 42)), (c1_rect.x + 10, f_y))
+        screen.blit(self.font_xs.render("·", True, (148, 163, 184)), (c1_rect.x + 130, f_y))
+        screen.blit(self.font_xs.render(f"Biaya: {tot_cost:.1f}s", True, (15, 23, 42)), (c1_rect.x + 150, f_y))
+        screen.blit(self.font_xs.render("·", True, (148, 163, 184)), (c1_rect.x + 260, f_y))
+        screen.blit(self.font_xs.render(f"Mode: {mode_str}", True, (71, 85, 105)), (c1_rect.x + 280, f_y))
 
         # ----------------------------------------------------------------------
-        # Card 2: AKSI AKTIF (STRIPS) - Mint Card dengan Border Emerald
+        # Card 2: AKSI AKTIF (STRIPS) (108px)
         # ----------------------------------------------------------------------
-        c2_rect = pygame.Rect(rx + 12, ry + 276, rw - 24, 122)
-        pygame.draw.rect(screen, (245, 254, 250), c2_rect, border_radius=12)
-        pygame.draw.rect(screen, (187, 247, 208), c2_rect, 1, border_radius=12)
+        c2_rect = pygame.Rect(rx + 10, ry + 228, rw - 20, 108)
+        pygame.draw.rect(screen, (245, 254, 250), c2_rect, border_radius=10)
+        pygame.draw.rect(screen, (187, 247, 208), c2_rect, 1, border_radius=10)
 
         c2_title = self.font_bold.render("AKSI AKTIF (STRIPS)", True, (6, 78, 59))
-        screen.blit(c2_title, (c2_rect.x + 12, c2_rect.y + 8))
+        screen.blit(c2_title, (c2_rect.x + 10, c2_rect.y + 6))
 
         act = monitor.current_action if monitor else None
         act_status = "[BERJALAN]" if act is not None else "[SIAP]"
-        siap_r = pygame.Rect(c2_rect.right - 72, c2_rect.y + 6, 60, 20)
+        siap_r = pygame.Rect(c2_rect.right - 66, c2_rect.y + 5, 56, 18)
         self._draw_badge(screen, siap_r, act_status, (22, 101, 52), (220, 252, 231), (134, 239, 172), dot_col=(16, 185, 129))
 
-        # Inner action box
-        in_box = pygame.Rect(c2_rect.x + 12, c2_rect.y + 32, c2_rect.width - 24, 30)
-        pygame.draw.rect(screen, (255, 255, 255), in_box, border_radius=8)
-        pygame.draw.rect(screen, (187, 247, 208), in_box, 1, border_radius=8)
+        in_box = pygame.Rect(c2_rect.x + 10, c2_rect.y + 27, c2_rect.width - 20, 26)
+        pygame.draw.rect(screen, (255, 255, 255), in_box, border_radius=6)
+        pygame.draw.rect(screen, (187, 247, 208), in_box, 1, border_radius=6)
 
         act_name_str = f"{act.name}({', '.join(act.params)})" if act else "Ekspedisi Selesai / Siap"
-        screen.blit(self.font_bold.render(act_name_str[:38], True, (15, 23, 42)), (in_box.x + 10, in_box.y + 7))
+        screen.blit(self.font_bold.render(act_name_str[:34], True, (15, 23, 42)), (in_box.x + 8, in_box.y + 5))
 
-        f9_badge = pygame.Rect(in_box.right - 44, in_box.y + 5, 34, 20)
+        f9_badge = pygame.Rect(in_box.right - 38, in_box.y + 4, 30, 18)
         self._draw_badge(screen, f9_badge, "[F9]", (71, 85, 105), (241, 245, 249), (226, 232, 240))
 
         # Key-Values
-        kv_y = c2_rect.y + 68
-        screen.blit(self.font_mono.render("Precondition", True, (13, 148, 136)), (c2_rect.x + 12, kv_y))
+        kv_y = c2_rect.y + 59
+        screen.blit(self.font_mono.render("Precondition", True, (13, 148, 136)), (c2_rect.x + 10, kv_y))
         pre_val = "Semua precondition STRIPS terpenuhi." if not act else "[OK] at [OK] connected"
-        screen.blit(self.font_body.render(pre_val, True, (15, 23, 42)), (c2_rect.x + 108, kv_y))
+        screen.blit(self.font_body.render(pre_val[:32], True, (15, 23, 42)), (c2_rect.x + 96, kv_y))
 
-        kv_y += 18
-        screen.blit(self.font_mono.render("Effect (Eff)", True, (13, 148, 136)), (c2_rect.x + 12, kv_y))
-        eff_val = "Siap eksekusi tahap berikutnya." if not act else "+has_key, +holding | -wood, -rock"
-        screen.blit(self.font_body.render(eff_val, True, (15, 23, 42)), (c2_rect.x + 108, kv_y))
+        kv_y += 16
+        screen.blit(self.font_mono.render("Effect (Eff)", True, (13, 148, 136)), (c2_rect.x + 10, kv_y))
+        eff_val = "Siap eksekusi tahap berikutnya." if not act else "+has_key, +holding | -wood"
+        screen.blit(self.font_body.render(eff_val[:32], True, (15, 23, 42)), (c2_rect.x + 96, kv_y))
 
-        kv_y += 18
+        kv_y += 16
         diff_txt = getattr(monitor, "last_state_diff", "-") if monitor else "-"
-        diff_display = "- (belum ada aksi selesai)" if diff_txt == "-" else f"{diff_txt[:34]}"
-        screen.blit(self.font_mono.render("State Diff", True, (100, 116, 139)), (c2_rect.x + 12, kv_y))
-        screen.blit(self.font_mono.render(diff_display, True, (100, 116, 139)), (c2_rect.x + 108, kv_y))
+        diff_display = "- (belum ada aksi selesai)" if diff_txt == "-" else f"{diff_txt[:28]}"
+        screen.blit(self.font_mono.render("State Diff", True, (100, 116, 139)), (c2_rect.x + 10, kv_y))
+        screen.blit(self.font_mono.render(diff_display, True, (100, 116, 139)), (c2_rect.x + 96, kv_y))
 
         # ----------------------------------------------------------------------
-        # Card 3: MESIN PENCARI WA* & ANTREAN (3 Metric Boxes & Invariant Rows)
+        # Card 3: MESIN PENCARI WA* & ANTREAN (182px)
         # ----------------------------------------------------------------------
-        c3_rect = pygame.Rect(rx + 12, ry + 406, rw - 24, 206)
-        pygame.draw.rect(screen, (255, 255, 255), c3_rect, border_radius=12)
-        pygame.draw.rect(screen, (226, 232, 240), c3_rect, 1, border_radius=12)
+        c3_rect = pygame.Rect(rx + 10, ry + 342, rw - 20, 182)
+        pygame.draw.rect(screen, (255, 255, 255), c3_rect, border_radius=10)
+        pygame.draw.rect(screen, (226, 232, 240), c3_rect, 1, border_radius=10)
 
-        # Header Card 3
-        pygame.draw.circle(screen, (147, 51, 234), (c3_rect.x + 16, c3_rect.y + 16), 4)  # Purple dot
+        pygame.draw.circle(screen, (147, 51, 234), (c3_rect.x + 14, c3_rect.y + 14), 3.5)
         c3_title = self.font_bold.render("MESIN PENCARI WA* & ANTREAN", True, (15, 23, 42))
-        screen.blit(c3_title, (c3_rect.x + 26, c3_rect.y + 8))
+        screen.blit(c3_title, (c3_rect.x + 22, c3_rect.y + 6))
 
         w_val = getattr(config, "PLANNER_WEIGHT", 1.5)
-        w_badge = pygame.Rect(c3_rect.right - 68, c3_rect.y + 6, 56, 20)
+        w_badge = pygame.Rect(c3_rect.right - 62, c3_rect.y + 5, 52, 18)
         self._draw_badge(screen, w_badge, f"w = {w_val}", (107, 33, 168), (243, 232, 255), (216, 180, 254))
 
         # 3 Column Metric Cards
-        m_w = (c3_rect.width - 24 - 16) // 3
-        m1_r = pygame.Rect(c3_rect.x + 12, c3_rect.y + 32, m_w, 48)
-        m2_r = pygame.Rect(c3_rect.x + 12 + m_w + 8, c3_rect.y + 32, m_w, 48)
-        m3_r = pygame.Rect(c3_rect.x + 12 + (m_w + 8) * 2, c3_rect.y + 32, m_w, 48)
+        m_w = (c3_rect.width - 20 - 12) // 3
+        m1_r = pygame.Rect(c3_rect.x + 10, c3_rect.y + 27, m_w, 42)
+        m2_r = pygame.Rect(c3_rect.x + 10 + m_w + 6, c3_rect.y + 27, m_w, 42)
+        m3_r = pygame.Rect(c3_rect.x + 10 + (m_w + 6) * 2, c3_rect.y + 27, m_w, 42)
 
         nodes = getattr(monitor, "last_nodes_expanded", 886) if monitor else 886
         lat = getattr(monitor, "last_search_latency_ms", 1.1) if monitor else 1.1
@@ -809,11 +824,10 @@ class UnifiedPlannerPanel:
         self._draw_metric_box(screen, m3_r, "Waktu", f"{lat:.1f} ms")
 
         # Invariant Table Box
-        t_box = pygame.Rect(c3_rect.x + 12, c3_rect.y + 88, c3_rect.width - 24, 108)
-        pygame.draw.rect(screen, (248, 250, 252), t_box, border_radius=8)
-        pygame.draw.rect(screen, (226, 232, 240), t_box, 1, border_radius=8)
+        t_box = pygame.Rect(c3_rect.x + 10, c3_rect.y + 75, c3_rect.width - 20, 98)
+        pygame.draw.rect(screen, (248, 250, 252), t_box, border_radius=6)
+        pygame.draw.rect(screen, (226, 232, 240), t_box, 1, border_radius=6)
 
-        # 4 Table Rows
         rows = [
             ("Budget step(): < 20ms", "[OK]", True),
             ("Polyline Validation", "[OK]", True),
@@ -822,10 +836,10 @@ class UnifiedPlannerPanel:
         ]
 
         for i, (r_txt, badge_txt, is_ok) in enumerate(rows):
-            ry_item = t_box.y + 7 + i * 24
-            screen.blit(self.font_mono.render(r_txt, True, (51, 65, 85)), (t_box.x + 10, ry_item))
+            ry_item = t_box.y + 6 + i * 23
+            screen.blit(self.font_mono.render(r_txt, True, (51, 65, 85)), (t_box.x + 8, ry_item))
 
-            b_item_r = pygame.Rect(t_box.right - 54, ry_item - 1, 44, 18)
+            b_item_r = pygame.Rect(t_box.right - 48, ry_item - 1, 40, 16)
             if is_ok:
                 self._draw_badge(screen, b_item_r, badge_txt, (22, 101, 52), (220, 252, 231), (134, 239, 172))
             else:
@@ -833,116 +847,109 @@ class UnifiedPlannerPanel:
 
     def _draw_uncertainty_tab(self, screen: pygame.Surface, weather_mgr: Optional[Any] = None,
                                autopilot: Optional[AutopilotController] = None):
-        """Tab 3: [F8] DECISIONS UNDER UNCERTAINTY (UCC) - Format Studio Modern."""
+        """Tab 3: [F8] DECISIONS UNDER UNCERTAINTY (UCC) - Compact Studio."""
         rx, ry, rw, rh = self.rect.x, self.rect.y, self.rect.width, self.rect.height
 
         # Title Header & Badge
-        cur_y = ry + 104
+        cur_y = ry + 86
         t_surf = self.font_title.render("DECISIONS UNDER UNCERTAINTY", True, (15, 23, 42))
-        screen.blit(t_surf, (rx + 12, cur_y))
+        screen.blit(t_surf, (rx + 10, cur_y))
 
-        badge_rect = pygame.Rect(rx + 12 + t_surf.get_width() + 10, cur_y + 1, 98, 20)
+        badge_rect = pygame.Rect(rx + 10 + t_surf.get_width() + 8, cur_y + 1, 88, 18)
         self._draw_badge(screen, badge_rect, "UCC ENGINE", (79, 70, 229), (238, 242, 255), (199, 210, 254))
 
-        # Subtitle Source
-        cur_y += 24
+        cur_y += 20
         dom_surf = self.font_mono.render("[DIR] src/decision/mab_manager.py & combat_policy.py", True, (100, 116, 139))
-        screen.blit(dom_surf, (rx + 12, cur_y))
+        screen.blit(dom_surf, (rx + 10, cur_y))
 
         # ----------------------------------------------------------------------
-        # Card 1: MULTI-ARMED BANDIT (MAB 5 SPOTS)
+        # Card 1: MULTI-ARMED BANDIT (MAB 5 SPOTS) (98px)
         # ----------------------------------------------------------------------
-        c1_rect = pygame.Rect(rx + 12, ry + 152, rw - 24, 116)
-        pygame.draw.rect(screen, (255, 255, 255), c1_rect, border_radius=12)
-        pygame.draw.rect(screen, (226, 232, 240), c1_rect, 1, border_radius=12)
+        c1_rect = pygame.Rect(rx + 10, ry + 124, rw - 20, 98)
+        pygame.draw.rect(screen, (255, 255, 255), c1_rect, border_radius=10)
+        pygame.draw.rect(screen, (226, 232, 240), c1_rect, 1, border_radius=10)
 
-        pygame.draw.circle(screen, (37, 99, 235), (c1_rect.x + 16, c1_rect.y + 16), 4)  # Blue dot
+        pygame.draw.circle(screen, (37, 99, 235), (c1_rect.x + 14, c1_rect.y + 14), 3.5)
         c1_title = self.font_bold.render("MAB: EKSPLORASI VS EKSPLOITASI", True, (15, 23, 42))
-        screen.blit(c1_title, (c1_rect.x + 26, c1_rect.y + 8))
+        screen.blit(c1_title, (c1_rect.x + 22, c1_rect.y + 6))
 
-        mab_badge_r = pygame.Rect(c1_rect.right - 92, c1_rect.y + 6, 82, 20)
+        mab_badge_r = pygame.Rect(c1_rect.right - 78, c1_rect.y + 5, 70, 18)
         self._draw_badge(screen, mab_badge_r, "[5 SPOTS]", (79, 70, 229), (238, 242, 255), (199, 210, 254), dot_col=(59, 130, 246))
 
-        # 3 Column Metric Cards
-        m_w = (c1_rect.width - 24 - 16) // 3
-        m1_r = pygame.Rect(c1_rect.x + 12, c1_rect.y + 32, m_w, 48)
-        m2_r = pygame.Rect(c1_rect.x + 12 + m_w + 8, c1_rect.y + 32, m_w, 48)
-        m3_r = pygame.Rect(c1_rect.x + 12 + (m_w + 8) * 2, c1_rect.y + 32, m_w, 48)
+        m_w = (c1_rect.width - 20 - 12) // 3
+        m1_r = pygame.Rect(c1_rect.x + 10, c1_rect.y + 27, m_w, 42)
+        m2_r = pygame.Rect(c1_rect.x + 10 + m_w + 6, c1_rect.y + 27, m_w, 42)
+        m3_r = pygame.Rect(c1_rect.x + 10 + (m_w + 6) * 2, c1_rect.y + 27, m_w, 42)
 
         self._draw_metric_box(screen, m1_r, "Algoritma", "Thompson/UCB1")
         self._draw_metric_box(screen, m2_r, "Total Spots", "5 Pesisir")
         self._draw_metric_box(screen, m3_r, "Regret Bound", "O(ln T)")
 
-        # Hint & Shortcut Row
-        hint_y = c1_rect.y + 88
-        screen.blit(self.font_body.render("Sistem: 5 Spot Pancingan Pesisir & Sungai (Theta Rahasia)", True, (71, 85, 105)), (c1_rect.x + 12, hint_y))
-        b_hint_r = pygame.Rect(c1_rect.right - 146, hint_y - 2, 134, 20)
+        hint_y = c1_rect.y + 74
+        screen.blit(self.font_body.render("Sistem 5 Spot Pesisir & Sungai (Theta Rahasia)", True, (71, 85, 105)), (c1_rect.x + 10, hint_y))
+        b_hint_r = pygame.Rect(c1_rect.right - 118, hint_y - 2, 108, 18)
         self._draw_badge(screen, b_hint_r, "Tekan [B] Jurnal", (15, 23, 42), (241, 245, 249), (203, 213, 225))
 
         # ----------------------------------------------------------------------
-        # Card 2: KEBIJAKAN RISIKO PERTEMPURAN (Live Combat)
+        # Card 2: KEBIJAKAN RISIKO PERTEMPURAN (108px)
         # ----------------------------------------------------------------------
-        c2_rect = pygame.Rect(rx + 12, ry + 276, rw - 24, 122)
-        pygame.draw.rect(screen, (255, 251, 235), c2_rect, border_radius=12)  # Amber tint
-        pygame.draw.rect(screen, (253, 230, 138), c2_rect, 1, border_radius=12)
+        c2_rect = pygame.Rect(rx + 10, ry + 228, rw - 20, 108)
+        pygame.draw.rect(screen, (255, 251, 235), c2_rect, border_radius=10)
+        pygame.draw.rect(screen, (253, 230, 138), c2_rect, 1, border_radius=10)
 
         c2_title = self.font_bold.render("KEBIJAKAN RISIKO PERTEMPURAN", True, (146, 64, 14))
-        screen.blit(c2_title, (c2_rect.x + 12, c2_rect.y + 8))
+        screen.blit(c2_title, (c2_rect.x + 10, c2_rect.y + 6))
 
-        comb_badge_r = pygame.Rect(c2_rect.right - 110, c2_rect.y + 6, 98, 20)
+        comb_badge_r = pygame.Rect(c2_rect.right - 96, c2_rect.y + 5, 86, 18)
         self._draw_badge(screen, comb_badge_r, "[LIVE COMBAT]", (146, 64, 14), (254, 243, 199), (252, 211, 77), dot_col=(245, 158, 11))
 
-        # Inner threat action box
-        in_box = pygame.Rect(c2_rect.x + 12, c2_rect.y + 32, c2_rect.width - 24, 30)
-        pygame.draw.rect(screen, (255, 255, 255), in_box, border_radius=8)
-        pygame.draw.rect(screen, (253, 230, 138), in_box, 1, border_radius=8)
+        in_box = pygame.Rect(c2_rect.x + 10, c2_rect.y + 27, c2_rect.width - 20, 26)
+        pygame.draw.rect(screen, (255, 255, 255), in_box, border_radius=6)
+        pygame.draw.rect(screen, (253, 230, 138), in_box, 1, border_radius=6)
 
-        screen.blit(self.font_bold.render("Ancaman Minion Goblin Hijau (Respawn Acak)", True, (15, 23, 42)), (in_box.x + 10, in_box.y + 7))
+        screen.blit(self.font_bold.render("Ancaman Minion Goblin Hijau (Respawn Acak)", True, (15, 23, 42)), (in_box.x + 8, in_box.y + 5))
 
-        act_pill = pygame.Rect(in_box.right - 64, in_box.y + 5, 54, 20)
+        act_pill = pygame.Rect(in_box.right - 54, in_box.y + 4, 46, 18)
         self._draw_badge(screen, act_pill, "[AKTIF]", (22, 101, 52), (220, 252, 231), (134, 239, 172))
 
-        # Key-Values MEU & Threshold
-        kv_y = c2_rect.y + 68
-        screen.blit(self.font_mono.render("Analisis MEU", True, (180, 83, 9)), (c2_rect.x + 12, kv_y))
-        screen.blit(self.font_body.render("Tarung (E[Loot] = +5.5 Koin) vs Hindari (0 Dmg)", True, (15, 23, 42)), (c2_rect.x + 108, kv_y))
+        kv_y = c2_rect.y + 59
+        screen.blit(self.font_mono.render("Analisis MEU", True, (180, 83, 9)), (c2_rect.x + 10, kv_y))
+        screen.blit(self.font_body.render("Tarung (E[Loot] = +5.5 Koin) vs Hindari (0 Dmg)", True, (15, 23, 42)), (c2_rect.x + 96, kv_y))
 
-        kv_y += 18
-        screen.blit(self.font_mono.render("Kebijakan HP", True, (180, 83, 9)), (c2_rect.x + 12, kv_y))
-        screen.blit(self.font_bold.render("HP >= 35% -> Engage (Serang) | HP < 35% -> Evade (Detour)", True, (15, 23, 42)), (c2_rect.x + 108, kv_y))
+        kv_y += 16
+        screen.blit(self.font_mono.render("Kebijakan HP", True, (180, 83, 9)), (c2_rect.x + 10, kv_y))
+        screen.blit(self.font_bold.render("HP >= 35% -> Engage | HP < 35% -> Evade (Detour)", True, (15, 23, 42)), (c2_rect.x + 96, kv_y))
 
-        kv_y += 18
-        screen.blit(self.font_mono.render("Status Alam", True, (100, 116, 139)), (c2_rect.x + 12, kv_y))
-        screen.blit(self.font_mono.render("Minion berkeliaran bebas di daratan, interaksi live tanpa turn-based", True, (100, 116, 139)), (c2_rect.x + 108, kv_y))
+        kv_y += 16
+        screen.blit(self.font_mono.render("Status Alam", True, (100, 116, 139)), (c2_rect.x + 10, kv_y))
+        screen.blit(self.font_mono.render("Minion berkeliaran bebas di daratan, interaksi live", True, (100, 116, 139)), (c2_rect.x + 96, kv_y))
 
         # ----------------------------------------------------------------------
-        # Card 3: FORMULASI KEPUTUSAN STOKASTIK
+        # Card 3: FORMULASI KEPUTUSAN STOKASTIK (182px)
         # ----------------------------------------------------------------------
-        c3_rect = pygame.Rect(rx + 12, ry + 406, rw - 24, 206)
-        pygame.draw.rect(screen, (255, 255, 255), c3_rect, border_radius=12)
-        pygame.draw.rect(screen, (226, 232, 240), c3_rect, 1, border_radius=12)
+        c3_rect = pygame.Rect(rx + 10, ry + 342, rw - 20, 182)
+        pygame.draw.rect(screen, (255, 255, 255), c3_rect, border_radius=10)
+        pygame.draw.rect(screen, (226, 232, 240), c3_rect, 1, border_radius=10)
 
-        pygame.draw.circle(screen, (147, 51, 234), (c3_rect.x + 16, c3_rect.y + 16), 4)  # Purple dot
+        pygame.draw.circle(screen, (147, 51, 234), (c3_rect.x + 14, c3_rect.y + 14), 3.5)
         c3_title = self.font_bold.render("FORMULASI KEPUTUSAN STOKASTIK", True, (15, 23, 42))
-        screen.blit(c3_title, (c3_rect.x + 26, c3_rect.y + 8))
+        screen.blit(c3_title, (c3_rect.x + 22, c3_rect.y + 6))
 
-        teori_badge = pygame.Rect(c3_rect.right - 92, c3_rect.y + 6, 82, 20)
+        teori_badge = pygame.Rect(c3_rect.right - 78, c3_rect.y + 5, 70, 18)
         self._draw_badge(screen, teori_badge, "[TEORI UCC]", (107, 33, 168), (243, 232, 255), (216, 180, 254))
 
-        # 3 Column Metric Cards
-        m_w = (c3_rect.width - 24 - 16) // 3
-        m1_r = pygame.Rect(c3_rect.x + 12, c3_rect.y + 32, m_w, 48)
-        m2_r = pygame.Rect(c3_rect.x + 12 + m_w + 8, c3_rect.y + 32, m_w, 48)
-        m3_r = pygame.Rect(c3_rect.x + 12 + (m_w + 8) * 2, c3_rect.y + 32, m_w, 48)
+        m_w = (c3_rect.width - 20 - 12) // 3
+        m1_r = pygame.Rect(c3_rect.x + 10, c3_rect.y + 27, m_w, 42)
+        m2_r = pygame.Rect(c3_rect.x + 10 + m_w + 6, c3_rect.y + 27, m_w, 42)
+        m3_r = pygame.Rect(c3_rect.x + 10 + (m_w + 6) * 2, c3_rect.y + 27, m_w, 42)
 
         self._draw_metric_box(screen, m1_r, "UCB1 Index", "mu + c*sqrt(ln/N)")
         self._draw_metric_box(screen, m2_r, "Bayesian TS", "Beta(alpha, beta)")
         self._draw_metric_box(screen, m3_r, "Prinsip", "argmax(EU)")
 
-        # Table rows
-        t_box = pygame.Rect(c3_rect.x + 12, c3_rect.y + 88, c3_rect.width - 24, 108)
-        pygame.draw.rect(screen, (248, 250, 252), t_box, border_radius=8)
-        pygame.draw.rect(screen, (226, 232, 240), t_box, 1, border_radius=8)
+        t_box = pygame.Rect(c3_rect.x + 10, c3_rect.y + 75, c3_rect.width - 20, 98)
+        pygame.draw.rect(screen, (248, 250, 252), t_box, border_radius=6)
+        pygame.draw.rect(screen, (226, 232, 240), t_box, 1, border_radius=6)
 
         ucc_rows = [
             ("Batas Penyesalan: Teorema Lai-Robbins R_T <= C * ln(T)", "[OK]", True),
@@ -952,10 +959,10 @@ class UnifiedPlannerPanel:
         ]
 
         for i, (r_txt, badge_txt, is_ok) in enumerate(ucc_rows):
-            ry_item = t_box.y + 7 + i * 24
-            screen.blit(self.font_mono.render(r_txt, True, (51, 65, 85)), (t_box.x + 10, ry_item))
+            ry_item = t_box.y + 6 + i * 23
+            screen.blit(self.font_mono.render(r_txt, True, (51, 65, 85)), (t_box.x + 8, ry_item))
 
-            b_item_r = pygame.Rect(t_box.right - 54, ry_item - 1, 44, 18)
+            b_item_r = pygame.Rect(t_box.right - 48, ry_item - 1, 40, 16)
             if is_ok:
                 self._draw_badge(screen, b_item_r, badge_txt, (22, 101, 52), (220, 252, 231), (134, 239, 172))
             else:
@@ -965,20 +972,19 @@ class UnifiedPlannerPanel:
         """Tab 1: Analisis komparatif heuristik pencarian."""
         rx, ry, rw, rh = self.rect.x, self.rect.y, self.rect.width, self.rect.height
 
-        cur_y = ry + 104
-        t_surf = self.font_title.render("ANALISIS HEURISTIK PERENCANAAN", True, (15, 23, 42))
-        screen.blit(t_surf, (rx + 12, cur_y))
+        cur_y = ry + 86
+        t_surf = self.font_title.render("ANALISIS HEURISTIK", True, (15, 23, 42))
+        screen.blit(t_surf, (rx + 10, cur_y))
 
-        badge_rect = pygame.Rect(rx + 12 + t_surf.get_width() + 10, cur_y + 1, 98, 20)
+        badge_rect = pygame.Rect(rx + 10 + t_surf.get_width() + 8, cur_y + 1, 88, 18)
         self._draw_badge(screen, badge_rect, "BENCHMARK", (71, 85, 105), (241, 245, 249), (226, 232, 240))
 
-        # Card 1: Benchmark
-        c1_rect = pygame.Rect(rx + 12, ry + 152, rw - 24, 210)
-        pygame.draw.rect(screen, (255, 255, 255), c1_rect, border_radius=12)
-        pygame.draw.rect(screen, (226, 232, 240), c1_rect, 1, border_radius=12)
+        c1_rect = pygame.Rect(rx + 10, ry + 124, rw - 20, 190)
+        pygame.draw.rect(screen, (255, 255, 255), c1_rect, border_radius=10)
+        pygame.draw.rect(screen, (226, 232, 240), c1_rect, 1, border_radius=10)
 
         c1_title = self.font_bold.render("BENCHMARK MASALAH P1 - P4", True, (15, 23, 42))
-        screen.blit(c1_title, (c1_rect.x + 16, c1_rect.y + 12))
+        screen.blit(c1_title, (c1_rect.x + 12, c1_rect.y + 10))
 
         p_items = [
             ("P1 (Key Craft)", "UCS 35 node (1.4ms) | A*(h_max) 16 node (0.8ms)"),
@@ -986,19 +992,18 @@ class UnifiedPlannerPanel:
             ("P3 (Potion)", "WA*(h_FF) 16 node (18.4ms) - Cost 33.0s"),
             ("P4 (Full Ekspedisi)", "WA*(h_FF) 37 langkah (118.48s) | 876 node"),
         ]
-        row_y = c1_rect.y + 36
+        row_y = c1_rect.y + 32
         for header, detail in p_items:
-            screen.blit(self.font_bold.render(header, True, (15, 23, 42)), (c1_rect.x + 16, row_y))
-            screen.blit(self.font_body.render(detail, True, (71, 85, 105)), (c1_rect.x + 16, row_y + 18))
-            row_y += 42
+            screen.blit(self.font_bold.render(header, True, (15, 23, 42)), (c1_rect.x + 12, row_y))
+            screen.blit(self.font_body.render(detail, True, (71, 85, 105)), (c1_rect.x + 12, row_y + 16))
+            row_y += 38
 
-        # Card 2: Admisibilitas
-        c2_rect = pygame.Rect(rx + 12, ry + 372, rw - 24, 238)
-        pygame.draw.rect(screen, (255, 255, 255), c2_rect, border_radius=12)
-        pygame.draw.rect(screen, (226, 232, 240), c2_rect, 1, border_radius=12)
+        c2_rect = pygame.Rect(rx + 10, ry + 322, rw - 20, 202)
+        pygame.draw.rect(screen, (255, 255, 255), c2_rect, border_radius=10)
+        pygame.draw.rect(screen, (226, 232, 240), c2_rect, 1, border_radius=10)
 
         c2_title = self.font_bold.render("OPTIMASI & SIFAT ADMISIBILITAS", True, (15, 23, 42))
-        screen.blit(c2_title, (c2_rect.x + 16, c2_rect.y + 12))
+        screen.blit(c2_title, (c2_rect.x + 12, c2_rect.y + 10))
 
         opts = [
             ("Planning Graph", "h_level admissible (h=4.0 pada Ojek, mutex terpenuhi)"),
@@ -1006,67 +1011,67 @@ class UnifiedPlannerPanel:
             ("Incremental Budgeting", "Waktu per-frame step() terukur < 20ms (rata-rata 1.1ms)"),
             ("Batas Geodesik Map", "Jarak rute riil 40 lkg >= 38 Manhattan terbukti invarian"),
         ]
-        row_y = c2_rect.y + 36
+        row_y = c2_rect.y + 32
         for header, detail in opts:
-            screen.blit(self.font_bold.render(header, True, (15, 23, 42)), (c2_rect.x + 16, row_y))
-            screen.blit(self.font_body.render(detail, True, (71, 85, 105)), (c2_rect.x + 16, row_y + 18))
-            row_y += 46
+            screen.blit(self.font_bold.render(header, True, (15, 23, 42)), (c2_rect.x + 12, row_y))
+            screen.blit(self.font_body.render(detail, True, (71, 85, 105)), (c2_rect.x + 12, row_y + 16))
+            row_y += 40
 
     def _draw_htn_tab(self, screen: pygame.Surface, farmer: Optional[HTNNPCAgent],
                       miller: Optional[HTNNPCAgent], clock: Optional[WorldClock]):
         """Tab 2: HTN Task Decomposition (Opsional)."""
         rx, ry, rw, rh = self.rect.x, self.rect.y, self.rect.width, self.rect.height
 
-        cur_y = ry + 104
+        cur_y = ry + 86
         t_surf = self.font_title.render("HTN TASK DECOMPOSITION", True, (15, 23, 42))
-        screen.blit(t_surf, (rx + 12, cur_y))
+        screen.blit(t_surf, (rx + 10, cur_y))
 
-        badge_rect = pygame.Rect(rx + 12 + t_surf.get_width() + 10, cur_y + 1, 98, 20)
+        badge_rect = pygame.Rect(rx + 10 + t_surf.get_width() + 8, cur_y + 1, 88, 18)
         self._draw_badge(screen, badge_rect, "[OPSIONAL]", (71, 85, 105), (241, 245, 249), (226, 232, 240))
 
-        c1_rect = pygame.Rect(rx + 12, ry + 152, rw - 24, 116)
-        pygame.draw.rect(screen, (255, 255, 255), c1_rect, border_radius=12)
-        pygame.draw.rect(screen, (226, 232, 240), c1_rect, 1, border_radius=12)
+        c1_rect = pygame.Rect(rx + 10, ry + 124, rw - 20, 104)
+        pygame.draw.rect(screen, (255, 255, 255), c1_rect, border_radius=10)
+        pygame.draw.rect(screen, (226, 232, 240), c1_rect, 1, border_radius=10)
 
         c1_title = self.font_bold.render("STATUS SHOP-STYLE HTN ENGINE", True, (15, 23, 42))
-        screen.blit(c1_title, (c1_rect.x + 16, c1_rect.y + 12))
-        screen.blit(self.font_body.render("Status: Modul opsional (di luar materi silabus 35 slide inti)", True, (30, 41, 59)), (c1_rect.x + 16, c1_rect.y + 36))
-        screen.blit(self.font_body.render("Engine mandiri tersedia di berkas src/planning/htn.py", True, (71, 85, 105)), (c1_rect.x + 16, c1_rect.y + 58))
-        screen.blit(self.font_body.render("Dukungan dekomposisi task NPC desa Sunnyside berjalan independen.", True, (100, 116, 139)), (c1_rect.x + 16, c1_rect.y + 80))
+        screen.blit(c1_title, (c1_rect.x + 12, c1_rect.y + 10))
+        screen.blit(self.font_body.render("Status: Modul opsional (di luar materi silabus 35 slide inti)", True, (30, 41, 59)), (c1_rect.x + 12, c1_rect.y + 32))
+        screen.blit(self.font_body.render("Engine mandiri tersedia di berkas src/planning/htn.py", True, (71, 85, 105)), (c1_rect.x + 12, c1_rect.y + 52))
+        screen.blit(self.font_body.render("Dukungan dekomposisi task NPC desa Sunnyside berjalan independen.", True, (100, 116, 139)), (c1_rect.x + 12, c1_rect.y + 72))
 
-        c2_rect = pygame.Rect(rx + 12, ry + 278, rw - 24, 332)
-        pygame.draw.rect(screen, (255, 255, 255), c2_rect, border_radius=12)
-        pygame.draw.rect(screen, (226, 232, 240), c2_rect, 1, border_radius=12)
+        c2_rect = pygame.Rect(rx + 10, ry + 236, rw - 20, 288)
+        pygame.draw.rect(screen, (255, 255, 255), c2_rect, border_radius=10)
+        pygame.draw.rect(screen, (226, 232, 240), c2_rect, 1, border_radius=10)
 
         c2_title = self.font_bold.render("SILABUS RESMI AUTOMATED PLANNING", True, (15, 23, 42))
-        screen.blit(c2_title, (c2_rect.x + 16, c2_rect.y + 12))
+        screen.blit(c2_title, (c2_rect.x + 12, c2_rect.y + 10))
 
         syllabus = [
-            "* PDDL & Action Schema (STRIPS standard preconditions and effects)",
-            "* Forward State-Space Search (BFS, Uniform Cost Search, A*)",
+            "* PDDL & Action Schema (STRIPS preconditions & effects)",
+            "* Forward State-Space Search (BFS, UCS, A*)",
             "* Backward Goal Regression (Analisis Slide 27)",
-            "* Ignore-Delete-List Heuristics (h_add, h_max, h_FF Relaxed Plan)",
+            "* Ignore-Delete-List Heuristics (h_add, h_max, h_FF Relaxed)",
             "* Planning Graph & Mutex Relations (GraphPlan / h_level)",
-            "* Decoupled Real-Time Re-planning Engine (< 20ms step budget)",
+            "* Decoupled Real-Time Re-planning Engine (< 20ms budget)",
             "* Cross-Module Integration with Bayesian Uncertainty & MAB",
         ]
-        s_y = c2_rect.y + 40
+        s_y = c2_rect.y + 36
         for item in syllabus:
-            screen.blit(self.font_body.render(item, True, (51, 65, 85)), (c2_rect.x + 16, s_y))
-            s_y += 38
+            screen.blit(self.font_body.render(item, True, (51, 65, 85)), (c2_rect.x + 12, s_y))
+            s_y += 34
 
     def draw(self, screen: pygame.Surface, autopilot: Optional[AutopilotController] = None,
              farmer: Optional[HTNNPCAgent] = None, miller: Optional[HTNNPCAgent] = None,
              clock: Optional[WorldClock] = None, weather_mgr: Optional[Any] = None,
              camera: Optional[Tuple[int, int]] = None, hero: Optional[Any] = None):
-        """Menggambar panel terpadu satu jendela dengan styling modern studio component."""
+        """Menggambar panel terpadu satu jendela dengan styling modern compact studio."""
         if not self.visible:
             return
 
         rx, ry, rw, rh = self.rect.x, self.rect.y, self.rect.width, self.rect.height
 
         # 1. Floating shadow kiri
-        if not hasattr(self, "_shadow_surf") or self._shadow_surf is None:
+        if not hasattr(self, "_shadow_surf") or self._shadow_surf is None or self._shadow_surf.get_height() != rh:
             self._shadow_surf = pygame.Surface((10, rh), pygame.SRCALPHA)
             for sx in range(10):
                 alpha = int(45 * (sx + 1) / 10)
@@ -1074,13 +1079,10 @@ class UnifiedPlannerPanel:
         screen.blit(self._shadow_surf, (rx - 10, ry))
 
         # 2. Base canvas (#F9FAFC / White)
-        bg_color = (20, 24, 33) if self.dark_mode else (249, 250, 252)
-        border_color = (45, 55, 72) if self.dark_mode else (226, 232, 240)
+        pygame.draw.rect(screen, (249, 250, 252), self.rect, border_radius=10)
+        pygame.draw.rect(screen, (226, 232, 240), self.rect, 1, border_radius=10)
 
-        pygame.draw.rect(screen, bg_color, self.rect, border_radius=12)
-        pygame.draw.rect(screen, border_color, self.rect, 1, border_radius=12)
-
-        # 3. Top Window Bar (3 Dots macOS + Dark Toggle)
+        # 3. Top Window Bar: Header teks profesional
         self._draw_top_window_bar(screen)
 
         # 4. Tab Bar (Segmented Capsule)
