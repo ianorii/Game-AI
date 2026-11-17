@@ -1742,8 +1742,9 @@ class Game:
         #     entities.append(self.world_state.gate)
         if hasattr(self, "beach_deco") and self.beach_deco:
             entities.extend(self.beach_deco.get_y_sort_entities())
-        if hasattr(self, "weather_board_prop") and self.weather_board_prop:
-            entities.append(self.weather_board_prop)
+        # Papan cuaca dihilangkan dari visualisasi dunia (fitur cuaca dihapus dari eksplorasi aktif)
+        # if hasattr(self, "weather_board_prop") and self.weather_board_prop:
+        #     entities.append(self.weather_board_prop)
         for gob in self.goblins:
             if gob.alive:
                 entities.append(gob)
@@ -1920,7 +1921,7 @@ class Game:
             ("COW", getattr(config, "INTERACT_COW_POS", (1744, 528)), 54.0),
             ("TREE", getattr(config, "INTERACT_TREE_POS", (1488, 592)), 54.0),
             ("ROCK", getattr(config, "INTERACT_ROCK_POS", (1904, 656)), 54.0),
-            ("WEATHER_BOARD", getattr(config, "INTERACT_WEATHER_BOARD_POS", (1504, 1024)), 54.0),
+            # ("WEATHER_BOARD", getattr(config, "INTERACT_WEATHER_BOARD_POS", (1504, 1024)), 54.0),
         ]
         # 5 Spot Pancingan Multi-Armed Bandit di seluruh pulau
         for sp in getattr(config, "BANDIT_FISHING_SPOTS", []):
@@ -2664,8 +2665,8 @@ class Game:
         m_surf = self.font_xs.render(mode_str, True, mode_col)
         panel.blit(m_surf, m_surf.get_rect(center=b_rect.center))
 
-        # Time & Weather string
-        info_str = f"{day_str} · {phase_str} · {w_str}"
+        # Time string (cuaca dihilangkan dari HUD utama)
+        info_str = f"{day_str} · {phase_str}"
         i_surf = self.font_xs.render(info_str, True, (215, 225, 240))
         panel.blit(i_surf, (b_rect.right + 10, (rh - i_surf.get_height()) // 2))
 
