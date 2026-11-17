@@ -782,18 +782,18 @@ class UnifiedPlannerPanel:
         kv_y = c2_rect.y + 59
         screen.blit(self.font_mono.render("Precondition", True, (13, 148, 136)), (c2_rect.x + 10, kv_y))
         pre_val = "Semua precondition STRIPS terpenuhi." if not act else "[OK] at [OK] connected"
-        screen.blit(self.font_body.render(pre_val[:32], True, (15, 23, 42)), (c2_rect.x + 96, kv_y))
+        screen.blit(self.font_body.render(pre_val, True, (15, 23, 42)), (c2_rect.x + 104, kv_y))
 
         kv_y += 16
         screen.blit(self.font_mono.render("Effect (Eff)", True, (13, 148, 136)), (c2_rect.x + 10, kv_y))
         eff_val = "Siap eksekusi tahap berikutnya." if not act else "+has_key, +holding | -wood"
-        screen.blit(self.font_body.render(eff_val[:32], True, (15, 23, 42)), (c2_rect.x + 96, kv_y))
+        screen.blit(self.font_body.render(eff_val, True, (15, 23, 42)), (c2_rect.x + 104, kv_y))
 
         kv_y += 16
         diff_txt = getattr(monitor, "last_state_diff", "-") if monitor else "-"
-        diff_display = "- (belum ada aksi selesai)" if diff_txt == "-" else f"{diff_txt[:28]}"
+        diff_display = "- (belum ada aksi selesai)" if diff_txt == "-" else f"{diff_txt[:32]}"
         screen.blit(self.font_mono.render("State Diff", True, (100, 116, 139)), (c2_rect.x + 10, kv_y))
-        screen.blit(self.font_mono.render(diff_display, True, (100, 116, 139)), (c2_rect.x + 96, kv_y))
+        screen.blit(self.font_mono.render(diff_display, True, (100, 116, 139)), (c2_rect.x + 104, kv_y))
 
         # ----------------------------------------------------------------------
         # Card 3: MESIN PENCARI WA* & ANTREAN (182px)
@@ -886,7 +886,7 @@ class UnifiedPlannerPanel:
         self._draw_metric_box(screen, m3_r, "Regret Bound", "O(ln T)")
 
         hint_y = c1_rect.y + 74
-        screen.blit(self.font_body.render("Sistem 5 Spot Pesisir & Sungai (Theta Rahasia)", True, (71, 85, 105)), (c1_rect.x + 10, hint_y))
+        screen.blit(self.font_body.render("Sistem 5 Spot Pesisir (Theta Rahasia)", True, (71, 85, 105)), (c1_rect.x + 10, hint_y))
         b_hint_r = pygame.Rect(c1_rect.right - 118, hint_y - 2, 108, 18)
         self._draw_badge(screen, b_hint_r, "Tekan [B] Jurnal", (15, 23, 42), (241, 245, 249), (203, 213, 225))
 
@@ -914,15 +914,15 @@ class UnifiedPlannerPanel:
 
         kv_y = c2_rect.y + 59
         screen.blit(self.font_mono.render("Analisis MEU", True, (180, 83, 9)), (c2_rect.x + 10, kv_y))
-        screen.blit(self.font_body.render("Tarung (E[Loot] = +5.5 Koin) vs Hindari (0 Dmg)", True, (15, 23, 42)), (c2_rect.x + 96, kv_y))
+        screen.blit(self.font_body.render("Tarung (E[Loot] = +5.5 Koin) vs Hindari (0 Dmg)", True, (15, 23, 42)), (c2_rect.x + 104, kv_y))
 
         kv_y += 16
         screen.blit(self.font_mono.render("Kebijakan HP", True, (180, 83, 9)), (c2_rect.x + 10, kv_y))
-        screen.blit(self.font_bold.render("HP >= 35% -> Engage | HP < 35% -> Evade (Detour)", True, (15, 23, 42)), (c2_rect.x + 96, kv_y))
+        screen.blit(self.font_bold.render("HP >= 35% -> Engage | HP < 35% -> Evade", True, (15, 23, 42)), (c2_rect.x + 104, kv_y))
 
         kv_y += 16
         screen.blit(self.font_mono.render("Status Alam", True, (100, 116, 139)), (c2_rect.x + 10, kv_y))
-        screen.blit(self.font_mono.render("Minion berkeliaran bebas di daratan, interaksi live", True, (100, 116, 139)), (c2_rect.x + 96, kv_y))
+        screen.blit(self.font_body.render("Minion goblin berkeliaran bebas (live combat)", True, (100, 116, 139)), (c2_rect.x + 104, kv_y))
 
         # ----------------------------------------------------------------------
         # Card 3: FORMULASI KEPUTUSAN STOKASTIK (182px)
@@ -952,10 +952,10 @@ class UnifiedPlannerPanel:
         pygame.draw.rect(screen, (226, 232, 240), t_box, 1, border_radius=6)
 
         ucc_rows = [
-            ("Batas Penyesalan: Teorema Lai-Robbins R_T <= C * ln(T)", "[OK]", True),
-            ("Konjugat Beta-Binomial Posterior Updating Eksak", "[OK]", True),
-            ("Ambang Batas Keamanan Live Combat HP >= 35%", "[OK]", True),
-            ("Optimisme: Hadapi ketidakpastian dengan batas atas", "INFO", False),
+            ("Penyesalan: Teorema Lai-Robbins O(ln T)", "[OK]", True),
+            ("Konjugat Beta-Binomial Posterior Update", "[OK]", True),
+            ("Ambang Risiko Live Combat HP >= 35%", "[OK]", True),
+            ("Optimisme: Eksplorasi Bound Atas (UCB1)", "INFO", False),
         ]
 
         for i, (r_txt, badge_txt, is_ok) in enumerate(ucc_rows):
