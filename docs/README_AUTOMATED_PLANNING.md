@@ -94,12 +94,56 @@ Untuk menjamin eksekusi di dunia nyata yang dinamis, game dilengkapi pengendali 
 
 ---
 
-### 6. Dekomposisi Tugas Hierarkis (HTN) untuk NPC Desa
+### 6. Implementasi Nyata Automated Planning pada Entitas Game (Hero & NPC)
 
-Di luar silabus perencanaan klasik, game menyertakan mesin Shop-style HTN untuk memberikan dinamika desa yang hidup:
-- **Pak Tani (Farmer NPC)**: Menjalankan dekomposisi `daily_farm_routine` $\rightarrow$ merawat petak tanaman, memupuk, memanen, dan berpatroli keliling desa.
-- **Kang Penggiling (Miller NPC)**: Menjalankan dekomposisi `daily_mill_routine` $\rightarrow$ mengoperasikan kincir angin desa, mengecek karung tepung, dan beristirahat saat malam tiba.
-- **Sinkronisasi Jam Dunia (*WorldClock*)**: Siklus 60 detik siang dan 30 detik malam secara otomatis memicu metode dekomposisi aktivitas baru pada agen NPC.
+Perencanaan otomatis dalam permainan ini bukan sekadar simulasi teks, melainkan menggerakkan **dua kategori agen AI otonom** secara fisik di dunia game:
+
+#### 6.1 Hero Agent: Perencanaan Strategis Jangka Panjang (STRIPS + WA*)
+Hero bertindak sebagai agen otonom yang memecahkan masalah ekspedisi 37 langkah ($P_4$) dari nol hingga mengalahkan Boss:
+- **Pengumpulan Sumber Daya Mandiri**: Hero menavigasi ke hutan untuk menebang kayu (`chop_wood`) dan ke tebing untuk menambang batu (`mine_rock`).
+- **Rantai Pertanian & Ekonomi Toko**:
+  - Sadar bahwa ia membutuhkan modal koin untuk membeli perlengkapan, Hero pergi ke toko untuk membeli bibit (`buy_seed_radish`).
+  - Berjalan ke ladang, menanam bibit (`plant_radish`), menyiram air (`water_radish`), menunggu fase tumbuh matang, memanen lobak (`harvest_radish`), lalu menjualnya kembali ke toko (`sell_produce`) untuk mengantongi koin.
+- **Crafting & Persiapan Bertarung**:
+  - Membeli botol kosong dan meracik ramuan kesehatan di bengkel desa (`craft_potion`).
+  - Membeli zirah pelindung (`buy_armor_leather`) dan melengkapinya (`equip_leather`).
+  - Memadukan 1 kayu + 1 batu di bengkel untuk menempa kunci kuno (`craft_key`).
+- **Navigasi Geodesik & Boss Encounter**:
+  - Melintasi chokepoint jembatan sungai menuju pantai timur.
+  - Membuka segel gerbang terkunci menggunakan kunci yang telah ditempa (`open_gate`).
+  - Masuk ke arena Obsidian Keep untuk menantang Skeleton Overlord (`fight_boss`).
+
+---
+
+#### 6.2 Agen NPC Desa Sunnyside: Dekomposisi Aktivitas Otonom (Shop-Style HTN)
+Dua NPC desa Sunnyside digerakkan secara penuh oleh mesin **Hierarchical Task Network (HTN)** berbasis file domain `data/planning/npc.htn`. Mereka tidak menggunakan rute jalan kaku (*hardcoded waypoints*), melainkan mendekomposisi tugas secara dinamis berdasarkan kondisi dunia (*world predicates*):
+
+##### A. Pak Tani (`farmer` — Rambut Keriting / Curly Hair)
+Memiliki tugas majemuk harian `daily_routine_farmer` yang didekomposisi sesuai jam dunia (*WorldClock*):
+1. **Siklus Siang Hari (`is_daytime`)**:
+   - **Pengelolaan Ladang Mandiri (`manage_farm`)**:
+     - *Jika ada tanaman matang* (`has_mature_crop`): Pergi ke ladang $\to$ Panen lobak (`!harvest_crop`) $\to$ Pergi ke toko $\to$ Jual hasil panen (`!sell_produce`).
+     - *Jika ada petak yang kering* (`has_dry_plot`): Pergi ke ladang $\to$ Siram air pada tanaman (`!water_crop`).
+     - *Jika ada petak kosong* (`has_empty_plot`): Pergi ke toko $\to$ Beli benih baru (`!buy_seed`) $\to$ Pergi ke ladang $\to$ Tanam benih di petak kosong (`!plant_crop`).
+     - *Jika seluruh ladang beres*: Pulang beristirahat sejenak di ranjang (`!rest bed`).
+   - **Perawatan Hewan Ternak Desa (`care_animals`)**:
+     - Jika ayam lapar (`chickens_hungry`): Pergi ke kandang ayam $\to$ Beri pakan ayam (`!feed_animals chickens`).
+     - Mengunjungi padang rumput $\to$ Memberi pakan kawanan sapi desa (`!feed_animals cows`).
+2. **Siklus Malam Hari (`night_sleep`)**:
+   - Secara otomatis membatalkan rutinitas luar ruang, kembali ke pondok desa, dan tidur di ranjang (`!goto bed` $\to$ `!rest bed`).
+
+##### B. Kang Penggiling (`miller` — Rambut Mop / Mop Hair)
+Memiliki tugas majemuk harian `daily_routine_miller` yang mengelola kincir angin desa:
+1. **Siklus Siang Hari (`is_daytime`)**:
+   - **Siklus Penggilingan Gandum (`mill_cycle`)**:
+     - *Jika ada pasokan gandum* (`wheat_available`): Pergi ke toko desa $\to$ Ambil karung gandum (`!take_wheat`) $\to$ Bawa ke kincir angin (`!goto windmill`) $\to$ Operasikan kincir angin untuk menggiling gandum menjadi tepung (`!mill_wheat`, bilah kincir angin berputar aktif) $\to$ Antarkan tepung hasil gilingan ke toko desa (`!deliver_flour`).
+     - *Jika gandum belum siap*: Melakukan inspeksi struktural dan pemeliharaan mekanis kincir angin (`!inspect_mill`).
+2. **Siklus Malam Hari (`night_sleep`)**:
+   - Berhenti bekerja, kembali ke pemukiman, dan beristirahat di ranjang hingga fajar tiba.
+
+##### C. Keunggulan HTN Dibandingkan Finite State Machine (FSM) Biasa
+- **Dinamis & Adaptif**: Jika tanaman tiba-tiba kering karena faktor lingkungan, Pak Tani tidak bingung atau terjebak dalam *loop*—perencana HTN secara otomatis memilih metode alternatif `m_water_dry_plots`.
+- **Hierarkis & Terstruktur**: Aktivitas tingkat tinggi (misal: "Merawat Desa") didekomposisi menjadi subtugas konkret hingga ke operator primitif (`!goto`, `!plant_crop`, `!feed_animals`) yang memiliki durasi dan efek nyata pada status dunia game.
 
 ---
 
@@ -130,3 +174,4 @@ python3 tools/benchmark_planning.py
 # 3. Menjalankan unit test khusus Automated Planning
 PYTHONPATH=src python3 -m unittest tests.test_strips_planner tests.test_lecture_planning tests.test_htn
 ```
+
