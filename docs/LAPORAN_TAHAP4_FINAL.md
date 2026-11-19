@@ -173,20 +173,20 @@ Domain mendefinisikan 31 operator perencanaan. Biaya tindakan navigasi `goto` di
 **Tabel 2.3. Skema operator utama ekspedisi**
 | Operator | Prasyarat (*Preconditions*) | Efek Positif (*Add*) & Negatif (*Del*) | Biaya (s) |
 | :--- | :--- | :--- | :---: |
-| `goto(?from, ?to)` | `at(?from)`, `connected(?from, ?to)` | $+\text{at}(?\text{to})$, $-\text{at}(?\text{from})$ | Jarak $A^*$ |
-| `fish` | `at(river_fishing)` | $+\text{has}(\text{fish})$ | 2,50 |
-| `mine_rock_river` | `at(river_fishing)` | $+\text{has}(\text{rock})$ | 3,50 |
-| `chop_wood` | `at(forest_wood)` | $+\text{has}(\text{wood})$ | 2,00 |
-| `sell_fish(?c1, ?c2)` | `at(shop)`, `has(fish)`, `coins(?c1)`, `earn_fish(?c1, ?c2)` | $+\text{coins}(?\text{c2})$, $-\text{coins}(?\text{c1})$, $-\text{has}(\text{fish})$ | 0,50 |
-| `buy_seed_radish(?c1, ?c2)` | `at(shop)`, `coins(?c1)`, `pay_seed(?c1, ?c2)` | $+\text{has}(\text{seeds})$, $+\text{coins}(?\text{c2})$, $-\text{coins}(?\text{c1})$ | 0,50 |
-| `plant_radish(?p)` | `at(farm)`, `plot_empty(?p)`, `has(seeds)` | $+\text{plot_planted}(?\text{p})$, $-\text{plot_empty}(?\text{p})$, $-\text{has}(\text{seeds})$ | 1,00 |
-| `water_radish(?p)` | `at(farm)`, `plot_planted(?p)` | $+\text{plot_watered}(?\text{p})$ | 1,00 |
-| `wait_grow_radish(?p)` | `at(farm)`, `plot_planted(?p)`, `plot_watered(?p)` | $+\text{plot_mature}(?\text{p})$ | 12,50 |
-| `harvest_radish(?p)` | `at(farm)`, `plot_mature(?p)` | $+\text{has}(\text{radish})$, $+\text{plot_empty}(?\text{p})$, $-\text{plot_mature}(?\text{p})$ | 1,00 |
-| `craft_key` | `at(workshop)`, `has(wood)`, `has(rock)` | $+\text{has}(\text{gate_key})$, $-\text{has}(\text{wood})$, $-\text{has}(\text{rock})$ | 2,00 |
-| `craft_potion(?n0, ?n1)` | `at(workshop)`, `has(radish)`, `has(bottle)`, `has_n(potion, ?n0)`, `next_count(?n0, ?n1)` | $+\text{has_n}(\text{potion}, ?\text{n1})$, $-\text{has}(\text{radish})$, $-\text{has}(\text{bottle})$, $-\text{has_n}(\text{potion}, ?\text{n0})$ | 1,50 |
-| `open_gate` | `at(gate)`, `has(gate_key)`, `gate_locked` | $+\text{gate_open}$, $-\text{gate_locked}$ | 1,00 |
-| `fight_boss(?w, ?a, ?n)` | `at(boss)`, `gate_open`, `hp_full`, `equipped(?w)`, `equipped(?a)`, `has_n(potion, ?n)`, `ready_loadout(?w, ?a, ?n)` | $+\text{boss_defeated}$ | 10,00 |
+| `goto(?from, ?to)` | `at(?from)`, `connected(?from, ?to)` | `+at(?to), -at(?from)` | Jarak A* |
+| `fish` | `at(river_fishing)` | `+has(fish)` | 2,50 |
+| `mine_rock_river` | `at(river_fishing)` | `+has(rock)` | 3,50 |
+| `chop_wood` | `at(forest_wood)` | `+has(wood)` | 2,00 |
+| `sell_fish(?c1, ?c2)` | `at(shop)`, `has(fish)`, `coins(?c1)`, `earn_fish(?c1, ?c2)` | `+coins(?c2), -coins(?c1), -has(fish)` | 0,50 |
+| `buy_seed_radish(?c1, ?c2)` | `at(shop)`, `coins(?c1)`, `pay_seed(?c1, ?c2)` | `+has(seeds), +coins(?c2), -coins(?c1)` | 0,50 |
+| `plant_radish(?p)` | `at(farm)`, `plot_empty(?p)`, `has(seeds)` | `+plot_planted(?p), -plot_empty(?p), -has(seeds)` | 1,00 |
+| `water_radish(?p)` | `at(farm)`, `plot_planted(?p)` | `+plot_watered(?p)` | 1,00 |
+| `wait_grow_radish(?p)` | `at(farm)`, `plot_planted(?p)`, `plot_watered(?p)` | `+plot_mature(?p)` | 12,50 |
+| `harvest_radish(?p)` | `at(farm)`, `plot_mature(?p)` | `+has(radish), +plot_empty(?p), -plot_mature(?p)` | 1,00 |
+| `craft_key` | `at(workshop)`, `has(wood)`, `has(rock)` | `+has(gate_key), -has(wood), -has(rock)` | 2,00 |
+| `craft_potion(?n0, ?n1)` | `at(workshop)`, `has(radish)`, `has(bottle)`, `has_n(potion, ?n0)`, `next_count(?n0, ?n1)` | `+has_n(potion, ?n1), -has(radish), -has(bottle), -has_n(potion, ?n0)` | 1,50 |
+| `open_gate` | `at(gate)`, `has(gate_key)`, `gate_locked` | `+gate_open, -gate_locked` | 1,00 |
+| `fight_boss(?w, ?a, ?n)` | `at(boss)`, `gate_open`, `hp_full`, `equipped(?w)`, `equipped(?a)`, `has_n(potion, ?n)`, `ready_loadout(?w, ?a, ?n)` | `+boss_defeated` | 10,00 |
 
 #### 2.2.4 Goal State
 Tujuan ekspedisi didefinisikan secara tunggal: `(boss_defeated)`. Untuk mencapai kondisi tersebut, perencana harus menyusun pemenuhan rantai kausalitas secara lengkap: mengumpulkan bahan baku, menghasilkan kunci, membuka gerbang, melengkapi loadout tempur, dan memenuhi kuota ramuan penyembuh.
