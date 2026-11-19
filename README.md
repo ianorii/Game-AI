@@ -21,41 +21,49 @@ Dunia dibangkitkan secara deterministik dari `seed`:
 - **Reruntuhan Obsidian Keep** — pelataran batu, pilar, brazier, Gerbang, Core, dan Boss.
 - **Padang Liar Eldoria** — hamparan rumput terbuka yang menghubungkan semua wilayah.
 
-## 1) Struktur Proyek
+## 1) Struktur Proyek & Dokumentasi Resmi
+
+### Dokumentasi & Panduan Khusus Modul AI
+- 📘 **Automated Planning**: [docs/README_AUTOMATED_PLANNING.md](docs/README_AUTOMATED_PLANNING.md) *(Panduan STRIPS, WA\*, HTN, Plan Monitor, & Masalah P1-P4)*
+- 📙 **Decisions Under Uncertainty**: [docs/README_DECISION_UNCERTAINTY.md](docs/README_DECISION_UNCERTAINTY.md) *(Panduan Teori Bayes, Banjir Pesisir f\*, MAB Nelayan, & Live Combat)*
+- 📑 **Laporan Induk Sintesis**: [docs/LAPORAN_INDUK.md](docs/LAPORAN_INDUK.md) *(Dokumen Induk Lengkap Seluruh Modul AI)*
+- 🔬 **Laporan Formal Planning**: [docs/LAPORAN_AUTOMATED_PLANNING.md](docs/LAPORAN_AUTOMATED_PLANNING.md)
+- 🎲 **Laporan Formal Uncertainty**: [docs/DECISION_UNCERTAINTY.md](docs/DECISION_UNCERTAINTY.md)
 
 ```text
-DungeonGame/
+Game AI/
 ├── assets/
-│   ├── tilesets/
-│   │   ├── sunnyside_world.png     # atlas utama 1280x1280 (64x64 sel, pitch 20)
-│   │   ├── sunnyside_forest.png    # atlas kanopi hutan
-│   │   └── CREDITS_sunnyside_world.txt
-│   ├── sprites/
-│   │   ├── hero/                   # hero_idle / hero_run / hero_attack / hero_hurt / hero_cast
-│   │   └── monsters/               # zombie (Goblin), ice_zombie (Skeleton), big_demon (Boss)
-│   ├── props/                      # pohon, jamur, hewan, batu, peti, tanaman
-│   └── vfx/                        # api, kilau, ikon hati
+│   ├── maps/               # Peta pulau Sunnyside, walkable mask, & building footprints
+│   ├── sunnyside_world/    # Karakter, prop, bangunan desa, & VFX
+│   └── tilesets/           # Atlas tileset Sunnyside & lisensi
+├── data/
+│   ├── catalog.json        # Katalog data-driven item, properti, & harga
+│   ├── collision_overrides.json # Override koordinat rintangan fisik
+│   ├── planning/           # Berkas domain & problem PDDL (.domain, .problem, .htn)
+│   └── screenshots/        # Tangkapan layar referensi pengujian
+├── docs/                   # Laporan teknis resmi & dokumentasi modul AI
+│   ├── README_AUTOMATED_PLANNING.md # Panduan resmi modul Automated Planning
+│   ├── README_DECISION_UNCERTAINTY.md # Panduan resmi modul Decisions Under Uncertainty
+│   ├── LAPORAN_INDUK.md    # Dokumen sintesis induk seluruh modul AI
+│   ├── LAPORAN_AUTOMATED_PLANNING.md
+│   ├── DECISION_UNCERTAINTY.md
+│   ├── figures/            # Grafik distribusi, grafik sensitivitas, & peta analitis
+│   ├── report_data/        # Data mentah benchmark JSON (ground truth)
+│   └── screenshots/        # Tangkapan layar verifikasi UI & gameplay
 ├── src/
-│   ├── main.py
-│   ├── config.py
-│   ├── asset_loader.py
-│   ├── ai/
-│   │   ├── pathfinding.py      # A*, Dijkstra + tracking open/closed
-│   │   ├── csp.py              # Constraint Satisfaction (PlacementCSP)
-│   │   ├── local_search.py     # Simulated Annealing (auto-optimise)
-│   │   ├── adversarial.py      # Minimax + Alpha-Beta (battle Boss)
-│   │   └── planning.py         # STRIPS planner + PlanMonitor
-│   └── core/
-│       ├── worldgen.py         # generator dunia: biome, jalan, sungai, desa, ladang, ruins
-│       ├── world_art.py        # tile atlas + prop aset + rumah prosedural
-│       ├── map.py              # chunk renderer, kamera, minimap, ambient
-│       ├── entity.py           # Hero/Monster/Boss + controller manual
-│       ├── battle_ui.py        # layar Battle Mode
-│       └── debug_overlay.py    # Overlay F1–F5 & F12 (panel pojok)
-├── tools/
-│   └── import_sunnyside.py     # impor ulang aset dari paket sumber (--pack)
-├── setup_structure.py
-└── requirements.txt
+│   ├── main.py             # Titik masuk utama game loop Pygame
+│   ├── config.py           # Konfigurasi konstanta, geometri, & parameter game
+│   ├── combat_config.py    # Konfigurasi sistem real-time combat & musuh
+│   ├── ai/                 # Pathfinding (A*, Dijkstra), CSP, Local Search (SA), Minimax
+│   ├── battle/             # Modul pertarungan turn-based & persiapan CSP loadout
+│   ├── core/               # Animal, Battle UI, Entity, Map, WorldGen
+│   ├── decision/           # Decisions Under Uncertainty: Bayes, MDP, Flood, MAB
+│   ├── entities/           # Sprite dinamis (Goblin, VFX)
+│   ├── planning/           # STRIPS, PDDL Parser, WA*, HTN, Plan Monitor, Unified Dock
+│   └── world/              # GameMap, Village Deco, Collision Editor
+├── tests/                  # 236 Unit tests otomatis (100% PASS)
+├── tools/                  # Script benchmark, evaluasi, verifikasi, & capture data
+└── requirements.txt        # Dependensi Python
 ```
 
 > Aset tileset, karakter, prop, dan VFX berasal dari **Sunnyside World Asset Pack V2.1**
