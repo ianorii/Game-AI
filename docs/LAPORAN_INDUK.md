@@ -27,7 +27,7 @@ Sistem permainan memadukan tujuh pilar utama kecerdasan buatan dalam satu ekosis
 3. **Constraint Satisfaction Problems (CSP):** Penyusunan kombinasi beban perlengkapan dan alokasi ramuan tempur (*loadout optimization*) di bawah kendala ketat kapasitas berat dan modal koin menggunakan algoritma Backtracking dengan heuristik MRV, LCV, dan Forward Checking.
 4. **Stochastic Local Search:** Penalaan (*tuning*) bobot fungsi evaluasi bos secara otomatis menggunakan metode *Hill Climbing with Restarts* dan *Simulated Annealing*.
 5. **Perencanaan Otomatis Klasik (*Automated Planning*):** Mesin perencana deliberatif berbasis representasi STRIPS/PDDL yang mendukung penelusuran maju (*forward search*) dengan heuristik relaksasi hapus ($h_{\max}$, $h_{\text{add}}$, $h_{\text{FF}}$), penelusuran mundur (*backward subgoal regression*), serta graf perencanaan (*planning graph*) dan penalaran relasi *mutex*.
-6. **Hierarchical Task Networks (HTN):** Arsitektur perencanaan hierarkis bergaya JSHOP yang mengendalikan rutinitas harian NPC desa (Pak Tani dan Kang Penggiling) secara otonom dalam siklus siang-malam.
+6. **Hierarchical Task Networks (HTN):** Arsitektur perencanaan hierarkis bergaya JSHOP yang mengendalikan rutinitas harian NPC desa (Pak Tani dan Kang Penggiling) secara otonom dalam siklus aktivitas desa yang berkesinambungan.
 7. **Pengambilan Keputusan di Bawah Ketidakpastian (*Decisions Under Uncertainty*):** Integrasi probabilitas Bayes, *Maximum Expected Utility* (MEU), rantai Markov Decision Process (MDP) dengan *Synchronous Value Iteration*, analisis nilai informasi (*Value of Perfect Information* / VPI) versus biaya fisik observasi, serta mekanisme mitigasi genangan air dinamis (*flood flush*).
 
 ## Ruang Lingkup Dokumen Induk
@@ -377,7 +377,7 @@ Proyek pengembangan **AI LABYRINTH: THE DUNGEON OVERSEER** telah berhasil mereal
 3. **Solver Backtracking CSP dengan Heuristik MRV, LCV, dan Forward Checking** berhasil mereduksi jumlah *backtrack* sebesar $97.9\%$ dalam penentuan beban perlengkapan.
 4. **Stochastic Local Search** mampu mengoptimasi bobot parameter bos secara adaptif dalam batas waktu pemikiran 250 ms.
 5. **Mesin Perencana Otomatis STRIPS dengan Weighted $A^*$ ($h_{\text{FF}}$)** berhasil menyelesaikan skenario ekspedisi kompleks sepanjang 37 langkah secara optimal.
-6. **Dynamic HTN Planner** sukses mengendalikan rutinitas kerja harian NPC desa secara otonom dalam siklus siang-malam.
+6. **Dynamic HTN Planner** sukses mengendalikan rutinitas kerja harian NPC desa secara otonom dalam siklus aktivitas desa yang berkesinambungan.
 7. **Modul Keputusan di Bawah Ketidakpastian** membuktikan kekebalan (*invariance*) kebijakan optimal $\pi^*$ terhadap pilihan definisi segmen jalan, serta mendemonstrasikan secara empiris fenomena di mana biaya perolehan informasi melampaui nilai utilitasnya.
 
 ## Arah Pengembangan Lanjut

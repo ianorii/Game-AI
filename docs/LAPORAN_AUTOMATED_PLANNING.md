@@ -801,7 +801,7 @@ Berdasarkan seluruh hasil perancangan, implementasi, dan pengujian empiris yang 
 ## Rencana Pengembangan Lanjut
 Untuk pengembangan sistem pada tahap berikutnya, beberapa peningkatan yang direkomendasikan adalah:
 1. **Integrasi Fluent Numerik PDDL 2.1:** Mengganti tangga koin diskret (`c0..c60`) dengan variabel numerik kontinu STRIPS numerik (`(>= (coins) 40)` dan `(decrease (coins) 40)`), mengeliminasi ledakan percabangan transaksi moneter secara permanen.
-2. **Aktivasi NPC Dinamis Berbasis HTN di Dunia Permainan:** Mengintegrasikan mesin HTN (`src/planning/htn.py`) ke dalam entitas NPC penduduk desa, memungkinkan petani dan penggiling beraktivitas otonom mengikuti jam siang-malam dan merespons kedatangan hero.
+2. **Aktivasi NPC Dinamis Berbasis HTN di Dunia Permainan:** Mengintegrasikan mesin HTN (`src/planning/htn.py`) ke dalam entitas NPC penduduk desa, memungkinkan petani dan penggiling beraktivitas otonom menjalankan rutinitas desa yang berkesinambungan dan merespons interaksi dunia.
 3. **Penyusunan Rencana Kontinjensi Probabilistik:** Mengembangkan perencana yang mampu menghasilkan pohon kebijakan kontinjensi (*contingency policy tree*) dengan memperhitungkan variasi kerusakan tempur minimax secara probabilistik (*Markov Decision Process* / MDP) langsung di level perencana strategis.
 
 Kesimpulan bagian ini: Proyek implementasi Automated Planning pada AI LABYRINTH telah berhasil mencapai seluruh target akademik dengan kualitas teknis, stabilitas kode, dan integritas empiris berstandar tinggi.

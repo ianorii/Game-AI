@@ -365,17 +365,17 @@ Modul `src/planning/htn.py` menggerakkan dua NPC otonom di dunia permainan nyata
 ### A. Dekomposisi Task Nyata (Bukan Path Statis)
 NPC tidak digerakkan oleh waypoints atau timer statis, melainkan 100% didekomposisi secara hierarkis oleh HTN planner (SHOP-style forward decomposition) dari file domain `data/planning/npc.htn`:
 - **Pak Tani** (`daily_routine_farmer`):
-  - Saat Siang (`m_farmer_day_shift`):
+  - Siklus Bertani (`m_farmer_day_shift`):
     - Jika petak kosong $\to$ `!goto(farm, shop)` $\to$ `!buy_seed(radish)` $\to$ `!goto(shop, farm)` $\to$ `!plant_crop(plot0)`.
     - Jika petak kering $\to$ `!water_crop(plot0)`.
     - Jika petak matang $\to$ `!harvest_crop(plot0)` $\to$ `!goto(farm, shop)` $\to$ `!sell_crop(radish)`.
-  - Saat Malam (`m_farmer_night_shift`):
-    - `!goto(farm, home_farmer)` $\to$ `!sleep_at_night`.
+  - Siklus Istirahat Desa:
+    - Jika seluruh ladang beres $\to$ `!goto(farm, home_farmer)` $\to$ `!rest bed`.
 - **Kang Penggiling** (`daily_routine_miller`):
-  - Saat Siang (`m_miller_day_shift`):
+  - Siklus Penggilingan (`m_miller_day_shift`):
     - `!goto(windmill, shop)` $\to$ `!take_wheat` $\to$ `!goto(shop, windmill)` $\to$ `!grind_flour` $\to$ `!goto(windmill, shop)` $\to$ `!sell_flour`.
-  - Saat Malam (`m_miller_night_shift`):
-    - `!goto(windmill, home_miller)` $\to$ `!sleep_at_night`.
+  - Siklus Istirahat Desa:
+    - Jika gandum telah habis digiling $\to$ `!goto(windmill, home_miller)` $\to$ `!rest bed`.
 
 ### B. Navigasi & Collision Terpadu
 - Ketika mengeksekusi operator primitif `!goto(?from, ?to)`, NPC memanggil algoritma **A\*** pada grid peta permainan (`game_map`).
@@ -388,7 +388,7 @@ NPC tidak digerakkan oleh waypoints atau timer statis, melainkan 100% didekompos
 
 ### D. Visualisasi Panel F8 (`HTNPlanPanel`)
 Menekan tombol **`F8`** (atau tab ke-2 pada Unified Planner Panel `[F7]`) menampilkan:
-- Jam dunia dan siklus waktu (`WorldClock.time_string`, indikator siang/malam).
+- Jam dunia dan siklus aktivitas desa (`WorldClock.time_string`, fase Pagi/Siang/Sore).
 - Ringkasan status Pak Tani dan Kang Penggiling: nama, lokasi, metode aktif, dan alasan prasyarat.
 - Antrean operator primitif yang sedang berjalan beserta durasi elapsed.
 - Riwayat replanning otonom (waktu dan alasan dekomposisi).

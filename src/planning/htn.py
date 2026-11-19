@@ -6,7 +6,7 @@ Implementasi SHOP-style Total-Order Forward Decomposition dengan Backtracking:
   2. Dekomposisi tugas tingkat tinggi dengan >= 2 metode alternatif per task.
   3. Pohon dekomposisi hierarkis (HTNDecompositionNode) untuk visualisasi panel F8.
   4. Monitoring kondisi dunia dinamis & replanning otonom (misal: hero memanen petak yang dituju).
-  5. Pengendali rutinitas NPC (Petani & Penggiling) dengan jam siang-malam (WorldClock)
+  5. Pengendali rutinitas NPC (Petani & Penggiling) dengan jam aktivitas desa (WorldClock)
      dan status expression icon (working, confused, chat, rest).
 """
 
@@ -260,11 +260,11 @@ class SHOPPlanner:
 # ==============================================================================
 
 class WorldClock:
-    """Jam simulasi siklus siang-malam desa Sunnyside."""
-    def __init__(self, day_duration: float = 60.0, night_duration: float = 30.0):
+    """Jam simulasi siklus aktivitas desa Sunnyside (tanpa siklus malam)."""
+    def __init__(self, day_duration: float = 60.0, night_duration: float = 0.0):
         self.day_duration = day_duration
-        self.night_duration = night_duration
-        self.total_cycle = day_duration + night_duration
+        self.night_duration = max(0.0, night_duration)
+        self.total_cycle = self.day_duration + self.night_duration if self.night_duration > 0.0 else self.day_duration
         self.time_seconds: float = 0.0
 
     @property
@@ -280,26 +280,36 @@ class WorldClock:
 
     @property
     def is_daytime(self) -> bool:
+        if self.night_duration <= 0.0:
+            return True
         return (self.time_seconds % self.total_cycle) < self.day_duration
 
     @property
     def phase(self) -> str:
         """
-        Sub-fase waktu harian desa Sunnyside:
-        - 0.0s .. 15.0s : PAGI (Fajar / pagi hari saat NPC bangun)
+        Sub-fase waktu aktivitas harian desa Sunnyside:
+        Permainan berlatar siang hari aktif berkesinambungan (tanpa malam hari):
+        - 0.0s .. 15.0s : PAGI (Pagi hari saat NPC memulai aktivitas)
         - 15.0s .. 45.0s: SIANG (Siang hari saat NPC aktif bekerja penuh)
-        - 45.0s .. 60.0s: SORE (Sore hari saat NPC menyelesaikan shift kerja)
-        - 60.0s .. 90.0s: MALAM (Malam hari saat NPC tidur di kasur)
+        - 45.0s .. 60.0s: SORE (Sore hari saat NPC merawat hewan ternak & ladang)
         """
         cycle_pos = self.time_seconds % self.total_cycle
-        if cycle_pos < 15.0:
-            return "PAGI"
-        elif cycle_pos < 45.0:
-            return "SIANG"
-        elif cycle_pos < self.day_duration:
-            return "SORE"
+        if self.night_duration <= 0.0:
+            if cycle_pos < 15.0:
+                return "PAGI"
+            elif cycle_pos < 45.0:
+                return "SIANG"
+            else:
+                return "SORE"
         else:
-            return "MALAM"
+            if cycle_pos < 15.0:
+                return "PAGI"
+            elif cycle_pos < 45.0:
+                return "SIANG"
+            elif cycle_pos < self.day_duration:
+                return "SORE"
+            else:
+                return "MALAM"
 
     @property
     def time_string(self) -> str:

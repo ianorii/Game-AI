@@ -10,7 +10,7 @@ Menampilkan dua panel khusus yang dapat dibuka/tutup:
   2. [F8] HTNPlanPanel: Panel pohon dekomposisi hierarki tugas NPC (Petani & Penggiling)
      - Pohon dekomposisi tugas aktif (Compound Task -> Method terpilih -> Primitive Operator)
      - Alasan evaluasi precondition
-     - Antrean operator primitif & jam dunia (siang/malam)
+     - Antrean operator primitif & jam dunia aktivitas desa
      - Riwayat replan NPC saat intervensi player terjadi
 
 Batas Layout:

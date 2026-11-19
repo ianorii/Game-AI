@@ -256,7 +256,7 @@ class Game:
         self.unified_panel = UnifiedPlannerPanel()
 
         self.htn_domain = parse_htn_file("data/planning/npc.htn")
-        self.world_clock = WorldClock(day_duration=60.0, night_duration=30.0)
+        self.world_clock = WorldClock(day_duration=60.0, night_duration=0.0)
 
         # Inisialisasi 2 NPC Desa Sunnyside: Petani (curly hair) dan Penggiling (mop hair)
         self.farmer_npc = HTNNPCAgent("Pak Tani", "farmer", "farm", self.htn_domain, self.world_state, hair_style="curly")
