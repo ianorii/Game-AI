@@ -219,7 +219,7 @@ Boss menggunakan **Minimax + Alpha-Beta depth 3** untuk memilih aksinya.
 | `ai/local_search.py` | **Simulated Annealing** | Tombol **O** mengoptimasi layout Overseer untuk memaksimalkan kesulitan. Progres ditampilkan di F3. |
 | `ai/adversarial.py` | **Minimax + Alpha-Beta Pruning** | Boss menghitung aksi terbaik dengan kedalaman 3. Evaluasi dari sudut pandang Boss. Skor tiap aksi & pohon pencarian ditampilkan di F4. |
 | `src/planning/` | **Automated Planning (STRIPS, Regression, Planning Graph, HTN)** | Ekspedisi otonom: Forward Search (BFS, UCS, A* $h_{\max}$, WA* $h_{\text{FF}}$, A* $h_{\text{level}}$), Backward Subgoal Regression (Slide 27), Planning Graph dengan Mutex (Slide 31–35), Plan Monitor & Adaptive Replan. Serta **HTN SHOP-style** untuk rutinitas mandiri 2 NPC desa (Pak Tani & Kang Penggiling). Panel F7 & F8, Mode F9 (OFF/AUTO/ADVISOR). |
-| `src/decision/` | **Decisions Under Uncertainty (Probability, Bayes, MDP, Value Iteration)** | Pemodelan keputusan di bawah ketidakpastian (Slide 3–23): Teorema Bayes, Expected Utility, Maximum Expected Utility (MEU), Synchronous Value Iteration, analisis sensitivitas $f^* = 4/30 \approx 0.1333$, dan bahaya kesalahan Reward Shaping. |
+| `src/decision/` | **Decisions Under Uncertainty (Multi-Armed Bandit & Live Combat Policy)** | Keputusan di bawah ketidakpastian: Multi-Armed Bandit (MAB 5 Spot), Thompson Sampling, UCB1 (Batas Penyesalan $O(\ln T)$), Konjugat Beta-Binomial, serta Kebijakan Risiko Pertempuran Live Combat (MEU). Akses via [F8] & [B] Jurnal Nelayan. |
 
 ### CLI Demonstrasi Decisions Under Uncertainty (Materi Kuliah Slide 3–23)
 Tersedia opsi CLI mandiri untuk mengecek perhitungan matematis & simulasi MDP:

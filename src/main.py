@@ -2687,13 +2687,8 @@ class Game:
         if mode == "ADVISOR":
             bg_col = (20, 32, 54, 230)
             border_col = (80, 180, 240)
-            if hasattr(self, "weather_manager") and self.weather_manager:
-                wm = self.weather_manager
-                title = f"[ADVISOR] Rute MDP: {wm.optimal_policy.upper()} [F9:AUTO]"
-                title_col = (130, 240, 180) if wm.optimal_policy == "Pintas" else (255, 180, 120)
-            else:
-                title = "[ADVISOR: SARAN] Langkah Berikutnya [F9:AUTO]"
-                title_col = (140, 215, 255)
+            title = "[ADVISOR: SARAN] Langkah Ekspedisi AI [F9:AUTO]"
+            title_col = (140, 215, 255)
         elif mode == "AUTO":
             if ctrl and (ctrl.state == "PAUSED" or ctrl.is_paused_by_player):
                 bg_col = (54, 28, 16, 235)
@@ -2744,10 +2739,7 @@ class Game:
         # Di ADVISOR, jangan tampilkan pesan jeda kontrol manual (kontrol manual normal di ADVISOR)
         if mode == "ADVISOR" and "Kontrol manual terdeteksi" in sub_txt:
             sub_txt = "Kontrol manual bebas. Ikuti petunjuk target di peta."
-        if mode == "ADVISOR" and hasattr(self, "weather_manager") and self.weather_manager:
-            wm = self.weather_manager
-            qp, qr = wm.get_expected_utilities()
-            sub_txt = f"{sub_txt} [EU: Pintas={qp:.1f}, Raya={qr:.1f}]"
+
 
         # Ukuran banner dinamis agar pesan panjang tidak terpotong (unclipped),
         # tetap bebas tumpang tindih dengan CONTROL MODE (8..276) dan Panel F7 (660..1020).

@@ -119,27 +119,21 @@ Hero bertindak sebagai agen otonom yang memecahkan masalah ekspedisi 37 langkah 
 Dua NPC desa Sunnyside digerakkan secara penuh oleh mesin **Hierarchical Task Network (HTN)** berbasis file domain `data/planning/npc.htn`. Mereka tidak menggunakan rute jalan kaku (*hardcoded waypoints*), melainkan mendekomposisi tugas secara dinamis berdasarkan kondisi dunia (*world predicates*):
 
 ##### A. Pak Tani (`farmer` — Rambut Keriting / Curly Hair)
-Memiliki tugas majemuk harian `daily_routine_farmer` yang didekomposisi sesuai jam dunia (*WorldClock*):
-1. **Siklus Siang Hari (`is_daytime`)**:
-   - **Pengelolaan Ladang Mandiri (`manage_farm`)**:
-     - *Jika ada tanaman matang* (`has_mature_crop`): Pergi ke ladang $\to$ Panen lobak (`!harvest_crop`) $\to$ Pergi ke toko $\to$ Jual hasil panen (`!sell_produce`).
-     - *Jika ada petak yang kering* (`has_dry_plot`): Pergi ke ladang $\to$ Siram air pada tanaman (`!water_crop`).
-     - *Jika ada petak kosong* (`has_empty_plot`): Pergi ke toko $\to$ Beli benih baru (`!buy_seed`) $\to$ Pergi ke ladang $\to$ Tanam benih di petak kosong (`!plant_crop`).
-     - *Jika seluruh ladang beres*: Pulang beristirahat sejenak di ranjang (`!rest bed`).
-   - **Perawatan Hewan Ternak Desa (`care_animals`)**:
-     - Jika ayam lapar (`chickens_hungry`): Pergi ke kandang ayam $\to$ Beri pakan ayam (`!feed_animals chickens`).
-     - Mengunjungi padang rumput $\to$ Memberi pakan kawanan sapi desa (`!feed_animals cows`).
-2. **Siklus Malam Hari (`night_sleep`)**:
-   - Secara otomatis membatalkan rutinitas luar ruang, kembali ke pondok desa, dan tidur di ranjang (`!goto bed` $\to$ `!rest bed`).
+Memiliki tugas majemuk harian `daily_routine_farmer` yang didekomposisi secara berkesinambungan:
+1. **Pengelolaan Ladang Mandiri (`manage_farm`)**:
+   - *Jika ada tanaman matang* (`has_mature_crop`): Pergi ke ladang $\to$ Panen lobak (`!harvest_crop`) $\to$ Pergi ke toko $\to$ Jual hasil panen (`!sell_produce`).
+   - *Jika ada petak yang kering* (`has_dry_plot`): Pergi ke ladang $\to$ Siram air pada tanaman (`!water_crop`).
+   - *Jika ada petak kosong* (`has_empty_plot`): Pergi ke toko $\to$ Beli benih baru (`!buy_seed`) $\to$ Pergi ke ladang $\to$ Tanam benih di petak kosong (`!plant_crop`).
+   - *Jika seluruh ladang beres*: Beristirahat santai sejenak di beranda pondok desa (`!rest bed`).
+2. **Perawatan Hewan Ternak Desa (`care_animals`)**:
+   - Jika ayam lapar (`chickens_hungry`): Pergi ke kandang ayam $\to$ Beri pakan ayam (`!feed_animals chickens`).
+   - Mengunjungi padang rumput $\to$ Memberi pakan kawanan sapi desa (`!feed_animals cows`).
 
 ##### B. Kang Penggiling (`miller` — Rambut Mop / Mop Hair)
-Memiliki tugas majemuk harian `daily_routine_miller` yang mengelola kincir angin desa:
-1. **Siklus Siang Hari (`is_daytime`)**:
-   - **Siklus Penggilingan Gandum (`mill_cycle`)**:
-     - *Jika ada pasokan gandum* (`wheat_available`): Pergi ke toko desa $\to$ Ambil karung gandum (`!take_wheat`) $\to$ Bawa ke kincir angin (`!goto windmill`) $\to$ Operasikan kincir angin untuk menggiling gandum menjadi tepung (`!mill_wheat`, bilah kincir angin berputar aktif) $\to$ Antarkan tepung hasil gilingan ke toko desa (`!deliver_flour`).
-     - *Jika gandum belum siap*: Melakukan inspeksi struktural dan pemeliharaan mekanis kincir angin (`!inspect_mill`).
-2. **Siklus Malam Hari (`night_sleep`)**:
-   - Berhenti bekerja, kembali ke pemukiman, dan beristirahat di ranjang hingga fajar tiba.
+Memiliki tugas majemuk harian `daily_routine_miller` yang mengelola operasional kincir angin desa:
+1. **Siklus Penggilingan Gandum (`mill_cycle`)**:
+   - *Jika ada pasokan gandum* (`wheat_available`): Pergi ke toko desa $\to$ Ambil karung gandum (`!take_wheat`) $\to$ Bawa ke kincir angin (`!goto windmill`) $\to$ Operasikan kincir angin untuk menggiling gandum menjadi tepung (`!mill_wheat`, bilah kincir angin berputar aktif) $\to$ Antarkan tepung hasil gilingan ke toko desa (`!deliver_flour`).
+   - *Jika gandum belum siap*: Melakukan inspeksi struktural dan pemeliharaan mekanis bilah kincir angin (`!inspect_mill`), lalu beristirahat sejenak di tepi jembatan sungai desa.
 
 ##### C. Keunggulan HTN Dibandingkan Finite State Machine (FSM) Biasa
 - **Dinamis & Adaptif**: Jika tanaman tiba-tiba kering karena faktor lingkungan, Pak Tani tidak bingung atau terjebak dalam *loop*—perencana HTN secara otomatis memilih metode alternatif `m_water_dry_plots`.
