@@ -490,10 +490,50 @@ def search_weighted_astar_hff(problem: PlanningProblem, weight: float = 1.5,
                 heapq.heappush(pq, (new_g + weight * h_val, new_g, counter, next_state, path + [act]))
 
     ms = (time.perf_counter() - t0) * 1000.0
+
+    # Fallback kelengkapan Hoffmann (Fast-Forward completeness guarantee):
+    # Jika Helpful Actions memangkas habis cabang solusi, lakukan pencarian lengkap tanpa helpful actions
+    if use_helpful_actions and (time.perf_counter() - t0) < timeout_sec:
+        remaining_timeout = timeout_sec - (time.perf_counter() - t0)
+        fallback_res = search_weighted_astar_hff(
+            problem, weight=weight, use_helpful_actions=False,
+            max_nodes=max_nodes, timeout_sec=remaining_timeout
+        )
+        if fallback_res.success:
+            fallback_res.algorithm = f"WA*_hFF(w={weight}, fallback_full)"
+            return fallback_res
+
     return SearchResult(success=False, nodes_expanded=nodes_expanded, nodes_generated=nodes_generated,
                         time_ms=ms, ms_per_node=ms / max(1, nodes_expanded),
                         algorithm=f"WA*_hFF(w={weight})",
                         failure_reason="Ruang pencarian habis tanpa menemukan goal.")
+
+
+def validate_plan(problem: PlanningProblem, plan: List[GroundAction]) -> Tuple[bool, str, float]:
+    """
+    Validator rencana independen (semantik STRIPS).
+    Mengeksekusi rencana langkah demi langkah dari problem.initial_state,
+    memvalidasi prasyarat tiap aksi, menerapkan efek tambah/hapus,
+    dan memverifikasi apakah goal state tercapai di state akhir.
+    
+    Returns:
+        (is_valid: bool, message: str, total_cost: float)
+    """
+    state = problem.initial_state
+    total_cost = 0.0
+
+    for idx, act in enumerate(plan):
+        if not act.is_applicable(state):
+            missing_pre = [p for p in act.preconditions if p not in state.facts]
+            return False, f"Langkah {idx + 1} ({act.name}) gagal: prasyarat {missing_pre} tidak terpenuhi!", total_cost
+        state = act.apply(state)
+        total_cost += act.cost
+
+    if not problem.is_goal(state):
+        missing_goal = [p for p in problem.goal if p not in state.facts]
+        return False, f"State akhir gagal mencapai goal: predikat {missing_goal} belum terpenuhi!", total_cost
+
+    return True, f"Rencana valid ({len(plan)} langkah, total biaya {total_cost:.2f}s). Goal tercapai sempurna.", total_cost
 
 
 # ==============================================================================

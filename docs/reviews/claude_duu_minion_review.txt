@@ -1,0 +1,31 @@
+REVIEW CLAUDE TERKAIT DUU MINION ONLY (TANPA NELAYAN)
+Tanggal: 2026-11-20
+Sesi: Chat Room Utama Proyek (https://claude.ai/chat/995bb95c-74e3-4ae9-ae06-bcc22d5ec980)
+
+Ringkasan Evaluasi Kritis Claude:
+1. Konfirmasi Aritmetika MEU:
+   EU(Engage) = 25.5p - 20
+   EU(Evade) = -1.5
+   p* = 18.5 / 25.5 = 0.72549 (Cocok).
+
+2. Cakupan Teoretis DUU Minion:
+   - MEU + Sigmoid satu tahap saja belum cukup jika statis. Rekomendasi: MEU + Bayesian Belief Update (tipe goblin biasa vs elit berdasarkan bukti observasi pertukaran damage) + Aksi ke-3: HEAL (ramuan).
+   - Jangan tambahkan bandit taktik (menambah permukaan bug).
+   - Decision Network:
+     * Chance node: Tipe goblin in {biasa, elit}, prior P(elit) = 0.2.
+     * Bukti: damage diterima atau sisa HP.
+     * Posterior: P(elit | bukti).
+     * P(win) prediktif = sum_t P(t | bukti) * P(win | HP, n, t).
+     * Aksi: {ENGAGE, EVADE, HEAL}.
+     * Utilitas: U(loot), U(death), U(evade_cost), U(heal_cost).
+
+3. Audit Celah Matematis & Bug:
+   - Sigmoid & ambang 35%: parameter fit dari simulasi duel Monte Carlo (10.000 duel per kombinasi), HP* hasil inversi.
+   - EU(Evade) = (1-c)*(-1.5) + c*EU(tertangkap). c peluang tertangkap. Jika c=0, sebut asumsi kecepatan goblin < hero.
+   - P(win) mencakup HP goblin saat ini: goblin sekarat harus di-finish walau HP hero rendah. State keputusan: (HP hero, HP goblin, n, ramuan).
+   - Guard HP = 0, n = 0, fluktuasi cepat (dwell time minimum), reset histeresis saat combat berakhir.
+   - Replan storm: tahan replan selama combat aktif, replan sekali setelah ancaman reda.
+
+4. Pembersihan sisa nelayan:
+   - Bersihkan referensi bandit/nelayan/fishing/jurnal/bandit_ui dari modul, F8 dock UI, main game loop, dan dokumen.
+

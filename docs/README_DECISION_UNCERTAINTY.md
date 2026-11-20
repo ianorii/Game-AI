@@ -1,19 +1,20 @@
-# PANDUAN & LAPORAN RESMI: KEPUTUSAN DI BAWAH KETIDAKPASTIAN
-## Multi-Armed Bandit (MAB 5 Spot Nelayan) & Kebijakan Risiko Live Combat — Sunnyside Isle
+# PANDUAN RESMI: KEPUTUSAN DI BAWAH KETIDAKPASTIAN (DECISIONS UNDER UNCERTAINTY)
+## Jaringan Keputusan, Klasifikasi Bayesian Tipe Musuh, & Kebijakan Risiko Live Combat MEU — Sunnyside Isle
 
 ---
 
 ### 1. Ringkasan Eksekutif & Fokus Tunggal Implementasi
 
-Modul **Decisions Under Uncertainty (DUU / UCC)** pada game *AI Labyrinth: Sunnyside Isle* difokuskan secara penuh pada satu titik implementasi inti yang nyata dan terpadu di dunia game: **Sistem Multi-Armed Bandit (MAB) 5 Spot Pemancingan**, yang disinergikan dengan **Kebijakan Risiko Pertempuran Live Combat (MEU)**.
+Modul **Decisions Under Uncertainty (DUU)** pada game *AI Labyrinth: Sunnyside Isle* difokuskan secara penuh pada satu titik implementasi inti yang nyata dan terpadu di dunia game: **Sistem Pengambilan Keputusan Taktis Pertempuran Menghadapi Minion Goblin Liar Real-Time**.
 
-Seluruh konsep teoretis keputusan stokastik diwujudkan ke dalam interaksi gameplay nyata:
-1. **Dilema Eksplorasi vs Eksploitasi (*Exploration vs Exploitation*)**: Agen dan pemain dihadapkan pada ketidakpastian sejati mengenai tingkat keberhasilan tangkapan ikan di 5 titik perairan pulau.
-2. **Pembaruan Konjugat Bayesian Eksak (Beta-Binomial)**: Keyakinan stokastik diperbarui secara kontinu berdasarkan bukti observasi tarikan umpan.
-3. **Algoritma Keputusan Stokastik**: Implementasi algoritma pemenang penghargaan *Thompson Sampling* dan *UCB1 (Upper Confidence Bound)*.
-4. **Jaminan Batas Penyesalan (*Regret Bound*) Optimal**: Pembuktian empiris batas penyesalan logaritmik Teorema Lai-Robbins: $R_T \le C \cdot \ln(T)$.
-5. **Kebijakan Risiko Live Combat (MEU)**: Evaluasi Utilitas Harapan Maksimum (*Maximum Expected Utility*) saat berhadapan dengan minion goblin berkeliaran bebas dengan batas ambang keselamatan $\text{HP} \ge 35\%$.
-6. **Antarmuka Visual Interaktif**: Modal terpadu **Jurnal Nelayan (`[B]`)** dan panel **Dock Inspector F8 (`[F8]`)**.
+Seluruh konsep teoretis keputusan probabilistik diwujudkan ke dalam interaksi gameplay nyata:
+1. **Jaringan Keputusan (*Decision Network*)**: Memodelkan simpul peluang (*chance node*) tipe goblin $T \in \{\text{NORMAL}, \text{ELITE}\}$ dan utilitas hasil pertempuran.
+2. **Pembaruan Keyakinan Bayesian (*Bayesian Belief Updating*)**: Memperbarui keyakinan secara real-time dari prior $P(\text{ELITE}) = 0,20$ menjadi posterior berbasis bukti pertukaran damage serangan awal musuh.
+3. **Model Probabilitas Kemenangan Kontinu ($P(\text{win})$)**: Fungsi sigmoid kontinu berbasis sisa HP hero, sisa HP goblin, dan jumlah goblin musuh, memungkinkan aksi penuntasan (*finishing blow*) pada goblin sekarat.
+4. **Evaluasi Maximum Expected Utility (MEU)**: Memilih tindakan optimal $\arg\max_{a} EU(a)$ dari tiga alternatif: $\text{ENGAGE}$, $\text{EVADE}$, dan $\text{HEAL}$.
+5. **Derivasi Titik Impas Analitik**: Penurunan formal $P^*(\text{win}) = 72,55\% \iff \text{HP}^* = 35,0\%$ untuk goblin normal.
+6. **Mekanisme Histeresis 10%**: Mencegah *flickering* perilaku bolak-balik saat HP berfluktuasi di sekitar 35% (decommit ke Evade hanya jika $\text{HP} < 25\%$).
+7. **Antarmuka Visual Terpadu**: Panel **Unified AI Inspector Dock F8 (`[F8]`)**.
 
 ---
 
@@ -21,107 +22,76 @@ Seluruh konsep teoretis keputusan stokastik diwujudkan ke dalam interaksi gamepl
 
 ```text
 src/decision/
-├── bandit.py           # Multi-Armed Bandit: Bernoulli arms, Thompson Sampling, UCB1, Regret Tracker
-├── bandit_ui.py        # UI Modal Jurnal Nelayan & MAB Analyzer (Tombol [B])
-├── probability.py      # Fungsi inti EV, EU, MEU, dan pembaruan Bayesian
+├── combat_policy.py    # Inti DUU: Decision Network, BayesianMinionBelief, MEU, Histeresis
+├── probability.py      # Fungsi matematis probabilitas, utilitas harapan, dan aturan Bayes
 └── __init__.py
 
-src/combat_config.py    # Konfigurasi parameter live combat, hitbox, damage, dan HP player
 src/entities/goblin.py  # AI minion goblin hijau berkeliaran bebas dengan respawn acak
-src/planning/planner_ui.py # Dock Inspector F8: Visualisasi metrik MAB, kebijakan HP, & batas Lai-Robbins
+src/combat_config.py    # Konfigurasi parameter stat tempur, hitbox, damage, dan HP player
+src/planning/planner_ui.py # Dock Inspector F8: Visualisasi metrik DUU, inferensi Bayes, & MEU
 ```
 
 ---
 
-### 3. Formulasi Teoretis Multi-Armed Bandit (MAB)
+### 3. Formulasi Teoretis & Jaringan Keputusan
 
-#### 3.1 Ruang Lengan ($K = 5$ Spot Pancingan)
-Pulau Sunnyside memiliki 5 titik pemancingan alami dengan parameter peluang keberhasilan Bernoulli rahasia ($\theta_k \in (0, 1)$):
-1. **Spot 1: Muara Sungai** ($\theta_1$) — Dekat jembatan desa.
-2. **Spot 2: Dermaga Barat** ($\theta_2$) — Pesisir pantai barat.
-3. **Spot 3: Dermaga Timur** ($\theta_3$) — Dekat gerbang kuno pantai timur.
-4. **Spot 4: Tebing Pesisir** ($\theta_4$) — Area karang selatan.
-5. **Spot 5: Danau Pedalaman** ($\theta_5$) — Perairan tenang tengah pulau.
+#### 3.1 Klasifikasi Bayesian Tipe Musuh
+- **Prior Awal**: $P(\text{ELITE}) = 0,20$ dan $P(\text{NORMAL}) = 0,80$.
+- **Bukti Observasi ($E$)**: Hero mengamati damage yang diterima dari pertukaran serangan pertama:
+  - $P(\text{HighDamage} \mid \text{ELITE}) = 0,70, \quad P(\text{HighDamage} \mid \text{NORMAL}) = 0,20$
+  - $P(\text{LowDamage} \mid \text{ELITE}) = 0,30, \quad P(\text{LowDamage} \mid \text{NORMAL}) = 0,80$
+- **Pembaruan Posterior**:
+  $$P(\text{ELITE} \mid E) = \frac{P(E \mid \text{ELITE}) P(\text{ELITE})}{P(E \mid \text{ELITE}) P(\text{ELITE}) + P(E \mid \text{NORMAL}) P(\text{NORMAL})}$$
+  Saat menerima damage tinggi, keyakinan melonjak menjadi $\approx 0,4667$ (46,67%).
 
-Pemain dan agen AI pada awalnya **tidak mengetahui** nilai $\theta$ dari masing-masing spot.
+#### 3.2 Probabilitas Kemenangan Prediktif
+$$P(\text{win}) = (1 - P(\text{ELITE} \mid E)) \cdot P(\text{win} \mid \text{NORMAL}) + P(\text{ELITE} \mid E) \cdot P(\text{win} \mid \text{ELITE})$$
+dengan fungsi sigmoid:
+$$P(\text{win} \mid \text{HP}_{\text{hero}}, \text{HP}_{\text{goblin}}, n, T) = \frac{1}{1 + \exp\left(-\frac{\text{HP}_{\text{hero}} - \text{center}(\text{HP}_{\text{goblin}}, n, T)}{\text{scale}}\right)}$$
+Jika goblin sekarat ($\text{HP}_{\text{goblin}} \le 0,33$), titik tengah bergeser drastis sehingga $P(\text{win}) \ge 0,75$ meskipun HP hero di bawah 35%.
 
-#### 3.2 Pembaruan Keyakinan Bayesian Konjugat Beta-Binomial
-Setiap kali umpan dilempar ke spot $k$, diperoleh hasil biner stokastik $r \in \{0, 1\}$ (0: gagal/zonk, 1: berhasil menangkap ikan berharga).
+#### 3.3 Evaluasi Utilitas Harapan (MEU)
+- Ruang Aksi: $A = \{\text{ENGAGE}, \text{EVADE}, \text{HEAL}\}$
+- Nilai Utilitas:
+  - $U(\text{loot}) = (1 - P(\text{ELITE})) \cdot 5,5 + P(\text{ELITE}) \cdot 12,0$ koin
+  - $U(\text{death}) = -20,0$ koin
+  - $U(\text{evade}) = -1,5$ koin (peluang tertangkap $c = 0$ karena kecepatan hero $147,2 >$ kecepatan goblin $90,0$)
+  - $U(\text{potion}) = -3,0$ koin
+- Formulasi EU:
+  $$EU(\text{ENGAGE}) = P(\text{win}) \cdot U(\text{loot}) + (1 - P(\text{win})) \cdot U(\text{death})$$
+  $$EU(\text{EVADE}) = -1,5$$
+  $$EU(\text{HEAL}) = EU(\text{ENGAGE} \mid \min(1,0, \text{HP} + 0,50)) - 3,0$$
 
-Dengan memilih distribusi prior konjugat $\text{Beta}(\alpha_0, \beta_0) = \text{Beta}(1, 1)$ (distribusi seragam / uninformative prior), fungsi kepekatan posterior diperbarui secara eksak:
-$$\text{Beta}(\alpha_k^{\text{baru}}, \beta_k^{\text{baru}}) = \text{Beta}(\alpha_k + r, \beta_k + (1 - r))$$
+#### 3.4 Derivasi Titik Impas Analitik & Histeresis
+$$EU(\text{ENGAGE}) = EU(\text{EVADE}) \implies P^*(\text{win}) \cdot 5,5 + (1 - P^*(\text{win})) \cdot (-20,0) = -1,5$$
+$$25,5 \cdot P^*(\text{win}) = 18,5 \implies P^*(\text{win}) = \frac{18,5}{25,5} \approx 72,55\% \iff \text{HP}^* = 35,0\%$$
+- **Histeresis 10%**:
+  Saat sudah bertarung, hero tetap berkomitmen selama $\text{HP} \ge 25,0\%$ ($\text{HP}^* - 0,10$). Hero hanya kabur (*Evade*) jika HP jatuh ke $< 25,0\%$.
 
-Nilai ekspektasi keberhasilan (mean posterior) spot $k$ setelah $N_k = (\alpha_k + \beta_k - 2)$ tarikan adalah:
-$$\mathbb{E}[\theta_k] = \hat{\mu}_k = \frac{\alpha_k}{\alpha_k + \beta_k}$$
-
-#### 3.3 Algoritma Pengambilan Keputusan
-
-##### A. Thompson Sampling (Bayesian Posterior Sampling)
-Pada setiap keputusan memancing:
-1. Tarik sampel acak dari distribusi posterior masing-masing lengan:
-   $$\hat{\theta}_k \sim \text{Beta}(\alpha_k, \beta_k), \quad \forall k \in \{1, \dots, 5\}$$
-2. Pilih spot dengan nilai sampel tertinggi:
-   $$k^* = \arg\max_{k} \hat{\theta}_k$$
-- **Sifat Alami**: Lengan dengan ketidakpastian tinggi (varians besar / sedikit tarikan) memiliki ekor distribusi yang lebar sehingga berpeluang terpilih untuk dieksplorasi. Saat data semakin banyak, distribusi menyempit di sekitar nilai riil dan algoritma otomatis beralih ke eksploitasi lengan terbaik.
-
-##### B. UCB1 (Upper Confidence Bound)
-Menerapkan prinsip optimisme dalam menghadapi ketidakpastian (*Optimism in the Face of Uncertainty*):
-$$\text{UCB}_k = \hat{\mu}_k + c \sqrt{\frac{\ln N}{N_k}}$$
-- $\hat{\mu}_k$: Rata-rata empiris hasil tangkapan spot $k$.
-- $N$: Total seluruh tarikan pancingan di seluruh spot.
-- $N_k$: Jumlah tarikan pada spot $k$.
-- $c$: Konstanta eksplorasi (standar $c = \sqrt{2}$).
-
-##### C. Teorema Batas Penyesalan Lai-Robbins
-Penyesalan kumulatif (*cumulative regret*) $R_T$ didefinisikan sebagai selisih hasil jika selalu memilih spot terbaik ($\theta^* = \max_k \theta_k$):
-$$R_T = T \cdot \theta^* - \sum_{t=1}^T \mathbb{E}[r_t]$$
-
-Teorema Lai-Robbins (1985) menetapkan batas bawah teoritis penyesalan asimtotik:
-$$\liminf_{T \to \infty} \frac{R_T}{\ln T} \ge \sum_{k: \Delta_k > 0} \frac{\Delta_k}{\text{KL}(\theta_k \parallel \theta^*)}$$
-
-Implementasi UCB1 dan Thompson Sampling pada Sunnyside Isle menjamin penyesalan sub-linear $R_T = O(\ln T)$, membuktikan bahwa agen AI tidak membuang-buang umpan secara sia-sia.
+#### 3.5 Parameter Pengejaran & Spawn Acak Minion
+- **Jarak Deteksi (*Chase Radius*)**: $240,0\text{ px}$ (~7,5 tile). Hero yang masuk ke dalam radius ini langsung dikejar oleh goblin dengan kecepatan agresif $90,0\text{ px/s}$.
+- **Jarak Pelepasan (*Deleash Radius*)**: $360,0\text{ px}$ (~11,25 tile). Goblin melepaskan pengejaran jika jarak melebihi batas ini.
+- **Jarak Serang (*Attack Range*)**: $36,0\text{ px}$ (~1,1 tile) untuk mengaktifkan animasi serangan dan damage knockback.
+- **Mekanisme Spawn & Respawn**: 7 zona spawn luar desa, pemilihan lokasi acak berjarak $\ge 300\text{ px}$ dari hero, dan jitter koordinat acak $\pm 32\text{ px}$.
 
 ---
 
-### 4. Kebijakan Risiko Pertempuran Live Combat (MEU)
-
-Di daratan pulau, minion goblin hijau berkeliaran bebas secara *live* dan muncul kembali (*respawn*) secara acak:
-
-#### 4.1 Formulasi Expected Utility (MEU)
-- **Ekspektasi Jarahan**: Mengalahkan goblin menghasilkan $+3$ hingga $+8$ koin (rata-rata $\mathbb{E}[\text{Loot}] = +5.5\text{ Koin}$).
-- **Ekspektasi Kerusakan**: Serangan goblin menimbulkan damage kecil $3\text{ HP}$ per serangan.
-
-#### 4.2 Ambang Batas Keamanan Keputusan
-Evaluasi keputusan berbasis Maximum Expected Utility (MEU):
-$$\text{Kebijakan}(\text{HP}) = \begin{cases} 
-\textbf{ENGAGE} \ (\text{Serang \& Kumpulkan Modal}), & \text{jika } \text{HP} \ge 35\% \\ 
-\textbf{EVADE} \ (\text{Menghindar \& Ambil Detour}), & \text{jika } \text{HP} < 35\% 
-\end{cases}$$
-
-- **HP $\ge 35\%$**: Hero berada dalam kondisi aman. Nilai harapan koin positif jauh melampaui risiko kerusakan ringan, sehingga rekomendasi keputusan adalah bertarung (*Engage*).
-- **HP $< 35\%$**: Risiko terkena serangan beruntun dinilai fatal. Utilitas bertahan hidup memicu tindakan preventif (*Evade*) dengan mengambil rute memutar di luar radius kejar goblin ($220\text{ px}$).
-
----
-
-### 5. Antarmuka Visual & Integrasi Gameplay
+### 4. Antarmuka Visual & Integrasi Gameplay
 
 | Fitur | Tombol / Cara Akses | Tampilan & Fungsi |
 | :--- | :---: | :--- |
-| **Jurnal Nelayan & MAB Analyzer** | **`[B]`** | Modal visual interaktif menampilkan grafik kurva Beta, statistik tarikan per spot, *win rate*, dan rekomendasi spot terbaik. |
-| **Unified Inspector Dock (F8)** | **`[F8]`** | Menampilkan Card 1 (Metrik MAB & Regret Bound), Card 2 (Kebijakan Risiko Live Combat & Status Goblin), dan Card 3 (Formulasi Stokastik UCB1/MEU). |
-| **Memancing di Bibir Air** | **`[E]`** | Melempar umpan di dekat salah satu dari 5 spot pemancingan. |
+| **Unified Inspector Dock (F8)** | **`[F8]`** | Menampilkan Card 1 (Inferensi Bayes Tipe Musuh), Card 2 (Evaluasi MEU Tiga Aksi: Engage/Evade/Heal), dan Card 3 (Formulasi Matematika DUU). |
+| **Advisor Mode Banner** | **`[F7]`** | Menampilkan saran langkah strategis dari perencana otomatis STRIPS di atas layar. |
+| **Autopilot Mode Toggle** | **`[TAB]`** | Mengalihkan kendali penuh antara Player (Manual) dan AI (Autopilot). |
 | **Serangan Live Combat** | **`[SPACE]` / Klik** | Menebas minion goblin secara langsung di peta dengan animasi *slash arc* dan *hit spark*. |
 
 ---
 
-### 6. Perintah Verifikasi & Demo Headless
+### 5. Perintah Pengujian Mandiri
 
-Jalankan pengujian unit test dan simulasi empiris Multi-Armed Bandit langsung dari terminal:
+Jalankan pengujian unit test DUU Minion langsung dari terminal:
 
 ```bash
-# 1. Menjalankan unit test lengkap MAB (Thompson Sampling, UCB1, Lai-Robbins)
-PYTHONPATH=src python3 -m unittest tests.test_multi_armed_bandit
-
-# 2. Menjalankan unit test visualisasi F8 Inspector & MAB Dock
-PYTHONPATH=src python3 -m unittest tests.test_debug_overlay
+# Menjalankan unit test lengkap DUU Minion (Oracle T-A1 s.d. T-A7, State Machine T-B1 s.d. T-B9, dan Chase Range)
+PYTHONPATH=src python3 -m unittest tests.test_minion_duu tests.test_goblin_chase tests.test_plan_validator
 ```

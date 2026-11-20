@@ -270,11 +270,9 @@ class Game:
         board_pos = getattr(config, "INTERACT_WEATHER_BOARD_POS", (1504, 1024))
         self.weather_board_prop = WeatherNoticeBoardProp(x=board_pos[0] - 18, y=board_pos[1] - 20)
 
-        # ---- Sistem Multi-Armed Bandit (Explore vs Exploit) Nelayan ----
-        from decision.bandit_ui import BanditHUD
-        sw = self.screen.get_width() if hasattr(self, "screen") and self.screen else 1024
-        sh = self.screen.get_height() if hasattr(self, "screen") and self.screen else 768
-        self.bandit_hud = BanditHUD(self.world_state.bandit_director, sw, sh)
+        # ---- Modul DUU: Live Combat Risk Policy & Minion Bayesian Decision ----
+        from decision.combat_policy import CombatRiskModel
+        self.combat_risk_model = CombatRiskModel()
 
         # Gerbang dihilangkan sesuai permintaan pemain (open-world tanpa barrier gerbang fisik)
         # Dynamic obstacle gerbang tidak dimasukkan ke game_map agar jalur ke timur bebas diakses
@@ -990,10 +988,6 @@ class Game:
             if handled:
                 return
 
-        if hasattr(self, "bandit_hud") and self.bandit_hud.visible:
-            if self.bandit_hud.handle_event(event):
-                return
-
         if event.type == pygame.KEYDOWN:
             # catat tombol yang ditekan (dipakai mode MANUAL: gerak.hero)
             self.keys_held.add(event.key)
@@ -1193,9 +1187,7 @@ class Game:
             self.log(f"Panel Decisions Under Uncertainty [F8]: {'DITAMPILKAN' if getattr(self, 'unified_panel', None) and self.unified_panel.visible else 'DISEMBUNYIKAN'}", config.GOLD)
             return
         if key == pygame.K_b:
-            if hasattr(self, "bandit_hud"):
-                self.bandit_hud.toggle()
-                self.log(f"Jurnal Nelayan Multi-Armed Bandit [B]: {'DITAMPILKAN' if self.bandit_hud.visible else 'DISEMBUNYIKAN'}", config.GOLD)
+            self.log("Modul DUU berfokus pada Minion Live Combat & MEU (Buka F8 Tab Decisions)", config.CYAN)
             return
         if key == pygame.K_g:
             self.show_spatial_debug = not getattr(self, "show_spatial_debug", False)
@@ -1496,7 +1488,15 @@ class Game:
                         chosen_pt = random.choice(pool)
                         etype = chosen_pt.get("type", "goblin")
                         anims = getattr(self.assets, "goblin_anims", {})
-                        new_gob = Goblin(chosen_pt["x"], chosen_pt["y"], anims, name=etype)
+                        # Variasi koordinat acak (jitter) di sekitar titik spawn dengan validasi walkable
+                        sp_x = chosen_pt["x"] + random.uniform(-32.0, 32.0)
+                        sp_y = chosen_pt["y"] + random.uniform(-32.0, 32.0)
+                        hb = pygame.Rect(int(sp_x + (config.TILE_SIZE - ccfg.GOB_FEET_HITBOX_W) / 2),
+                                         int(sp_y + config.TILE_SIZE - ccfg.GOB_FEET_HITBOX_H - 1),
+                                         ccfg.GOB_FEET_HITBOX_W, ccfg.GOB_FEET_HITBOX_H)
+                        if hasattr(self, "game_map") and self.game_map and self.game_map.is_solid(hb):
+                            sp_x, sp_y = chosen_pt["x"], chosen_pt["y"]
+                        new_gob = Goblin(sp_x, sp_y, anims, name=etype)
                         self.goblins.append(new_gob)
                         self.log("Goblin baru telah bangkit di pulau!", config.YELLOW)
                     if len(self.goblins) < target_count:
@@ -1842,9 +1842,6 @@ class Game:
                     self.expedition_panel.draw(screen, self.autopilot_controller)
                 if getattr(self, "show_htn_panel", False) and hasattr(self, "htn_panel") and hasattr(self, "farmer_npc"):
                     self.htn_panel.draw(screen, self.farmer_npc, self.miller_npc, self.world_clock)
-
-            if hasattr(self, "bandit_hud") and self.bandit_hud.visible:
-                self.bandit_hud.render(screen)
 
         if self.state == config.STATE_GAME_OVER:
             if getattr(self, "game_over", None) == "GOBLIN":

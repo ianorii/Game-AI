@@ -178,8 +178,44 @@
   )
 
   ;; =========================================================================
-  ;; 4. RUTINITAS DESA
+  ;; 4. RUTINITAS DESA (Village Routines)
   ;; =========================================================================
+  (:method (village_routine_farmer ?npc)
+    :name m_farmer_village_rest
+    :precondition ((farmer_resting))
+    :subtasks (
+      (!goto ?npc bed)
+      (!rest ?npc bed)
+    )
+  )
+
+  (:method (village_routine_farmer ?npc)
+    :name m_farmer_field_work
+    :precondition ()
+    :subtasks (
+      (manage_farm ?npc)
+      (care_animals ?npc)
+    )
+  )
+
+  (:method (village_routine_miller ?npc)
+    :name m_miller_village_rest
+    :precondition ((miller_resting))
+    :subtasks (
+      (!goto ?npc bed)
+      (!rest ?npc bed)
+    )
+  )
+
+  (:method (village_routine_miller ?npc)
+    :name m_miller_active_work
+    :precondition ()
+    :subtasks (
+      (mill_cycle ?npc)
+    )
+  )
+
+  ;; Kompatibilitas untuk daily_routine_*
   (:method (daily_routine_farmer ?npc)
     :name m_farmer_village_rest
     :precondition ((farmer_resting))

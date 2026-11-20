@@ -158,14 +158,6 @@ class Goblin:
         dy_to_player = player.py - self.y
         dist_to_player = math.hypot(dx_to_player, dy_to_player)
 
-        # Zona Aman Desa: Player di dalam desa aman dari kejaran musuh
-        safe_rect = getattr(config, "VILLAGE_SAFE_ZONE_RECT", None)
-        player_in_safe_zone = False
-        if safe_rect:
-            sz = pygame.Rect(safe_rect)
-            if sz.collidepoint(player.px, player.py):
-                player_in_safe_zone = True
-
         # 2. State Machine
         if self.state == self.STATE_DEAD:
             # Putar animasi mati sampai frame terakhir lalu nonaktifkan total
@@ -203,8 +195,8 @@ class Goblin:
                 self.state_timer = 0.0
 
         elif self.state == self.STATE_CHASE:
-            # Cek hysteresis pelepasan pengejaran atau player masuk zona aman desa
-            if dist_to_player > ccfg.GOB_DELEASH_RADIUS or not player.alive or player_in_safe_zone:
+            # Cek hysteresis pelepasan pengejaran jika player menjauh melebihi batas deleash
+            if dist_to_player > ccfg.GOB_DELEASH_RADIUS or not player.alive:
                 self.state = self.STATE_IDLE
                 self.state_timer = 0.0
             elif dist_to_player <= ccfg.GOB_ATTACK_RANGE and self.attack_cooldown <= 0:
@@ -213,7 +205,7 @@ class Goblin:
                 self.anim_timer = 0.0
                 self.damage_dealt = False
             else:
-                # Bergerak lurus mengejar player menggunakan walkable mask
+                # Bergerak aktif mengejar player menggunakan walkable mask
                 if dist_to_player > 0.001:
                     vx = (dx_to_player / dist_to_player) * ccfg.GOB_CHASE_SPEED
                     vy = (dy_to_player / dist_to_player) * ccfg.GOB_CHASE_SPEED
@@ -224,8 +216,8 @@ class Goblin:
                     self._sync_pos_from_hitbox(hb)
 
         elif self.state == self.STATE_IDLE:
-            # Cek deteksi player untuk mulai mengejar (hanya jika player di luar zona aman desa)
-            if dist_to_player <= ccfg.GOB_CHASE_RADIUS and player.alive and not player_in_safe_zone:
+            # Cek deteksi player untuk mulai mengejar: masuk dalam range GOB_CHASE_RADIUS
+            if dist_to_player <= ccfg.GOB_CHASE_RADIUS and player.alive:
                 self.state = self.STATE_CHASE
                 self.state_timer = 0.0
             else:

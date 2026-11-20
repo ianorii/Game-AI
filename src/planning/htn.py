@@ -416,16 +416,16 @@ class HTNNPCAgent:
         return facts
 
     def request_htn_plan(self, clock: Optional[WorldClock] = None) -> bool:
-        """Menghasilkan rencana HTN baru berdasarkan peran dan jam dunia."""
+        """Menghasilkan rencana HTN baru berdasarkan peran dan kondisi dunia saat ini."""
         facts = self.get_world_facts(clock)
         sym_loc = self.get_symbolic_location()
 
         if self.role == "farmer":
-            root_task = HTNTask("daily_routine_farmer", (self.role,))
+            root_task = HTNTask("village_routine_farmer", (self.role,))
         elif self.role == "miller":
-            root_task = HTNTask("daily_routine_miller", (self.role,))
+            root_task = HTNTask("village_routine_miller", (self.role,))
         else:
-            root_task = HTNTask("daily_routine_farmer", (self.role,))
+            root_task = HTNTask("village_routine_farmer", (self.role,))
 
         ok, plan_ops, tree = self.planner.plan(facts, [root_task], initial_binding={"?npc": self.role, "?from": sym_loc})
         if ok and plan_ops:

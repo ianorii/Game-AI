@@ -858,70 +858,70 @@ class UnifiedPlannerPanel:
         self._draw_badge(screen, badge_rect, "UCC ENGINE", (79, 70, 229), (238, 242, 255), (199, 210, 254))
 
         cur_y += 20
-        dom_surf = self.font_mono.render("[DIR] src/decision/mab_manager.py & combat_policy.py", True, (100, 116, 139))
+        dom_surf = self.font_mono.render("[DIR] src/decision/combat_policy.py & probability.py", True, (100, 116, 139))
         screen.blit(dom_surf, (rx + 10, cur_y))
 
         # ----------------------------------------------------------------------
-        # Card 1: MULTI-ARMED BANDIT (MAB 5 SPOTS) (98px)
+        # Card 1: STATUS ANCAMAN MINION & INFERENSI BAYES (98px)
         # ----------------------------------------------------------------------
         c1_rect = pygame.Rect(rx + 10, ry + 124, rw - 20, 98)
         pygame.draw.rect(screen, (255, 255, 255), c1_rect, border_radius=10)
         pygame.draw.rect(screen, (226, 232, 240), c1_rect, 1, border_radius=10)
 
         pygame.draw.circle(screen, (37, 99, 235), (c1_rect.x + 14, c1_rect.y + 14), 3.5)
-        c1_title = self.font_bold.render("MAB: EKSPLORASI VS EKSPLOITASI", True, (15, 23, 42))
+        c1_title = self.font_bold.render("MINION GOBLIN: INFERENSI BAYES", True, (15, 23, 42))
         screen.blit(c1_title, (c1_rect.x + 22, c1_rect.y + 6))
 
-        mab_badge_r = pygame.Rect(c1_rect.right - 78, c1_rect.y + 5, 70, 18)
-        self._draw_badge(screen, mab_badge_r, "[5 SPOTS]", (79, 70, 229), (238, 242, 255), (199, 210, 254), dot_col=(59, 130, 246))
+        mab_badge_r = pygame.Rect(c1_rect.right - 90, c1_rect.y + 5, 82, 18)
+        self._draw_badge(screen, mab_badge_r, "[LIVE COMBAT]", (79, 70, 229), (238, 242, 255), (199, 210, 254), dot_col=(59, 130, 246))
 
         m_w = (c1_rect.width - 20 - 12) // 3
         m1_r = pygame.Rect(c1_rect.x + 10, c1_rect.y + 27, m_w, 42)
         m2_r = pygame.Rect(c1_rect.x + 10 + m_w + 6, c1_rect.y + 27, m_w, 42)
         m3_r = pygame.Rect(c1_rect.x + 10 + (m_w + 6) * 2, c1_rect.y + 27, m_w, 42)
 
-        self._draw_metric_box(screen, m1_r, "Algoritma", "Thompson/UCB1")
-        self._draw_metric_box(screen, m2_r, "Total Spots", "5 Pesisir")
-        self._draw_metric_box(screen, m3_r, "Regret Bound", "O(ln T)")
+        self._draw_metric_box(screen, m1_r, "Prior P(Elit)", "0.20")
+        self._draw_metric_box(screen, m2_r, "Bukti Observasi", "Hit Signature")
+        self._draw_metric_box(screen, m3_r, "P(Elit|Bukti)", "Posterior Bayes")
 
         hint_y = c1_rect.y + 74
-        screen.blit(self.font_body.render("Sistem 5 Spot Pesisir (Theta Rahasia)", True, (71, 85, 105)), (c1_rect.x + 10, hint_y))
-        b_hint_r = pygame.Rect(c1_rect.right - 118, hint_y - 2, 108, 18)
-        self._draw_badge(screen, b_hint_r, "Tekan [B] Jurnal", (15, 23, 42), (241, 245, 249), (203, 213, 225))
+        screen.blit(self.font_body.render("P(Elit|E) = P(E|Elit)*P(Elit) / P(E) [Biasa vs Elit]", True, (71, 85, 105)), (c1_rect.x + 10, hint_y))
+        b_hint_r = pygame.Rect(c1_rect.right - 108, hint_y - 2, 98, 18)
+        self._draw_badge(screen, b_hint_r, "Bayes Network", (15, 23, 42), (241, 245, 249), (203, 213, 225))
 
         # ----------------------------------------------------------------------
-        # Card 2: KEBIJAKAN RISIKO PERTEMPURAN (108px)
+        # Card 2: KEBIJAKAN RISIKO PERTEMPURAN MEU (108px)
         # ----------------------------------------------------------------------
         c2_rect = pygame.Rect(rx + 10, ry + 228, rw - 20, 108)
         pygame.draw.rect(screen, (255, 251, 235), c2_rect, border_radius=10)
         pygame.draw.rect(screen, (253, 230, 138), c2_rect, 1, border_radius=10)
 
-        c2_title = self.font_bold.render("KEBIJAKAN RISIKO PERTEMPURAN", True, (146, 64, 14))
+        c2_title = self.font_bold.render("KEBIJAKAN RISIKO: MAXIMUM EXPECTED UTILITY", True, (146, 64, 14))
         screen.blit(c2_title, (c2_rect.x + 10, c2_rect.y + 6))
 
         comb_badge_r = pygame.Rect(c2_rect.right - 96, c2_rect.y + 5, 86, 18)
-        self._draw_badge(screen, comb_badge_r, "[LIVE COMBAT]", (146, 64, 14), (254, 243, 199), (252, 211, 77), dot_col=(245, 158, 11))
+        self._draw_badge(screen, comb_badge_r, "[MEU POLICY]", (146, 64, 14), (254, 243, 199), (252, 211, 77), dot_col=(245, 158, 11))
 
         in_box = pygame.Rect(c2_rect.x + 10, c2_rect.y + 27, c2_rect.width - 20, 26)
         pygame.draw.rect(screen, (255, 255, 255), in_box, border_radius=6)
         pygame.draw.rect(screen, (253, 230, 138), in_box, 1, border_radius=6)
 
-        screen.blit(self.font_bold.render("Ancaman Minion Goblin Hijau (Respawn Acak)", True, (15, 23, 42)), (in_box.x + 8, in_box.y + 5))
+        screen.blit(self.font_bold.render("Ruang Aksi: A = {ENGAGE, EVADE, HEAL}", True, (15, 23, 42)), (in_box.x + 8, in_box.y + 5))
 
         act_pill = pygame.Rect(in_box.right - 54, in_box.y + 4, 46, 18)
         self._draw_badge(screen, act_pill, "[AKTIF]", (22, 101, 52), (220, 252, 231), (134, 239, 172))
 
         kv_y = c2_rect.y + 59
         screen.blit(self.font_mono.render("Analisis MEU", True, (180, 83, 9)), (c2_rect.x + 10, kv_y))
-        screen.blit(self.font_body.render("Tarung (E[Loot] = +5.5 Koin) vs Hindari (0 Dmg)", True, (15, 23, 42)), (c2_rect.x + 104, kv_y))
+        screen.blit(self.font_body.render("U(loot)=+5.5, U(death)=-20.0, U(evade)=-1.5, U(heal)=-3.0", True, (15, 23, 42)), (c2_rect.x + 104, kv_y))
 
         kv_y += 16
         screen.blit(self.font_mono.render("Kebijakan HP", True, (180, 83, 9)), (c2_rect.x + 10, kv_y))
-        screen.blit(self.font_bold.render("HP >= 35% -> Engage | HP < 35% -> Evade", True, (15, 23, 42)), (c2_rect.x + 104, kv_y))
+        screen.blit(self.font_bold.render("HP >= 35% -> Engage | HP < 35% -> Evade (Histeresis 10%)", True, (15, 23, 42)), (c2_rect.x + 104, kv_y))
 
         kv_y += 16
-        screen.blit(self.font_mono.render("Status Alam", True, (100, 116, 139)), (c2_rect.x + 10, kv_y))
-        screen.blit(self.font_body.render("Minion goblin berkeliaran bebas (live combat)", True, (100, 116, 139)), (c2_rect.x + 104, kv_y))
+        screen.blit(self.font_mono.render("Titik Impas", True, (100, 116, 139)), (c2_rect.x + 10, kv_y))
+        screen.blit(self.font_body.render("P*(win) = 18.5 / 25.5 = 72.55% <=> HP* = 35.0%", True, (100, 116, 139)), (c2_rect.x + 104, kv_y))
 
         # ----------------------------------------------------------------------
         # Card 3: FORMULASI KEPUTUSAN STOKASTIK (182px)
@@ -931,30 +931,30 @@ class UnifiedPlannerPanel:
         pygame.draw.rect(screen, (226, 232, 240), c3_rect, 1, border_radius=10)
 
         pygame.draw.circle(screen, (147, 51, 234), (c3_rect.x + 14, c3_rect.y + 14), 3.5)
-        c3_title = self.font_bold.render("FORMULASI KEPUTUSAN STOKASTIK", True, (15, 23, 42))
+        c3_title = self.font_bold.render("FORMULASI FORMAL DUU MINION", True, (15, 23, 42))
         screen.blit(c3_title, (c3_rect.x + 22, c3_rect.y + 6))
 
         teori_badge = pygame.Rect(c3_rect.right - 78, c3_rect.y + 5, 70, 18)
-        self._draw_badge(screen, teori_badge, "[TEORI UCC]", (107, 33, 168), (243, 232, 255), (216, 180, 254))
+        self._draw_badge(screen, teori_badge, "[TEORI DUU]", (107, 33, 168), (243, 232, 255), (216, 180, 254))
 
         m_w = (c3_rect.width - 20 - 12) // 3
         m1_r = pygame.Rect(c3_rect.x + 10, c3_rect.y + 27, m_w, 42)
         m2_r = pygame.Rect(c3_rect.x + 10 + m_w + 6, c3_rect.y + 27, m_w, 42)
         m3_r = pygame.Rect(c3_rect.x + 10 + (m_w + 6) * 2, c3_rect.y + 27, m_w, 42)
 
-        self._draw_metric_box(screen, m1_r, "UCB1 Index", "mu + c*sqrt(ln/N)")
-        self._draw_metric_box(screen, m2_r, "Bayesian TS", "Beta(alpha, beta)")
-        self._draw_metric_box(screen, m3_r, "Prinsip", "argmax(EU)")
+        self._draw_metric_box(screen, m1_r, "Kaidah Keputusan", "argmax EU(a)")
+        self._draw_metric_box(screen, m2_r, "Derivasi Impas", "P* = 72.55%")
+        self._draw_metric_box(screen, m3_r, "Ambang Kritis", "HP* = 35.0%")
 
         t_box = pygame.Rect(c3_rect.x + 10, c3_rect.y + 75, c3_rect.width - 20, 98)
         pygame.draw.rect(screen, (248, 250, 252), t_box, border_radius=6)
         pygame.draw.rect(screen, (226, 232, 240), t_box, 1, border_radius=6)
 
         ucc_rows = [
-            ("Penyesalan: Teorema Lai-Robbins O(ln T)", "[OK]", True),
-            ("Konjugat Beta-Binomial Posterior Update", "[OK]", True),
-            ("Ambang Risiko Live Combat HP >= 35%", "[OK]", True),
-            ("Optimisme: Eksplorasi Bound Atas (UCB1)", "INFO", False),
+            ("Derivasi Impas: EU(Engage) = EU(Evade)", "[OK]", True),
+            ("Inversi Sigmoid HP* = 35% (Normal Goblin)", "[OK]", True),
+            ("Pembaruan Keyakinan Bayesian Tipe Musuh", "[OK]", True),
+            ("Aksi Heal & Histeresis Pelepasan < 25%", "[OK]", True),
         ]
 
         for i, (r_txt, badge_txt, is_ok) in enumerate(ucc_rows):
