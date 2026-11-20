@@ -14,7 +14,7 @@ Sistem perencanaan ini mencakup:
 4. **Planning Graph & Ekstraksi Mutex**: Konstruksi level literal dan level aksi untuk mengidentifikasi relasi *Mutual Exclusion* (Inconsistent Effects, Interference, Competing Needs) dan menghasilkan heuristik graf level $h_{\text{level}}$.
 5. **Regresi Tujuan Mundur (*Backward Goal Regression*)**: Verifikasi pencarian dari *goal state* mundur ke *initial state* menggunakan regresi prasyarat aksi.
 6. **Eksekusi & Monitoring Real-Time**: Subsistem *PlanMonitor* dan *PlanExecutor* beranggaran komputasi ketat ($< 20\text{ ms}$ per *frame*, rata-rata $1.1\text{ ms}$) dengan kemampuan *re-planning* instan saat terdeteksi anomali lingkungan.
-7. **Dekomposisi Tugas Hierarkis (HTN)**: Modul *Shop-style Hierarchical Task Network* untuk rutinitas harian NPC desa (Pak Tani & Kang Penggiling) yang terikat jam dunia (*WorldClock*).
+7. **Dekomposisi Tugas Hierarkis (HTN)**: Modul *Shop-style Hierarchical Task Network* untuk rutinitas mandiri NPC desa (Pak Tani & Kang Penggiling) dalam mengelola ladang, ternak, dan kincir angin.
 
 ---
 

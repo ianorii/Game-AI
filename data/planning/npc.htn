@@ -178,20 +178,29 @@
   )
 
   ;; =========================================================================
-  ;; 4. RUTINITAS HARIAN (Day-Night Routine)
+  ;; 4. RUTINITAS DESA
   ;; =========================================================================
   (:method (daily_routine_farmer ?npc)
-    :name m_farmer_day_shift
-    :precondition ((is_daytime))
+    :name m_farmer_village_rest
+    :precondition ((farmer_resting))
+    :subtasks (
+      (!goto ?npc bed)
+      (!rest ?npc bed)
+    )
+  )
+
+  (:method (daily_routine_farmer ?npc)
+    :name m_farmer_field_work
+    :precondition ()
     :subtasks (
       (manage_farm ?npc)
       (care_animals ?npc)
     )
   )
 
-  (:method (daily_routine_farmer ?npc)
-    :name m_farmer_night_sleep
-    :precondition ()
+  (:method (daily_routine_miller ?npc)
+    :name m_miller_village_rest
+    :precondition ((miller_resting))
     :subtasks (
       (!goto ?npc bed)
       (!rest ?npc bed)
@@ -199,19 +208,10 @@
   )
 
   (:method (daily_routine_miller ?npc)
-    :name m_miller_day_shift
-    :precondition ((is_daytime))
+    :name m_miller_active_work
+    :precondition ()
     :subtasks (
       (mill_cycle ?npc)
-    )
-  )
-
-  (:method (daily_routine_miller ?npc)
-    :name m_miller_night_sleep
-    :precondition ()
-    :subtasks (
-      (!goto ?npc bed)
-      (!rest ?npc bed)
     )
   )
 )

@@ -256,7 +256,7 @@ class Game:
         self.unified_panel = UnifiedPlannerPanel()
 
         self.htn_domain = parse_htn_file("data/planning/npc.htn")
-        self.world_clock = WorldClock(day_duration=60.0, night_duration=0.0)
+        self.world_clock = WorldClock()
 
         # Inisialisasi 2 NPC Desa Sunnyside: Petani (curly hair) dan Penggiling (mop hair)
         self.farmer_npc = HTNNPCAgent("Pak Tani", "farmer", "farm", self.htn_domain, self.world_state, hair_style="curly")
@@ -2638,19 +2638,6 @@ class Game:
         mode_str = "AI AUTO [TAB]" if is_auto else "MANUAL [TAB]"
         mode_col = config.GREEN if is_auto else config.CYAN
 
-        # Waktu & Cuaca
-        day_str = "HARI 1"
-        phase_str = "SIANG"
-        if hasattr(self, "weather_manager") and self.weather_manager:
-            day_str = f"HARI {self.weather_manager.day}"
-        if hasattr(self, "world_clock") and self.world_clock:
-            phase_str = self.world_clock.phase
-
-        if hasattr(self, "weather_manager") and self.weather_manager and self.weather_manager.actual_flood:
-            w_str = "BANJIR"
-        else:
-            w_str = "CERAH"
-
         panel = pygame.Surface((rw, rh), pygame.SRCALPHA)
         panel.fill((18, 22, 34, 235))
         pygame.draw.rect(panel, (54, 68, 92), panel.get_rect(), 1, border_radius=6)
@@ -2665,8 +2652,8 @@ class Game:
         m_surf = self.font_xs.render(mode_str, True, mode_col)
         panel.blit(m_surf, m_surf.get_rect(center=b_rect.center))
 
-        # Time string (cuaca dihilangkan dari HUD utama)
-        info_str = f"{day_str} · {phase_str}"
+        # Status string
+        info_str = "Sunnyside Isle"
         i_surf = self.font_xs.render(info_str, True, (215, 225, 240))
         panel.blit(i_surf, (b_rect.right + 10, (rh - i_surf.get_height()) // 2))
 

@@ -8,7 +8,7 @@ Menguji:
      - Tanaman siap panen -> m_harvest_and_sell
      - Tanaman kering butuh siram -> m_water_dry_plots
      - Petak kosong -> m_plant_empty_plots
-  4. Rutinitas malam hari Petani & Penggiling (m_farmer_night_sleep, m_miller_night_sleep).
+  4. Rutinitas desa Petani & Penggiling (m_farmer_field_work, m_miller_active_work).
   5. Pemilihan metode alternatif Penggiling:
      - Menggiling gandum aktif -> m_mill_active_wheat
      - Perawatan kincir angin -> m_inspect_and_maintenance
@@ -70,8 +70,7 @@ class TestHTNPlanner(unittest.TestCase):
         init_facts = {
             ("at", "farmer", "farm"),
             ("has_mature_crop", "plot0"),
-            ("plot_mature", "plot0"),
-            ("is_daytime",)
+            ("plot_mature", "plot0")
         }
         ok, plan, tree = planner.plan(init_facts, [HTNTask("manage_farm", ("farmer",))], initial_binding={"?npc": "farmer", "?from": "farm"})
         self.assertTrue(ok, "Dekomposisi manage_farm harus berhasil")
@@ -86,8 +85,7 @@ class TestHTNPlanner(unittest.TestCase):
         init_facts = {
             ("at", "farmer", "farm"),
             ("has_dry_plot", "plot0"),
-            ("plot_dry", "plot0"),
-            ("is_daytime",)
+            ("plot_dry", "plot0")
         }
         ok, plan, tree = planner.plan(init_facts, [HTNTask("manage_farm", ("farmer",))], initial_binding={"?npc": "farmer", "?from": "farm"})
         self.assertTrue(ok)
@@ -101,8 +99,7 @@ class TestHTNPlanner(unittest.TestCase):
         init_facts = {
             ("at", "farmer", "farm"),
             ("has_empty_plot", "plot0"),
-            ("plot_empty", "plot0"),
-            ("is_daytime",)
+            ("plot_empty", "plot0")
         }
         ok, plan, tree = planner.plan(init_facts, [HTNTask("manage_farm", ("farmer",))], initial_binding={"?npc": "farmer", "?from": "farm"})
         self.assertTrue(ok)
@@ -110,26 +107,22 @@ class TestHTNPlanner(unittest.TestCase):
         self.assertIn("!plant_crop", op_names)
         self.assertEqual(tree[0].chosen_method, "m_plant_empty_plots")
 
-    def test_farmer_night_routine(self):
-        """Petani memilih m_farmer_night_sleep saat malam hari."""
+    def test_farmer_routine(self):
+        """Petani memilih m_farmer_field_work saat kondisi kerja normal."""
         planner = SHOPPlanner(self.domain)
         init_facts = {
             ("at", "farmer", "farm"),
-            ("is_nighttime",)
         }
         ok, plan, tree = planner.plan(init_facts, [HTNTask("daily_routine_farmer", ("farmer",))], initial_binding={"?npc": "farmer", "?from": "farm"})
         self.assertTrue(ok)
-        op_names = [op.name for op in plan]
-        self.assertIn("!rest", op_names)
-        self.assertEqual(tree[0].chosen_method, "m_farmer_night_sleep")
+        self.assertEqual(tree[0].chosen_method, "m_farmer_field_work")
 
     def test_miller_active_wheat_decomposition(self):
         """Penggiling memilih m_mill_active_wheat saat persediaan gandum tersedia."""
         planner = SHOPPlanner(self.domain)
         init_facts = {
             ("at", "miller", "windmill"),
-            ("wheat_available",),
-            ("is_daytime",)
+            ("wheat_available",)
         }
         ok, plan, tree = planner.plan(init_facts, [HTNTask("mill_cycle", ("miller",))], initial_binding={"?npc": "miller", "?from": "windmill"})
         self.assertTrue(ok)
@@ -142,8 +135,7 @@ class TestHTNPlanner(unittest.TestCase):
         """Penggiling memilih m_inspect_and_maintenance saat tidak ada gandum."""
         planner = SHOPPlanner(self.domain)
         init_facts = {
-            ("at", "miller", "windmill"),
-            ("is_daytime",)
+            ("at", "miller", "windmill")
         }
         ok, plan, tree = planner.plan(init_facts, [HTNTask("mill_cycle", ("miller",))], initial_binding={"?npc": "miller", "?from": "windmill"})
         self.assertTrue(ok)
@@ -162,8 +154,7 @@ class TestHTNPlanner(unittest.TestCase):
             p.is_watered = True
 
         farmer = HTNNPCAgent("Pak Tani", "farmer", "farm", self.domain, self.world_state)
-        clock = WorldClock(day_duration=60.0, night_duration=30.0)
-        clock.elapsed = 10.0  # Siang hari
+        clock = WorldClock()
 
         success = farmer.request_htn_plan(clock)
         self.assertTrue(success)

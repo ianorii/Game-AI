@@ -95,7 +95,7 @@ Di samping perencanaan deterministik untuk tujuan jangka panjang, lingkungan per
 1. Merumuskan masalah ekspedisi permainan ke dalam representasi formal STRIPS/PDDL meliputi initial state, skema aksi 31 operator, dan goal state.
 2. Mengimplementasikan mesin pencarian ruang state (*forward state-space search*) dengan algoritma Weighted A\* ($w=1.5$) dipadukan dengan heuristik relaksasi delete $h_{\text{FF}}$ (*Fast-Forward*) dan *helpful actions*.
 3. Mengembangkan sistem eksekusi, pemantauan status (*PlanMonitor*), dan perencanaan ulang reaktif (*replanning*) dengan batas waktu komputasi kurang dari 20 ms.
-4. Mengimplementasikan perencana hierarkis *Hierarchical Task Network* (HTN gaya SHOP) untuk menggerakkan dua NPC desa (Pak Tani dan Kang Penggiling) secara otonom dalam siklus aktivitas siang hari berkesinambungan tanpa siklus malam.
+4. Mengimplementasikan perencana hierarkis *Hierarchical Task Network* (HTN gaya SHOP) untuk menggerakkan dua NPC desa (Pak Tani dan Kang Penggiling) secara otonom dalam menyelesaikan rutinitas pengelolaan ladang, peternakan, dan penggilingan gandum.
 5. Memodelkan keputusan dalam ketidakpastian menggunakan Multi-Armed Bandit (MAB 5 Spot) dengan algoritma Bayesian Thompson Sampling dan UCB1, serta memverifikasi batas penyesalan logaritmik Teorema Lai-Robbins ($R_T \le C \ln T$).
 6. Menerapkan kebijakan risiko pertempuran live (*Live Combat Risk Policy*) terhadap minion goblin liar di daratan menggunakan analisis utilitas harapan (MEU) dan ambang batas keselamatan HP.
 7. Menyajikan visualisasi real-time melalui *Unified AI Inspector Dock* (`[F7]` Planning dan `[F8]` Uncertainty) serta modal interaktif *Jurnal Nelayan* (`[B]`).
@@ -378,7 +378,7 @@ Ketangguhan (*robustness*) perencana diuji melalui simulasi gangguan dinamis di 
 Untuk menghidupkan ekosistem desa Sunnyside secara dinamis, sistem mengimplementasikan perencana hierarkis **SHOP-style HTN** (`src/planning/htn.py`, 842 baris kode) yang mengendalikan dua agen NPC desa secara otonom dari domain `data/planning/npc.htn`:
 
 ##### A. Pak Tani (`farmer` — Rambut Keriting)
-Mengelola siklus agronomi dan peternakan desa secara otonom melalui dekomposisi task majemuk `daily_routine_farmer`:
+Mengelola kegiatan agronomi dan peternakan desa secara otonom melalui dekomposisi task majemuk `daily_routine_farmer`:
 1. **Manajemen Ladang Mandiri (`manage_farm`)**:
    - Jika terdapat tanaman matang (`has_mature_crop`): Menuju ladang $\to$ Panen lobak (`!harvest_crop`) $\to$ Menuju toko $\to$ Jual hasil panen (`!sell_produce`).
    - Jika petak kering (`has_dry_plot`): Menuju ladang $\to$ Menyiram tanaman (`!water_crop`).
@@ -398,12 +398,8 @@ Mengelola logistik tepung desa melalui dekomposisi task majemuk `daily_routine_m
    - Melakukan inspeksi mekanis bilah baling-baling kincir (`!inspect_mill`).
    - Menikmati waktu istirahat di tepi jembatan desa (`!rest bridge`).
 
-##### C. Karakteristik Bebas Siklus Malam (*No Night Cycle*)
-Sesuai rancangan visual game yang berlatar siang cerah berkelanjutan, jam dunia (*WorldClock*) beroperasi penuh dalam sub-fase siang hari:
-- `0.0s .. 15.0s`: **PAGI** (Aktivasi awal dan pengecekan lahan/kincir).
-- `15.0s .. 45.0s`: **SIANG** (Produksi puncak panen, penggilingan, dan peternakan).
-- `45.0s .. 60.0s`: **SORE** (Penyerahan komoditas toko dan pemeliharaan santai).
-Kedua NPC tidak pernah memasuki fase tidur malam kaku, melainkan terus berputar aktif menjaga denyut kehidupan desa. Bila pemain memanen paksa tanaman matang milik Pak Tani, sistem mendeteksi anomali fakta secara instan, memunculkan ikon ekspresi bingung (*confused icon*), dan melakukan replanning dekomposisi tugas alternatif.
+##### C. Ketangguhan Dekomposisi dan Replanning Reaktif
+Kedua NPC beroperasi secara responsif menjaga denyut kehidupan desa berdasarkan status lingkungan riil dan kebutuhan kerja (seperti kelembaban tanah petak ladang, ketersediaan bibit, pasokan gandum toko, dan perawatan kincir). Bila pemain memanen paksa tanaman matang milik Pak Tani saat rencana panen sedang berlangsung, sistem mendeteksi anomali fakta dunia secara instan, memunculkan ikon ekspresi bingung (*confused icon*), membatalkan rencana usang, dan mengeksekusi replanning dekomposisi tugas alternatif secara otonom.
 
 ![Gambar 2.9. Rutinitas otonom Pak Tani dan Kang Penggiling berbasis HTN](screenshots/village_npcs_htn.png)
 *Gambar 2.9. Rutinitas otonom Pak Tani dan Kang Penggiling di desa Sunnyside berbasis SHOP-style HTN (sumber: docs/screenshots/village_npcs_htn.png).*
@@ -534,7 +530,7 @@ Arsitektur AI pada Sunnyside Isle mempertemukan Automated Planning dan Decisions
 1. **Efektivitas Dekomposisi Bertingkat**: Pemisahan antara perencana deliberatif makro (STRIPS) dan pengambil keputusan probabilistik mikro (MAB & Combat MEU) berhasil mencegah ledakan komputasi (*state explosion*). Ruang state ekspedisi tetap ringkas (702 fakta), sementara ketidakpastian dunia ditangani secara instan di level runtime (< 1 ms).
 2. **Superioritas Heuristik $h_{\text{FF}}$**: Pemanfaatan *relaxed plan extraction* terbukti krusial. Pada problem penuh P4, heuristik $h_{\max}$ gagal total karena mengabaikan akumulasi biaya sub-tujuan, sedangkan $h_{\text{FF}}$ mengarahkan penelusuran secara presisi hanya dalam 876 ekspansi node.
 3. **Eksplorasi Efisien via Bayesian Posterior**: Pada lingkungan pemancingan MAB, algoritma Thompson Sampling terbukti lebih cepat mengenali spot optimal dibandingkan UCB1 karena sifat sampling acak distribusi Beta yang lebih responsif terhadap sinyal sukses awal.
-4. **Harmonisasi Tanpa Siklus Malam**: Peniadaan siklus malam kaku menghasilkan gameplay yang jauh lebih responsif. NPC desa berputar secara kontinu dalam fase Pagi, Siang, dan Sore, mengeliminasi fenomena NPC "tertidur kaku" yang sebelumnya menghambat interaksi pemain.
+4. **Rutinitas Otonom Dinamis**: NPC desa beroperasi secara responsif terhadap kondisi lingkungan riil di desa, mengeliminasi perilaku kaku sehingga interaksi pemain dan ekosistem desa berjalan dinamis.
 
 ---
 
@@ -543,7 +539,7 @@ Arsitektur AI pada Sunnyside Isle mempertemukan Automated Planning dan Decisions
 ### 3.1 Kesimpulan
 
 1. Masalah ekspedisi Hero pada game *Sunnyside Isle* berhasil dimodelkan secara formal menggunakan representasi PDDL/STRIPS (31 operator, 702 fakta awal) dan diselesaikan secara optimal oleh algoritma Weighted A\* ($w=1.5$) berpadukan heuristik relaksasi $h_{\text{FF}}$ dalam **37 langkah rencana** berbiaya 118,48 detik dengan waktu komputasi 1.014,55 ms.
-2. Mesin *Hierarchical Task Network* (SHOP-style HTN) sukses menggerakkan dua NPC desa (Pak Tani dan Kang Penggiling) secara otonom dalam siklus aktivitas siang berkesinambungan (Pagi, Siang, Sore) tanpa siklus malam, lengkap dengan mekanisme *reactive replanning* saat terjadi intervensi pemain.
+2. Mesin *Hierarchical Task Network* (SHOP-style HTN) sukses menggerakkan dua NPC desa (Pak Tani dan Kang Penggiling) secara otonom dalam menjalankan rutinitas pengelolaan ladang, peternakan, dan penggilingan gandum, lengkap dengan mekanisme *reactive replanning* saat terjadi intervensi pemain.
 3. Modul Decisions Under Uncertainty (DUU) berhasil direalisasikan secara konkret melalui sistem **Multi-Armed Bandit (MAB 5 Spot Pemancingan)** dan **Live Combat Minion Goblin Risk Policy (MEU)**.
 4. Pengujian komparatif MAB membuktikan keunggulan **Bayesian Thompson Sampling** (penyesalan kumulatif terendah 2,85 dan akurasi spot optimal 91,8%) dan **UCB1** (penyesalan 4,32) yang mematuhi batas penyesalan logaritmik Teorema Lai-Robbins $O(\ln T)$.
 5. Kebijakan keselamatan pertempuran berbasis MEU ($\text{HP} \ge 35\% \implies \text{Engage}$, $\text{HP} < 35\% \implies \text{Evade}$) memberikan respons taktis real-time yang menjaga kelangsungan hidup Hero di lapangan.

@@ -10,7 +10,7 @@ Menampilkan dua panel khusus yang dapat dibuka/tutup:
   2. [F8] HTNPlanPanel: Panel pohon dekomposisi hierarki tugas NPC (Petani & Penggiling)
      - Pohon dekomposisi tugas aktif (Compound Task -> Method terpilih -> Primitive Operator)
      - Alasan evaluasi precondition
-     - Antrean operator primitif & jam dunia aktivitas desa
+     - Antrean operator primitif & status aktivitas desa
      - Riwayat replan NPC saat intervensi player terjadi
 
 Batas Layout:
@@ -346,14 +346,13 @@ class HTNPlanPanel:
         screen.blit(bg, (rx, ry))
         pygame.draw.rect(screen, (80, 200, 160), self.rect, 2)  # Border toska desa
 
-        # 2. Header Panel & Jam Dunia
+        # 2. Header Panel
         title_surf = self.font_title.render("DESA HIDUP: HTN TASK [F8]", True, (120, 240, 200))
         screen.blit(title_surf, (rx + 10, ry + 8))
 
-        time_str = f"Jam: {clock.time_string}"
-        time_col = (255, 220, 100) if clock.is_daytime else (150, 180, 255)
-        time_surf = self.font_body.render(time_str, True, time_col)
-        screen.blit(time_surf, (rx + rw - time_surf.get_width() - 10, ry + 10))
+        status_str = "Status: Aktif"
+        status_surf = self.font_body.render(status_str, True, (120, 240, 200))
+        screen.blit(status_surf, (rx + rw - status_surf.get_width() - 10, ry + 10))
 
         # 3. Bagian 1: Petani (Pak Tani)
         py_y = ry + 32
@@ -367,8 +366,8 @@ class HTNPlanPanel:
             screen.blit(expr_icon, (rx + rw - 30, py_y))
 
         # Metode & Alasan Precondition
-        f_method = farmer.active_tree[0].chosen_method if farmer.active_tree else "m_farmer_day_shift"
-        f_reason = farmer.active_tree[0].precondition_reason if farmer.active_tree else "Rutinitas siang hari aktif."
+        f_method = farmer.active_tree[0].chosen_method if farmer.active_tree else "m_farmer_routine"
+        f_reason = farmer.active_tree[0].precondition_reason if farmer.active_tree else "Rutinitas desa aktif."
         m_txt = f"  Metode: {f_method}"
         screen.blit(self.font_body.render(m_txt, True, (160, 230, 180)), (rx + 10, py_y + 16))
 

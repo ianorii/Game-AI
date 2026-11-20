@@ -27,7 +27,7 @@ Sistem permainan memadukan tujuh pilar utama kecerdasan buatan dalam satu ekosis
 3. **Constraint Satisfaction Problems (CSP):** Penyusunan kombinasi beban perlengkapan dan alokasi ramuan tempur (*loadout optimization*) di bawah kendala ketat kapasitas berat dan modal koin menggunakan algoritma Backtracking dengan heuristik MRV, LCV, dan Forward Checking.
 4. **Stochastic Local Search:** Penalaan (*tuning*) bobot fungsi evaluasi bos secara otomatis menggunakan metode *Hill Climbing with Restarts* dan *Simulated Annealing*.
 5. **Perencanaan Otomatis Klasik (*Automated Planning*):** Mesin perencana deliberatif berbasis representasi STRIPS/PDDL yang mendukung penelusuran maju (*forward search*) dengan heuristik relaksasi hapus ($h_{\max}$, $h_{\text{add}}$, $h_{\text{FF}}$), penelusuran mundur (*backward subgoal regression*), serta graf perencanaan (*planning graph*) dan penalaran relasi *mutex*.
-6. **Hierarchical Task Networks (HTN):** Arsitektur perencanaan hierarkis bergaya JSHOP yang mengendalikan rutinitas harian NPC desa (Pak Tani dan Kang Penggiling) secara otonom dalam siklus aktivitas desa yang berkesinambungan.
+6. **Hierarchical Task Networks (HTN):** Arsitektur perencanaan hierarkis bergaya JSHOP yang mengendalikan rutinitas mandiri NPC desa (Pak Tani dan Kang Penggiling) secara otonom dalam mengelola ladang, ternak, dan kincir angin.
 7. **Pengambilan Keputusan di Bawah Ketidakpastian (*Decisions Under Uncertainty*):** Integrasi probabilitas Bayes, *Maximum Expected Utility* (MEU), rantai Markov Decision Process (MDP) dengan *Synchronous Value Iteration*, analisis nilai informasi (*Value of Perfect Information* / VPI) versus biaya fisik observasi, serta mekanisme mitigasi genangan air dinamis (*flood flush*).
 
 ## Ruang Lingkup Dokumen Induk
@@ -344,7 +344,7 @@ Kesimpulan bagian ini: Sistem pengujian dirancang secara deterministik, mandiri,
 Sebagai wujud integritas akademik, bagian ini menyajikan seluruh keterbatasan desain, penyederhanaan model, serta hasil eksperimen negatif yang dihadapi selama pengembangan sistem.
 
 1. **Kasus Koridor Penuh Pantai 1.78s: Informasi Ramalan Cuaca Tidak Pernah Impas ($K = 56.7$ Trip/Hari):**
-   Pada model koridor penuh transit pantai ($3.26\text{ s}$ vs $4.13\text{ s}$, $\Delta t = 0.87\text{ s}$) dengan penalti keterlambatan fisik terukur $1.78\text{ s}$, penghematan kotor teoretis dari papan cuaca hanyalah $+0.0035\text{ s}$. Mengingat biaya interaksi membaca papan memakan waktu $0.20\text{ s}$ ($57\times$ lebih besar daripada penghematan kotor), titik impas membutuhkan $56.7$ perjalanan dalam satu hari cuaca ($240\text{ detik}$). Secara fisik batas kapasitas perjalanan hero dalam satu siklus harian hanyalah $12-15$ perjalanan. Fakta ini membuktikan bahwa **informasi yang secara Bayesian valid tidak serta merta memiliki nilai ekonomis rasional bila biaya perolehannya melampaui kemampuan mitigasi risiko**.
+   Pada model koridor penuh transit pantai ($3.26\text{ s}$ vs $4.13\text{ s}$, $\Delta t = 0.87\text{ s}$) dengan penalti keterlambatan fisik terukur $1.78\text{ s}$, penghematan kotor teoretis dari papan cuaca hanyalah $+0.0035\text{ s}$. Mengingat biaya interaksi membaca papan memakan waktu $0.20\text{ s}$ ($57\times$ lebih besar daripada penghematan kotor), titik impas membutuhkan $56.7$ perjalanan dalam satu sesi cuaca ($240\text{ detik}$). Secara fisik batas kapasitas perjalanan hero dalam satu periode pengujian hanyalah $12-15$ perjalanan. Fakta ini membuktikan bahwa **informasi yang secara Bayesian valid tidak serta merta memiliki nilai ekonomis rasional bila biaya perolehannya melampaui kemampuan mitigasi risiko**.
 2. **Penghematan Waktu Bersih Sub-segmen yang Marginal (~0.10s – 0.18s):**
    Meskipun pada model sub-segmen lokal membaca papan cuaca dapat mencapai impas pada $K \ge 2$ atau $K \ge 3$ perjalanan per hari, keuntungan waktu bersih yang diperoleh ($+0.10\text{ s}$ hingga $+0.18\text{ s}$) sangat kecil sehingga secara persepsi hampir tidak dirasakan oleh pemain manusia biasa.
 3. **Keterbatasan Spasial Lokasi Papan Pengumuman:**
@@ -358,7 +358,7 @@ Sebagai wujud integritas akademik, bagian ini menyajikan seluruh keterbatasan de
 7. **Berkas Konfigurasi `collision_overrides.json` Berisi 0 Entri Aktif:**
    Seluruh perbaikan geometri tabrakan dinding dan footprint bangunan telah dibakar (*pre-baked*) secara permanen ke dalam berkas biner `walkable_mask.png` dan `building_footprints.json`, sehingga berkas override runtime dibiarkan kosong sebagai cadangan modifikasi masa depan.
 8. **Modul HTN Sebatas Rutinitas Desa Mandiri:**
-   Implementasi HTN saat ini berfokus pada dekomposisi siklus kerja otonom Pak Tani dan Kang Penggiling. Modul ini belum mencakup sistem transaksi barter barang antar-NPC yang sepenuhnya terdesentralisasi.
+   Implementasi HTN saat ini berfokus pada dekomposisi alur kerja otonom Pak Tani dan Kang Penggiling. Modul ini belum mencakup sistem transaksi barter barang antar-NPC yang sepenuhnya terdesentralisasi.
 9. **Detour Jembatan Sintetis pada Demonstrasi Perencanaan:**
    Skenario pemblokiran jembatan desa untuk menguji kemampuan replanning otomatis pada demonstrasi `--demo-detour` diinjeksikan secara terprogram melalui manipulasi topologi runtime, bukan fenomena keruntuhan fisik lingkungan nyata.
 10. **Reposisi Gerbang Terkunci dan Pembersihan Area Pantai:**
@@ -377,7 +377,7 @@ Proyek pengembangan **AI LABYRINTH: THE DUNGEON OVERSEER** telah berhasil mereal
 3. **Solver Backtracking CSP dengan Heuristik MRV, LCV, dan Forward Checking** berhasil mereduksi jumlah *backtrack* sebesar $97.9\%$ dalam penentuan beban perlengkapan.
 4. **Stochastic Local Search** mampu mengoptimasi bobot parameter bos secara adaptif dalam batas waktu pemikiran 250 ms.
 5. **Mesin Perencana Otomatis STRIPS dengan Weighted $A^*$ ($h_{\text{FF}}$)** berhasil menyelesaikan skenario ekspedisi kompleks sepanjang 37 langkah secara optimal.
-6. **Dynamic HTN Planner** sukses mengendalikan rutinitas kerja harian NPC desa secara otonom dalam siklus aktivitas desa yang berkesinambungan.
+6. **Dynamic HTN Planner** sukses mengendalikan rutinitas kerja NPC desa secara otonom dalam mengelola ekosistem desa secara berkesinambungan.
 7. **Modul Keputusan di Bawah Ketidakpastian** membuktikan kekebalan (*invariance*) kebijakan optimal $\pi^*$ terhadap pilihan definisi segmen jalan, serta mendemonstrasikan secara empiris fenomena di mana biaya perolehan informasi melampaui nilai utilitasnya.
 
 ## Arah Pengembangan Lanjut
