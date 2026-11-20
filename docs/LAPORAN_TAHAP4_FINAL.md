@@ -114,6 +114,9 @@ Ruang lingkup implementasi dan evaluasi pada laporan Tahap 4 mencakup:
 
 Pemain dapat menjelajah secara manual (WASD), mengaktifkan mode pemandu saran (*Advisor Mode*, F9), atau menyerahkan kendali sepenuhnya kepada autopilot AI (*Auto Mode*, F9). Seluruh metrik komputasi AI dapat diperiksa secara transparan melalui panel inspektur debug F7 dan F8.
 
+![Gambar 1.1. Tampilan awal game pada mode kontrol manual](screenshots/screen_manual.png)
+*Gambar 1.1. Tampilan awal game pada mode kontrol manual (sumber: docs/screenshots/screen_manual.png). Memperlihatkan posisi spawn Hero di Pulau Sunnyside, HUD bawah (modal awal 20 koin dan 0 ramuan), status gear, serta ringkasan kontrol.*
+
 ---
 
 # BAB II: PEMBAHASAN
@@ -198,6 +201,11 @@ Sebagai modul validasi silang akademik (materi kuliah Slide 27 dan Slide 31–35
 
 ### 2.3 Mekanisme Perencanaan Klasik
 
+Struktur keterkaitan antarmodul dan alur data siklus tertutup perencana otomatis diilustrasikan pada Gambar 2.1.
+
+![Gambar 2.1. Arsitektur modular perencana otomatis STRIPS dan alur eksekusi siklus tertutup](figures/architecture.png)
+*Gambar 2.1. Diagram blok arsitektur modular perencana otomatis STRIPS dan alur eksekusi siklus tertutup (sumber: docs/figures/architecture.png).*
+
 #### 2.3.1 Grounding dan Relevance Pruning
 Proses *grounding* menginstansiasi operator PDDL berparameter menjadi aksi konkret tanpa variabel (*GroundAction*). Pada masalah ekspedisi penuh, proses grounding mentah menghasilkan 592 aksi. Dengan menerapkan algoritma *Relevance Pruning* (analisis keterjangkauan fakta balik dari goal state), aksi yang tidak relevan berhasil dipangkas sebesar 80,2% menjadi hanya 117 aksi ground (pada sub-problem kunci) dan 466 aksi pada problem penuh, mempercepat komputasi ekspansi node secara signifikan.
 
@@ -223,6 +231,9 @@ Pustaka heuristik (`heuristics.py`) memanfaatkan konsep relaksasi hapus (*delete
 ### 2.4 Hasil Perencanaan Ekspedisi pada Game
 
 Pada konfigurasi game loop runtime ($w=1.5$), mesin perencana WA\*($h_{\text{FF}}$) menghasilkan rencana ekspedisi final $P_4$ sepanjang **37 langkah** dengan total estimasi durasi **118,48 detik** dalam waktu komputasi pencarian rata-rata **1.014,55 ms** (876 node diekspansi).
+
+![Gambar 2.2. Rekomendasi langkah pertama rencana pada mode ADVISOR](screenshots/advisor_mode_banner.png)
+*Gambar 2.2. Rekomendasi langkah pertama rencana pada mode ADVISOR (sumber: docs/screenshots/advisor_mode_banner.png). Banner ADVISOR menyorot aksi pertama goto(spawn, river_fishing) beserta estimasi durasi A\* tanpa mengeksekusinya.*
 
 Tabel 2.4 menyajikan urutan lengkap 37 langkah rencana ekspedisi $P_4$.
 
@@ -283,13 +294,22 @@ Rantai eksekusi terbukti stabil melintasi seluruh fase permainan:
 - **Fase Manufaktur & Agronomi (Langkah 24–33)**: Menempa kunci di bengkel, menempuh perjalanan 15,65 detik ke ladang, menyiram dan memanen lobak, lalu kembali ke bengkel meracik ramuan penyembuh.
 - **Fase Penetrasi Benteng & Kemenangan (Langkah 34–37)**: Membuka gerbang berkunci, merangsek masuk, dan menundukkan boss dungeon.
 
+![Gambar 2.3. Eksekusi otonom rencana ekspedisi pada mode AUTO](screenshots/auto_mode_active.png)
+*Gambar 2.3. Eksekusi otonom rencana ekspedisi pada mode AUTO (sumber: docs/screenshots/auto_mode_active.png). Hero bergerak secara mandiri mengikuti jalur lintasan A\* untuk mengumpulkan sumber daya.*
+
 #### 2.5.3 Jeda oleh Pemain dan Pelanjutan
 Sistem autopilot mendukung intervensi manual tanpa merusak integritas rencana:
 - Menekan tombol arah (WASD) saat autopilot aktif seketika mengalihkan mode ke status `PAUSED` (banner oranye `AUTOPILOT: DIJEDA`).
 - Menekan tombol `[F10]` melanjutkan eksekusi dari langkah aktif terakhir tanpa memerlukan komputasi replan jika kondisi prasyarat masih terpenuhi.
 
+![Gambar 2.4. Autopilot dijeda oleh intervensi input manual pemain](screenshots/auto_mode_paused.png)
+*Gambar 2.4. Autopilot dijeda oleh intervensi input manual pemain (sumber: docs/screenshots/auto_mode_paused.png). Menampilkan banner peringatan jeda dan status PAUSED.*
+
 #### 2.5.4 Pencapaian Goal State
 Setelah langkah ke-37 tereksekusi, predikat `(boss_defeated)` terpenuhi. Banner utama menampilkan `[SELESAI: GOAL TERCAPAI] Boss Dungeon Telah Dikalahkan`, membuktikan ketuntasan ekspedisi otonom 100%.
+
+![Gambar 2.5. Pertempuran final menundukkan Dungeon Boss mencapai goal state](screenshots/battle_100hp_boss.png)
+*Gambar 2.5. Pertempuran final menundukkan Dungeon Boss mencapai goal state (sumber: docs/screenshots/battle_100hp_boss.png).*
 
 ---
 
@@ -330,6 +350,12 @@ Tabel 2.5 menyajikan hasil benchmark algoritma secara empiris.
 | | WA\* ($h_{\text{FF}}$) | Sukses | **876** | **1.014,55** | **118,48** |
 | **P5: Unsolvable**| Semua Algoritma | Gagal Cepat | $\approx 0$ | $\approx 0,2$ | Tidak Ada Rencana |
 
+![Gambar 2.6. Grafik perbandingan node diekspansi algoritma perencanaan pada problem P1–P4](figures/benchmark_nodes.png)
+*Gambar 2.6. Grafik batang perbandingan node diekspansi algoritma perencanaan pada problem P1–P4 (sumber: docs/figures/benchmark_nodes.png).*
+
+![Gambar 2.7. Grafik perbandingan waktu komputasi pencarian rencana pada problem P1–P4](figures/benchmark_time.png)
+*Gambar 2.7. Grafik batang perbandingan waktu komputasi pencarian rencana pada problem P1–P4 (sumber: docs/figures/benchmark_time.png).*
+
 **Analisis Hasil**:
 Algoritma tanpa heuristik (BFS/UCS) dan heuristik admissible lemah ($h_{\max}$) mengalami *combinatorial explosion* pada problem P4 sehingga gagal mencapai batas memori/timeout. Sebaliknya, heuristik relaksasi $h_{\text{add}}$ dan $h_{\text{FF}}$ berhasil memandu pencarian menuju solusi. Algoritma WA\*($h_{\text{FF}}$) menjadi yang paling efisien dengan waktu komputasi ~1 detik dan menghasilkan biaya rencana terendah (118,48 s).
 
@@ -338,6 +364,9 @@ Uji ablasi pada problem P1 membuktikan bahwa *Relevance Pruning* memangkas jumla
 
 #### 2.6.4 Eksekusi End-to-End pada Game Loop
 Eksekusi utuh mode AUTO pada game loop membuktikan bahwa rencana 37 langkah tereksekusi secara mulus tanpa kegagalan pra-kondisi. Seluruh transisi inventori, akumulasi koin, dan interaksi fisik berjalan sinkron antara representasi simbolik STRIPS dan representasi spasial Pygame.
+
+![Gambar 2.8. Tampilan Planning Inspector studio dock F7](screenshots/dock_fixed_f7.png)
+*Gambar 2.8. Tampilan Planning Inspector studio dock F7 (sumber: docs/screenshots/dock_fixed_f7.png). Menampilkan status 37 langkah rencana, metrik WA\*(h_FF), dan antrean aksi.*
 
 #### 2.6.5 Skenario Replanning Reaktif dan Robustness
 Ketangguhan (*robustness*) perencana diuji melalui simulasi gangguan dinamis di lingkungan permainan:
@@ -375,6 +404,9 @@ Sesuai rancangan visual game yang berlatar siang cerah berkelanjutan, jam dunia 
 - `15.0s .. 45.0s`: **SIANG** (Produksi puncak panen, penggilingan, dan peternakan).
 - `45.0s .. 60.0s`: **SORE** (Penyerahan komoditas toko dan pemeliharaan santai).
 Kedua NPC tidak pernah memasuki fase tidur malam kaku, melainkan terus berputar aktif menjaga denyut kehidupan desa. Bila pemain memanen paksa tanaman matang milik Pak Tani, sistem mendeteksi anomali fakta secara instan, memunculkan ikon ekspresi bingung (*confused icon*), dan melakukan replanning dekomposisi tugas alternatif.
+
+![Gambar 2.9. Rutinitas otonom Pak Tani dan Kang Penggiling berbasis HTN](screenshots/village_npcs_htn.png)
+*Gambar 2.9. Rutinitas otonom Pak Tani dan Kang Penggiling di desa Sunnyside berbasis SHOP-style HTN (sumber: docs/screenshots/village_npcs_htn.png).*
 
 ---
 
@@ -458,6 +490,15 @@ Implementasi DUU dilengkapi dua antarmuka grafis modern:
    - **Card 1 (MAB Metrik)**: Algoritma aktif (Thompson / UCB1), total 5 spot, dan jaminan Regret Bound $O(\ln T)$.
    - **Card 2 (Live Combat Policy)**: Status ancaman minion goblin liar, analisis MEU (+5.5 koin vs 0 dmg), dan status kebijakan ambang HP.
    - **Card 3 (Formulasi Stokastik)**: Formulasi indeks UCB1, prior konjugat Beta-Binomial, prinsip argmax(EU), dan validasi batas Lai-Robbins.
+
+![Gambar 2.10. Jurnal Nelayan modal UI untuk analisis Multi-Armed Bandit 5 spot](screenshots/mab_jurnal_nelayan_modal.png)
+*Gambar 2.10. Jurnal Nelayan modal UI untuk analisis Multi-Armed Bandit 5 spot (sumber: docs/screenshots/mab_jurnal_nelayan_modal.png). Menampilkan distribusi kurva posterior Beta tiap spot, perbandingan penyesalan kumulatif, dan kurva batas teoritis Lai-Robbins.*
+
+![Gambar 2.11. Decisions Under Uncertainty Inspector dock F8](screenshots/dock_fixed_f8.png)
+*Gambar 2.11. Decisions Under Uncertainty Inspector dock F8 (sumber: docs/screenshots/dock_fixed_f8.png). Menampilkan Card 1 MAB Metrik & Regret Bound O(ln T), Card 2 Kebijakan Risiko Pertempuran Live Combat MEU, dan Card 3 Formulasi Keputusan Stokastik.*
+
+![Gambar 2.12. Pertarungan pedang live combat menghadapi minion goblin liar](screenshots/goblin_slash_attack.png)
+*Gambar 2.12. Pertarungan pedang live combat menghadapi minion goblin liar sesuai kebijakan risiko keselamatan HP (sumber: docs/screenshots/goblin_slash_attack.png).*
 
 #### 2.7.7 Eksperimen dan Evaluasi Empiris DUU
 Simulasi Monte Carlo 100 horizon tarikan dengan 50 pengulangan independen dijalankan untuk membandingkan 5 algoritma klasik pada preset *Realistic* ($\theta = [0.15, 0.25, 0.30, 0.45, 0.55]$).
