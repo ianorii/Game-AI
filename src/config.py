@@ -251,7 +251,7 @@ MONSTER_ATTACK_WINDUP = 0.55  # detik ancang-ancang sebelum memukul
 BOSS_SPEED_TPS = 2.2
 BOSS_MAX_HP = 100
 BOSS_DAMAGE = 12            # baseline; tiap aksi punya range sendiri
-BOSS_POS = (2464, 448)      # Koordinat Boss di dunia (Obsidian Keep Ruins)
+BOSS_POS = (2544, 608)      # Koordinat Boss di dunia (Arena terbuka lapangan rumput)
 BOSS_FIELD_POS = (2592, 608) # Posisi Boss di lahan terbuka timur (kotak yang ditandai pemain, tile 81, 19)
 BOSS_TRIGGER_RADIUS = 64    # Radius trigger interaksi (2 tile x 32 px)
 BOSS_NAME = "SKELETON OVERLORD"
@@ -620,7 +620,7 @@ BANDIT_FISHING_SPOTS = [
 ]
 INTERACT_TREE_POS = (1488, 592)           # Pohon tebang desa (Kayu)
 INTERACT_ROCK_POS = (1904, 624)           # Vena tambang tebing (Batu)
-INTERACT_WINDMILL_POS = (1328, 640)       # Pintu kincir angin desa (Penggilingan gandum)
+INTERACT_WINDMILL_POS = (1440, 672)       # Pintu kincir angin desa (Jalur timur kincir, terkoneksi A* desa)
 INTERACT_WEATHER_BOARD_POS = (1504, 1024)  # Papan pengumuman cuaca desa (Bayesian Notice Board)
 INTERACTION_RADIUS = 52.0                 # Jarak deteksi interaksi tombol [E]
 

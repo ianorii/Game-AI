@@ -48,6 +48,7 @@ from world_state import WorldState  # noqa: E402
 import world_actions  # noqa: E402
 from inventory import InventoryUI  # noqa: E402
 from economy import ShopUI  # noqa: E402
+from workshop import WorkshopUI  # noqa: E402
 from core.map import TileMap  # noqa: E402
 from core.entity import Hero, Monster, Boss, Trap  # noqa: E402
 from entities import Goblin, VisualEffect, SlashArcEffect  # noqa: E402
@@ -238,6 +239,7 @@ class Game:
         self.world_state = WorldState(seed=self.seed, starting_coins=getattr(config, "STARTING_COINS", 50))
         self.inventory_ui = InventoryUI()
         self.shop_ui = ShopUI()
+        self.workshop_ui = WorkshopUI()
         self.near_interaction_target = None
         self.initial_battle_potions = 0
         self.show_expedition_panel = False
@@ -273,6 +275,8 @@ class Game:
         # ---- Modul DUU: Live Combat Risk Policy & Minion Bayesian Decision ----
         from decision.combat_policy import CombatRiskModel
         self.combat_risk_model = CombatRiskModel()
+        if hasattr(self, "hero") and self.hero:
+            self.hero.combat_model = self.combat_risk_model
 
         # Gerbang dihilangkan sesuai permintaan pemain (open-world tanpa barrier gerbang fisik)
         # Dynamic obstacle gerbang tidak dimasukkan ke game_map agar jalur ke timur bebas diakses
@@ -522,7 +526,8 @@ class Game:
                     self.log(f"PERINGATAN: Spawn ({gx}, {gy}) tidak walkable!", config.YELLOW)
 
                 anims = getattr(self.assets, "goblin_anims", {})
-                gob = Goblin(gx, gy, anims, name=etype)
+                is_elite = entry.get("is_elite", (len(goblins) % 4 == 0))
+                gob = Goblin(gx, gy, anims, name=etype, is_elite=is_elite)
                 goblins.append(gob)
         except Exception as err:
             print(f"Error loading enemies.json: {err}")
@@ -680,7 +685,8 @@ class Game:
             "duration": 0.5,
             "target": "BATTLE_PREP"
         }
-        self.saved_player_pos = (self.hero.px, self.hero.py)
+        # Pertahankan koordinat player secara persis dari awal sampai akhir battle mode
+        self.saved_player_pos = (float(self.hero.px), float(self.hero.py))
         self.hero.stop()
         if hasattr(self, "world_state") and self.world_state:
             owned = set(self.world_state.inventory.get_owned_items())
@@ -717,6 +723,9 @@ class Game:
             return
         self.state = config.STATE_BATTLE
         self.hero.stop()
+
+        if not getattr(self, "saved_player_pos", None):
+            self.saved_player_pos = (float(self.hero.px), float(self.hero.py))
 
         chosen_loadout = dict(loadout or self.last_loadout or config.CSP_DEFAULT_LOADOUT)
         self.last_loadout = chosen_loadout
@@ -904,12 +913,29 @@ class Game:
         self.boss.alive = False
         self.boss.defeated = True
         self.boss_defeated = True
+        if hasattr(self, "world_state") and self.world_state:
+            self.world_state.boss_defeated = True
         self.state = config.STATE_EXPLORATION
         self.battle = None
-        if self.saved_player_pos:
-            self.hero.px, self.hero.py = self.saved_player_pos
+
+        # Kembalikan / pertahankan hero pada posisi tepat saat memulai battle mode
+        if getattr(self, "saved_player_pos", None):
+            self.hero.px = float(self.saved_player_pos[0])
+            self.hero.py = float(self.saved_player_pos[1])
+            if hasattr(self.hero, "x"):
+                self.hero.x = self.hero.px
+                self.hero.y = self.hero.py
+            if hasattr(self.hero, "gx"):
+                self.hero.gx = int(self.hero.px // config.TILE_SIZE)
+                self.hero.gy = int(self.hero.py // config.TILE_SIZE)
+            if hasattr(self.hero, "cell"):
+                self.hero.cell = (int(self.hero.px // config.TILE_SIZE), int(self.hero.py // config.TILE_SIZE))
+
+        self.saved_player_pos = None
+        self._snap_camera()
+
         self.log(f"BOSS {self.boss.name} TERKALAHKAN!", config.GOLD)
-        self.messages.append(f">> VICTORY: {self.boss.name} telah dikalahkan!")
+        self.log(f">> VICTORY: {self.boss.name} telah dikalahkan!", config.GREEN)
         self.hero.buff_turns = max(0, self.hero.buff_turns)
         self.recompute_hero_path()
         self.plan_monitor.update(self.world_facts())
@@ -986,6 +1012,16 @@ class Game:
             )
             self.world_state.coins = new_coins
             if handled:
+                if getattr(self, "planner_mode", "OFF") == "ADVISOR" and hasattr(self, "autopilot_controller"):
+                    self.autopilot_controller.update(0.0)
+                return
+        if hasattr(self, "workshop_ui") and self.workshop_ui.is_open:
+            handled, res_msg = self.workshop_ui.handle_event(event, self.world_state)
+            if handled:
+                if res_msg:
+                    self.log(res_msg, config.GREEN)
+                if getattr(self, "planner_mode", "OFF") == "ADVISOR" and hasattr(self, "autopilot_controller"):
+                    self.autopilot_controller.update(0.0)
                 return
 
         if event.type == pygame.KEYDOWN:
@@ -1089,6 +1125,13 @@ class Game:
                 return
             if getattr(self, "shop_ui", None) and self.shop_ui.is_open:
                 self.shop_ui.is_open = False
+                if getattr(self, "planner_mode", "OFF") == "ADVISOR" and hasattr(self, "autopilot_controller"):
+                    self.autopilot_controller.update(0.0)
+                return
+            if getattr(self, "workshop_ui", None) and self.workshop_ui.is_open:
+                self.workshop_ui.is_open = False
+                if getattr(self, "planner_mode", "OFF") == "ADVISOR" and hasattr(self, "autopilot_controller"):
+                    self.autopilot_controller.update(0.0)
                 return
             if self.state == config.STATE_BATTLE_PREP:
                 self.state = config.STATE_EXPLORATION
@@ -1144,7 +1187,7 @@ class Game:
             return
         # ---- mode EXPLORE ----
         if key == pygame.K_i:
-            if not getattr(self.shop_ui, "is_open", False):
+            if not getattr(self.shop_ui, "is_open", False) and not getattr(self.workshop_ui, "is_open", False):
                 self.inventory_ui.toggle()
                 return
         if key == pygame.K_F5:
@@ -1236,7 +1279,7 @@ class Game:
 
                 if has_key and not is_unlocked:
                     world_actions.open_gate(self.world_state, self.game_map)
-                    self.log("Kunci Bos digunakan! Segel Skeleton Overlord hancur! Bersiap untuk bertarung!", config.GREEN)
+                    self.log("Kunci Bos digunakan! Segel hancur! Bersiap untuk bertarung melawan Boss!", config.GREEN)
 
                 self.start_battle_transition()
                 return
@@ -1297,10 +1340,13 @@ class Game:
             self.autopilot_controller.handle_player_input({k: keys[k] for k in move_keys})
             if not is_moving and self.planner_mode == "AUTO":
                 self.autopilot_controller.update(dt)
+            elif self.planner_mode == "ADVISOR":
+                self.autopilot_controller.update(dt)
         if hasattr(self, "collision_editor") and self.collision_editor:
             self.collision_editor.update_toasts(dt)
         for msg in self.messages:
-            msg[2] += dt
+            if isinstance(msg, list) and len(msg) >= 3 and isinstance(msg[2], (int, float)):
+                msg[2] += dt
         if self.flash_invalid:
             self.flash_invalid[1] -= dt
             if self.flash_invalid[1] <= 0:
@@ -1345,8 +1391,8 @@ class Game:
 
     # -------------------------------------------------------------- EXPLORE
     def update_explore(self, dt):
-        # Freeze gameplay jika modal inventori atau toko sedang terbuka
-        if (hasattr(self, "inventory_ui") and self.inventory_ui.is_open) or (hasattr(self, "shop_ui") and self.shop_ui.is_open):
+        # Freeze gameplay jika modal inventori, toko, atau bengkel sedang terbuka
+        if (hasattr(self, "inventory_ui") and self.inventory_ui.is_open) or (hasattr(self, "shop_ui") and self.shop_ui.is_open) or (hasattr(self, "workshop_ui") and self.workshop_ui.is_open):
             self.hero.stop()
             return
 
@@ -1825,18 +1871,27 @@ class Game:
             elif getattr(self, "near_interaction_target", None) and not getattr(self, "battle_transition", None):
                 self._draw_world_interaction_prompt(screen)
 
-        # Render UI Modal Inventori & Toko Desa (Fase 1A)
+        # Render UI Modal Inventori & Toko Desa (Fase 1A) & Bengkel Crafting
         if hasattr(self, "inventory_ui") and self.inventory_ui.is_open:
             self.inventory_ui.draw(screen, self.world_state.inventory, self.world_state.coins)
         if hasattr(self, "shop_ui") and self.shop_ui.is_open:
             self.shop_ui.draw(screen, self.world_state.shop, self.world_state.inventory, self.world_state.coins)
+        if hasattr(self, "workshop_ui") and self.workshop_ui.is_open:
+            self.workshop_ui.draw(screen, self.world_state)
 
         # Render Banner Autopilot / Advisor & Panel Planner Sunnyside (Sub-fase 2B, 2C, 2D)
         if self.state not in (config.STATE_BATTLE_PREP, config.STATE_BATTLE, config.STATE_GAME_OVER):
             if getattr(self, "planner_mode", "OFF") in ("ADVISOR", "AUTO"):
                 self._draw_planner_banner(screen)
             if hasattr(self, "unified_panel") and self.unified_panel.visible:
-                self.unified_panel.draw(screen, self.autopilot_controller, self.farmer_npc, self.miller_npc, self.world_clock, weather_mgr=getattr(self, "weather_manager", None), camera=render_cam, hero=self.hero)
+                self.unified_panel.draw(
+                    screen, self.autopilot_controller, self.farmer_npc, self.miller_npc,
+                    self.world_clock, weather_mgr=getattr(self, "weather_manager", None),
+                    camera=render_cam, hero=self.hero,
+                    combat_model=getattr(self, "combat_risk_model", None),
+                    goblins=getattr(self, "goblins", None),
+                    world_state=getattr(self, "world_state", None)
+                )
             else:
                 if getattr(self, "show_expedition_panel", False) and hasattr(self, "expedition_panel") and hasattr(self, "autopilot_controller"):
                     self.expedition_panel.draw(screen, self.autopilot_controller)
@@ -1871,7 +1926,7 @@ class Game:
             color = (255, 95, 95)
             border_color = (220, 60, 60)
         else:
-            prompt_text = "Tekan [E] untuk membuka segel & menantang BOSS"
+            prompt_text = "Tekan [E] untuk Lawan Boss"
             color = (255, 230, 90)
             border_color = (240, 180, 50)
 
@@ -1968,8 +2023,8 @@ class Game:
                     "shop": ("Toko Desa", "basket"),
                     "farm": ("Ladang", "shovel"),
                     "bed": ("Ranjang Desa", "expression_love"),
-                    "gate": ("Gerbang Reruntuhan", "hammer"),
-                    "boss": ("Kalahkan Boss", "sword"),
+                    "gate": ("Lawan Boss", "sword"),
+                    "boss": ("Lawan Boss", "sword"),
                     "chicken_coop": ("Kandang Ayam", "egg"),
                     "cow_pasture": ("Padang Sapi", "milk"),
                     "river_fishing": ("Dermaga Pancing", "rod"),
@@ -2003,10 +2058,10 @@ class Game:
                 target_pos = config.LOCATIONS.get("farm")
                 action_label = "Ladang Pertanian"
                 icon_name = "shovel"
-            elif action_name == "open_gate":
-                target_pos = config.LOCATIONS.get("gate")
-                action_label = "Buka Gerbang"
-                icon_name = "hammer"
+            elif action_name in ("open_gate", "goto_through_gate"):
+                target_pos = config.LOCATIONS.get("boss") or config.LOCATIONS.get("gate")
+                action_label = "Lawan Boss"
+                icon_name = "sword"
             elif action_name == "rest":
                 target_pos = config.LOCATIONS.get("bed")
                 action_label = "Istirahat di Ranjang"
@@ -2037,8 +2092,8 @@ class Game:
                 "shop": ("Toko Desa", "basket"),
                 "farm": ("Ladang", "shovel"),
                 "bed": ("Ranjang Desa", "expression_love"),
-                "gate": ("Gerbang Reruntuhan", "hammer"),
-                "boss": ("Kalahkan Boss", "sword"),
+                "gate": ("Lawan Boss", "sword"),
+                "boss": ("Lawan Boss", "sword"),
                 "chicken_coop": ("Kandang Ayam", "egg"),
                 "cow_pasture": ("Padang Sapi", "milk"),
                 "river_fishing": ("Dermaga Pancing", "rod"),
@@ -2126,20 +2181,8 @@ class Game:
                 self.shop_ui.toggle()
                 return True
         elif target_type == "WORKSHOP":
-            if not self.world_state.gate.is_open and not self.world_state.inventory.has_item("key", 1) and self.world_state.inventory.has_item("wood", 1) and self.world_state.inventory.has_item("rock", 1):
-                res = world_actions.craft_key(self.world_state)
-                self.log(res.message, config.GREEN if res.success else config.YELLOW)
-                return True
-            elif self.world_state.inventory.has_item("radish", 1) and self.world_state.inventory.has_item("bottle_empty", 1):
-                res = world_actions.craft_potion(self.world_state)
-                self.log(res.message, config.GREEN if res.success else config.YELLOW)
-                return True
-            elif self.world_state.inventory.has_item("wood", 1) and self.world_state.inventory.has_item("rock", 1):
-                res = world_actions.craft_key(self.world_state)
-                self.log(res.message, config.GREEN if res.success else config.YELLOW)
-                return True
-            else:
-                self.log("Bengkel Crafting: Butuh (1x Lobak + 1x Botol) untuk Potion, atau (1x Kayu + 1x Batu) untuk Kunci.", config.CYAN)
+            if not self.inventory_ui.is_open and not self.shop_ui.is_open:
+                self.workshop_ui.toggle()
                 return True
         elif target_type == "BED":
             res = world_actions.rest(self.world_state, self.hero)
@@ -2223,7 +2266,7 @@ class Game:
             return
         if self.state != config.STATE_EXPLORATION or getattr(self, "battle_transition", None) is not None:
             return
-        if self.inventory_ui.is_open or self.shop_ui.is_open:
+        if self.inventory_ui.is_open or self.shop_ui.is_open or getattr(self.workshop_ui, "is_open", False):
             return
 
         ttype, tdata = self.near_interaction_target
@@ -2246,27 +2289,27 @@ class Game:
             text = "Buka Toko Desa"
             sub = "Beli benih, botol, senjata, & jual hasil panen"
         elif ttype == "WORKSHOP":
-            text = "Meracik di Bengkel"
-            sub = "Health Potion (Lobak+Botol) / Kunci (Kayu+Batu)"
+            text = "Buka Bengkel Tempa & Gear"
+            sub = "Pasang Perlengkapan Tempur, Tempa Kunci, atau Racik Potion"
         elif ttype == "BED":
             text = "Istirahat di Ranjang"
             sub = "Memulihkan 100% HP hero ke kondisi prima"
         elif ttype == "GATE":
             if self.world_state.gate.is_open:
                 return  # Sudah terbuka, tidak perlu prompt
-            has_key = self.world_state.inventory.has_item("key", 1)
+            has_key = self.world_state.inventory.has_item("key", 1) or self.world_state.inventory.has_item("gate_key", 1)
             if has_key:
                 badge_txt = "[E]"
                 badge_col = config.GREEN
                 badge_bg = (20, 50, 30, 230)
-                text = "Buka Gerbang Reruntuhan"
-                sub = "Kunci gerbang tersedia di tas hero"
+                text = "Lawan Boss"
+                sub = "Tantang Skeleton Overlord dalam pertempuran"
             else:
-                badge_txt = "TERKUNCI"
+                badge_txt = "TERSEGEL"
                 badge_col = (240, 90, 90)
                 badge_bg = (54, 20, 20, 230)
-                text = "Gerbang Reruntuhan Obsidian"
-                sub = "Terkunci · Butuh Kunci Gerbang (Tempa di Bengkel: 1 Kayu + 1 Batu)"
+                text = "Lawan Boss (Tersegel)"
+                sub = "Terkunci · Butuh Kunci Bos (Tempa di Bengkel: 1 Kayu + 1 Batu)"
         elif ttype == "CHICKEN":
             text = "Ambil Telur Ayam"
             sub = "Sumber daya segar untuk dijual ke toko"
@@ -2372,6 +2415,11 @@ class Game:
             # Radius Lepas / Hysteresis (lingkaran tipis oranye)
             pygame.draw.circle(screen, (255, 140, 40), (center_x, center_y), int(ccfg.GOB_DELEASH_RADIUS), 1)
 
+            # Batas Wilayah/Teritori Goblin dari Spawn (lingkaran tipis toska)
+            sp_x = int(gob.spawn_x - cam_x + config.TILE_SIZE // 2)
+            sp_y = int(gob.spawn_y - cam_y + config.TILE_SIZE // 2)
+            pygame.draw.circle(screen, (80, 210, 240), (sp_x, sp_y), int(getattr(ccfg, "GOB_MAX_LEASH_DIST", 260.0)), 1)
+
             # Jarak Serang Goblin (lingkaran tipis merah)
             pygame.draw.circle(screen, (255, 60, 60), (center_x, center_y), int(ccfg.GOB_ATTACK_RANGE), 1)
 
@@ -2379,6 +2427,14 @@ class Game:
             ghb = gob.feet_hitbox()
             ghb_scr = pygame.Rect(ghb.x - cam_x, ghb.y - cam_y, ghb.w, ghb.h)
             pygame.draw.rect(screen, config.CYAN, ghb_scr, 1)
+
+            # Visualisasi Jalur A* Navigasi Cerdas Goblin (merah/emas)
+            if getattr(gob, "chase_path", None) and len(gob.chase_path) > 0:
+                pts = [(center_x, center_y)] + [(int(wx - cam_x), int(wy - cam_y)) for wx, wy in gob.chase_path]
+                if len(pts) >= 2:
+                    pygame.draw.lines(screen, (255, 90, 90), False, pts, 2)
+                for wx, wy in gob.chase_path:
+                    pygame.draw.circle(screen, (255, 215, 0), (int(wx - cam_x), int(wy - cam_y)), 3)
 
             # Teks State Goblin dan HP di atas kepala
             txt_color = config.RED if gob.state in ("ATTACK", "CHASE") else (config.GREEN if gob.state == "IDLE" else config.YELLOW)
@@ -2735,9 +2791,15 @@ class Game:
         banner_surf.fill(bg_col)
         pygame.draw.rect(banner_surf, border_col, (0, 0, bw, bh), 2)
 
+        # Pastikan title dan sub_txt muat sempurna tanpa terpotong / meluap keluar border
+        max_text_w = bw - 16
+        while self.font_s.size(title)[0] > max_text_w and len(title) > 10:
+            title = title[:-4] + "..."
         t_surf = self.font_s.render(title, True, title_col)
         banner_surf.blit(t_surf, (8, 3))
 
+        while self.font_xs.size(sub_txt)[0] > max_text_w and len(sub_txt) > 10:
+            sub_txt = sub_txt[:-4] + "..."
         s_surf = self.font_xs.render(sub_txt, True, (220, 225, 235))
         banner_surf.blit(s_surf, (8, 19))
 
@@ -2784,7 +2846,11 @@ class Game:
         items = []
         max_w = 0
         recent_messages = list(self.messages)[-3:]
-        for text, color, age in recent_messages:
+        for item in recent_messages:
+            if isinstance(item, (list, tuple)) and len(item) >= 3:
+                text, color, age = item[0], item[1], item[2]
+            else:
+                text, color, age = str(item), config.WHITE, 0.0
             if age >= 5.0:
                 continue
             alpha = max(0, min(255, int(255 - max(0.0, age - 3.5) * 170)))

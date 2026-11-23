@@ -68,6 +68,7 @@ class AutopilotController:
         self.navigating_act: Optional[GroundAction] = None
         self.interacting_act: Optional[GroundAction] = None
         self.interaction_timer: float = 0.0
+        self.advisor_replan_cooldown: float = 0.0
 
     def toggle_mode(self) -> str:
         """Berpindah antara mode OFF -> ADVISOR -> AUTO -> OFF."""
@@ -87,6 +88,7 @@ class AutopilotController:
             self.status_message = "Mode ADVISOR aktif: Menampilkan saran langkah."
             if not self.monitor.current_plan or self.monitor.current_action is None:
                 self._request_new_plan()
+            self.update_advisor(0.0)
         elif self.mode == PlannerMode.AUTO:
             self.status_message = "Mode AUTO aktif: Hero bergerak mandiri."
             self.monitor.surrendered = False
@@ -177,7 +179,7 @@ class AutopilotController:
 
         descriptions = {
             "goto": f"Pergi ke {act.params[1] if len(act.params)>1 else act.params[0]}",
-            "goto_through_gate": f"Lewati gerbang menuju {act.params[1] if len(act.params)>1 else act.params[0]}",
+            "goto_through_gate": f"Menuju {act.params[1] if len(act.params)>1 else act.params[0]} (Lawan Boss)",
             "buy_seed_radish": "Beli Benih Lobak di Toko (5 koin)",
             "buy_bottle": "Beli Botol Kosong di Toko (8 koin)",
             "buy_armor_leather": "Beli Zirah Kulit di Toko (15 koin)",
@@ -199,7 +201,7 @@ class AutopilotController:
             "mine_rock": "Tambang Batu di Tebing",
             "craft_potion": "Racik Health Potion di Bengkel",
             "craft_key": "Tempa Kunci Segel Bos di Bengkel (1 Kayu + 1 Batu)",
-            "open_gate": "Buka Segel Skeleton Overlord dengan Kunci",
+            "open_gate": "Lawan Boss (Buka Segel dengan Kunci)",
             "equip_starter": "Pasang Peralatan Pemula (Pedang & Kain)",
             "equip_leather": "Pasang Zirah Kulit",
             "rest": "Istirahat di Ranjang (Pulihkan HP 100%)",
@@ -225,12 +227,285 @@ class AutopilotController:
                 self._request_new_plan()
                 self.status_message = f"[TRIGGER_BELIEF_UPDATE] {self.status_message}"
 
+    def _is_action_completed(self, act: GroundAction) -> bool:
+        """
+        Mengecek apakah efek dari aksi STRIPS saat ini telah dipenuhi oleh aksi manual pemain di dunia nyata.
+        Digunakan oleh mode ADVISOR untuk memajukan langkah saran secara otomatis saat pemain
+        berhasil melakukan instruksi (misal membeli benih, tiba di lokasi, menebang pohon, dll).
+        """
+        if not act:
+            return False
+
+        name = act.name
+        params = act.params
+
+        # 1. Aksi Pergerakan (goto / goto_through_gate)
+        if name in ("goto", "goto_through_gate"):
+            to_loc = params[1] if len(params) > 1 else params[0]
+            locs = getattr(config, "LOCATIONS", {})
+            target_pt = locs.get(to_loc)
+            if to_loc == "boss":
+                if hasattr(self, "game") and self.game and hasattr(self.game, "boss") and self.game.boss:
+                    target_pt = (self.game.boss.px, self.game.boss.py)
+                elif hasattr(config, "BOSS_FIELD_POS"):
+                    target_pt = config.BOSS_FIELD_POS
+
+            if self.hero and target_pt:
+                dist = math.hypot(self.hero.px - target_pt[0], self.hero.py - target_pt[1])
+                # Ambang batas toleransi kedatangan (~2.25 tile = 72 px)
+                if dist <= 72.0:
+                    return True
+            return False
+
+        # 2. Aksi Belanja di Toko (buy_*)
+        if name == "buy_seed_radish":
+            inv = self.world_state.inventory
+            if inv.has_item("seeds_radish", 1) or inv.has_item("radish", 1) or inv.has_item("potion_red", 1):
+                return True
+            plots = getattr(getattr(self.world_state, "farm", None), "plots", [])
+            if any(getattr(p, "crop_type", None) == "radish" for p in plots):
+                return True
+            return False
+
+        if name == "buy_bottle":
+            inv = self.world_state.inventory
+            if inv.has_item("bottle_empty", 1) or inv.has_item("potion_red", 1):
+                return True
+            return False
+
+        if name == "buy_armor_leather":
+            inv = self.world_state.inventory
+            eq = getattr(self.world_state, "equipped_armor", None)
+            if inv.has_item("Kulit", 1) or eq == "Kulit" or eq == "Besi" or inv.has_item("Besi", 1):
+                return True
+            return False
+
+        if name == "buy_fire_staff":
+            inv = self.world_state.inventory
+            eq = getattr(self.world_state, "equipped_weapon", None)
+            if inv.has_item("Tongkat Api", 1) or eq == "Tongkat Api":
+                return True
+            return False
+
+        if name == "buy_weapon_dagger":
+            inv = self.world_state.inventory
+            eq = getattr(self.world_state, "equipped_weapon", None)
+            if inv.has_item("Belati Cepat", 1) or eq == "Belati Cepat":
+                return True
+            return False
+
+        if name == "buy_weapon_axe":
+            inv = self.world_state.inventory
+            eq = getattr(self.world_state, "equipped_weapon", None)
+            if inv.has_item("Kapak Berat", 1) or eq == "Kapak Berat":
+                return True
+            return False
+
+        if name == "buy_armor_iron":
+            inv = self.world_state.inventory
+            eq = getattr(self.world_state, "equipped_armor", None)
+            if inv.has_item("Besi", 1) or eq == "Besi":
+                return True
+            return False
+
+        if name == "buy_gate_key":
+            inv = self.world_state.inventory
+            if inv.has_item("gate_key", 1) or getattr(self.world_state.gate, "is_open", False):
+                return True
+            return False
+
+        if name == "buy_item":
+            item = params[0] if params else ""
+            if item and self.world_state.inventory.has_item(item, 1):
+                return True
+            return False
+
+        # 3. Aksi Penjualan di Toko (sell_*)
+        if name == "sell_fish":
+            inv = self.world_state.inventory
+            target_coin = 0
+            if len(params) > 1 and params[1].startswith("c"):
+                try:
+                    target_coin = int(params[1][1:])
+                except ValueError:
+                    target_coin = 0
+            if not inv.has_item("fish", 1) and (self.world_state.coins >= target_coin or target_coin == 0):
+                return True
+            return False
+
+        if name == "sell_radish":
+            inv = self.world_state.inventory
+            if not inv.has_item("radish", 1):
+                return True
+            return False
+
+        if name in ("sell_egg", "sell_milk", "sell_wood", "sell_rock"):
+            item_raw = name.replace("sell_", "")
+            if not self.world_state.inventory.has_item(item_raw, 1):
+                return True
+            return False
+
+        # 4. Pengumpulan Bahan Alam
+        if name == "fish":
+            if self.world_state.inventory.has_item("fish", 1):
+                return True
+            return False
+
+        if name in ("mine_rock", "mine_rock_river"):
+            inv = self.world_state.inventory
+            if inv.has_item("rock", 1) or inv.has_item("gate_key", 1) or getattr(self.world_state.gate, "is_open", False):
+                return True
+            return False
+
+        if name == "chop_wood":
+            inv = self.world_state.inventory
+            if inv.has_item("wood", 1) or inv.has_item("gate_key", 1) or getattr(self.world_state.gate, "is_open", False):
+                return True
+            return False
+
+        if name == "collect_egg":
+            return self.world_state.inventory.has_item("egg", 1)
+
+        if name == "collect_milk":
+            return self.world_state.inventory.has_item("milk", 1)
+
+        # 5. Agronomi & Farm
+        if name == "plant_radish":
+            plots = getattr(getattr(self.world_state, "farm", None), "plots", [])
+            inv = self.world_state.inventory
+            if any(getattr(p, "crop_type", None) == "radish" for p in plots) or inv.has_item("radish", 1) or inv.has_item("potion_red", 1):
+                return True
+            return False
+
+        if name == "water_radish":
+            plots = getattr(getattr(self.world_state, "farm", None), "plots", [])
+            inv = self.world_state.inventory
+            if any(getattr(p, "is_watered", False) for p in plots) or any(getattr(p, "is_mature", False) for p in plots) or inv.has_item("radish", 1) or inv.has_item("potion_red", 1):
+                return True
+            return False
+
+        if name == "wait_grow_radish":
+            plots = getattr(getattr(self.world_state, "farm", None), "plots", [])
+            inv = self.world_state.inventory
+            if any(getattr(p, "is_mature", False) for p in plots) or inv.has_item("radish", 1) or inv.has_item("potion_red", 1):
+                return True
+            return False
+
+        if name == "harvest_radish":
+            inv = self.world_state.inventory
+            if inv.has_item("radish", 1) or inv.has_item("potion_red", 1):
+                return True
+            return False
+
+        # 6. Crafting di Bengkel
+        if name == "craft_key":
+            inv = self.world_state.inventory
+            if inv.has_item("gate_key", 1) or getattr(self.world_state.gate, "is_open", False):
+                return True
+            return False
+
+        if name == "craft_potion":
+            if self.world_state.inventory.has_item("potion_red", 1):
+                return True
+            return False
+
+        # 7. Membuka Gerbang
+        if name == "open_gate":
+            if getattr(self.world_state.gate, "is_open", False):
+                return True
+            return False
+
+        # 8. Perlengkapan Tempur
+        if name.startswith("equip"):
+            if getattr(self.world_state, "equipped_ok", False):
+                return True
+            w = params[0] if len(params) > 0 else None
+            a = params[1] if len(params) > 1 else None
+            w_ok = (not w or getattr(self.world_state, "equipped_weapon", None) == w)
+            a_ok = (not a or getattr(self.world_state, "equipped_armor", None) == a)
+            if w_ok and a_ok:
+                return True
+            return False
+
+        # 9. Pemulihan HP
+        if name == "rest":
+            if self.hero and self.hero.hp >= self.hero.max_hp:
+                return True
+            return False
+
+        # 10. Pertarungan Boss
+        if name == "fight_boss":
+            boss = getattr(self.world_state, "boss", None)
+            if getattr(boss, "is_defeated", False) or getattr(self.world_state, "boss_defeated", False):
+                return True
+            return False
+
+        return False
+
+    def update_advisor(self, dt: float):
+        """
+        Memantau aksi pemain secara pasif dalam mode ADVISOR.
+        Mendeteksi jika pemain telah menyelesaikan langkah yang disarankan
+        (misal: membeli benih di toko, tiba di lokasi target, menebang pohon, dll)
+        dan memajukan indeks langkah secara otomatis.
+        Jika kondisi dunia berubah sehingga langkah tidak lagi valid,
+        memicu replanning otonom agar saran langkah selalu mutakhir.
+        """
+        if self.mode != PlannerMode.ADVISOR:
+            return
+
+        if self.advisor_replan_cooldown > 0:
+            self.advisor_replan_cooldown = max(0.0, self.advisor_replan_cooldown - dt)
+
+        if not self.monitor.current_plan or self.monitor.current_action is None:
+            if not self.monitor.current_plan and not self.monitor.surrendered:
+                self._request_new_plan()
+            return
+
+        # 1. Periksa apakah aksi saat ini (atau aksi berikutnya) telah diselesaikan secara manual oleh pemain
+        advanced = False
+        loop_guard = 0
+        while loop_guard < 5:
+            act = self.monitor.current_action
+            if not act:
+                break
+            if self._is_action_completed(act):
+                self.monitor.advance_step()
+                advanced = True
+                loop_guard += 1
+            else:
+                break
+
+        if advanced:
+            next_act = self.monitor.current_action
+            if next_act:
+                from planning.planner_ui import format_action_human
+                act_title, _ = format_action_human(next_act)
+                self.status_message = f"[ADVISOR] Langkah selesai! Lanjut: {act_title}"
+            else:
+                self.status_message = "[ADVISOR] Seluruh langkah ekspedisi telah selesai!"
+            return
+
+        # 2. Jika aksi belum selesai, periksa validitas prekondisi langkah saat ini.
+        # Bila pemain menyimpang dan prekondisi gagal, picu replanning (dengan cooldown).
+        if self.advisor_replan_cooldown <= 0:
+            act = self.monitor.current_action
+            if act:
+                status = self.monitor.check_preconditions(hero=self.hero, game_map=self.game_map)
+                if not status.is_valid:
+                    self.advisor_replan_cooldown = 1.5
+                    self._request_new_plan()
+
     def update(self, dt: float):
         """
         Loop update autopilot yang dipanggil setiap frame permainan.
         Menggerakkan Hero secara fisik di dunia game tile-by-tile via A*,
         memberikan pacing aksi yang halus, dan memvalidasi prekondisi kontinu.
         """
+        if self.mode == PlannerMode.ADVISOR:
+            self.update_advisor(dt)
+            return
+
         if self.mode != PlannerMode.AUTO or self.is_paused_by_player:
             return
 

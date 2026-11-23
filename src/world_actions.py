@@ -39,8 +39,13 @@ def goto_location(world_state: WorldState, hero: Any, location_name: str, game_m
 
     target_pos = locs[location_name]
     if location_name == "boss":
-        # Berdiri di depan Boss (koordinat pasir 2400, 448), bukan menumpuk di dalam tubuh Boss
-        target_pos = (target_pos[0] - 64, target_pos[1])
+        # Jangan pernah memindahkan player ke pulau terpencil!
+        # Pertahankan koordinat player saat ini dari awal sampai akhir battle mode
+        if hero is not None and hasattr(hero, "px") and hasattr(hero, "py"):
+            target_pos = (hero.px, hero.py)
+        else:
+            boss_field = getattr(config, "BOSS_FIELD_POS", (2592, 608))
+            target_pos = (boss_field[0] - 48, boss_field[1])
     if hero is not None:
         if hasattr(hero, "px"):
             hero.px = float(target_pos[0])

@@ -102,7 +102,7 @@ def format_action_human(action: GroundAction) -> Tuple[str, str]:
         return "Racik Ramuan Merah", "di bengkel (lobak + botol)"
 
     if name == "open_gate":
-        return "Buka Segel Skeleton Overlord", "membuka segel kutukan bos"
+        return "Lawan Boss", "membuka segel & menantang Skeleton Overlord"
 
     if name == "equip":
         w = params[0] if len(params) > 0 else "senjata"
@@ -113,12 +113,12 @@ def format_action_human(action: GroundAction) -> Tuple[str, str]:
         w = params[0] if len(params) > 0 else "senjata"
         a = params[1] if len(params) > 1 else "zirah"
         n = params[2] if len(params) > 2 else "0"
-        return "Tantang Boss Dungeon", f"Loadout: {w}, {a}, {n} potion"
+        return "Lawan Boss Dungeon", f"Loadout: {w}, {a}, {n} potion"
 
     if name in ("goto", "goto_through_gate"):
         loc_from = params[0] if len(params) > 0 else "?"
         loc_to = params[1] if len(params) > 1 else "?"
-        prefix = "Lewati Gerbang: " if name == "goto_through_gate" else "Jalan: "
+        prefix = "Menuju Boss: " if name == "goto_through_gate" or loc_to in ("boss", "gate") else "Jalan: "
         return f"{prefix}{loc_from} -> {loc_to}", f"rute navigasi A*"
 
     # Fallback default
@@ -563,18 +563,21 @@ class UnifiedPlannerPanel:
     def _draw_badge(self, screen: pygame.Surface, rect: pygame.Rect, text: str,
                     text_col: Tuple[int, int, int], bg_col: Tuple[int, int, int],
                     border_col: Tuple[int, int, int], dot_col: Optional[Tuple[int, int, int]] = None,
-                    font: Optional[pygame.font.Font] = None):
+                    font: Optional[pygame.font.Font] = None, center: bool = False):
         """Menggambar badge kapsul berpenampilan modern tajam."""
         f = font or self.font_badge
         pygame.draw.rect(screen, bg_col, rect, border_radius=rect.height // 2)
         pygame.draw.rect(screen, border_col, rect, 1, border_radius=rect.height // 2)
 
-        offset_x = rect.x + 6
-        if dot_col is not None:
-            pygame.draw.circle(screen, dot_col, (rect.x + 8, rect.y + rect.height // 2), 2.5)
-            offset_x += 8
-
         t_surf = f.render(text, True, text_col)
+        if center:
+            offset_x = rect.x + (rect.width - t_surf.get_width()) // 2
+        else:
+            offset_x = rect.x + 6
+            if dot_col is not None:
+                pygame.draw.circle(screen, dot_col, (rect.x + 8, rect.y + rect.height // 2), 2.5)
+                offset_x += 8
+
         screen.blit(t_surf, (offset_x, rect.y + (rect.height - t_surf.get_height()) // 2))
 
     def _draw_metric_box(self, screen: pygame.Surface, rect: pygame.Rect,
@@ -666,7 +669,7 @@ class UnifiedPlannerPanel:
 
         # Badge status
         b_rect = pygame.Rect(rx + 10, cur_y, 148, 18)
-        self._draw_badge(screen, b_rect, "[UCC] MAB Fishing (5 Spot)", (79, 70, 229), (238, 242, 255), (199, 210, 254))
+        self._draw_badge(screen, b_rect, "[UCC] Minion Combat DUU", (79, 70, 229), (238, 242, 255), (199, 210, 254))
 
         div_surf = self.font_badge.render("|", True, (203, 213, 225))
         screen.blit(div_surf, (rx + 164, cur_y + 2))
@@ -722,7 +725,7 @@ class UnifiedPlannerPanel:
         c1_title = self.font_bold.render("TUJUAN & PROGRES", True, (15, 23, 42))
         screen.blit(c1_title, (c1_rect.x + 22, c1_rect.y + 6))
 
-        mode_badge_r = pygame.Rect(c1_rect.right - 84, c1_rect.y + 5, 76, 18)
+        mode_badge_r = pygame.Rect(c1_rect.right - 96, c1_rect.y + 5, 88, 18)
         self._draw_badge(screen, mode_badge_r, f"Mode: {mode_str}", (71, 85, 105), (241, 245, 249), (226, 232, 240), dot_col=(148, 163, 184))
 
         # 3 Checkbox Buttons
@@ -747,10 +750,11 @@ class UnifiedPlannerPanel:
         tot_cost = sum(a.cost for a in plan) if plan else 118.5
         f_y = c1_rect.y + 71
         screen.blit(self.font_xs.render(f"Langkah {step_idx}/{total_steps}", True, (15, 23, 42)), (c1_rect.x + 10, f_y))
-        screen.blit(self.font_xs.render("·", True, (148, 163, 184)), (c1_rect.x + 130, f_y))
-        screen.blit(self.font_xs.render(f"Biaya: {tot_cost:.1f}s", True, (15, 23, 42)), (c1_rect.x + 150, f_y))
-        screen.blit(self.font_xs.render("·", True, (148, 163, 184)), (c1_rect.x + 260, f_y))
-        screen.blit(self.font_xs.render(f"Mode: {mode_str}", True, (71, 85, 105)), (c1_rect.x + 280, f_y))
+        screen.blit(self.font_xs.render("·", True, (148, 163, 184)), (c1_rect.x + 125, f_y))
+        screen.blit(self.font_xs.render(f"Biaya: {tot_cost:.1f}s", True, (15, 23, 42)), (c1_rect.x + 140, f_y))
+        screen.blit(self.font_xs.render("·", True, (148, 163, 184)), (c1_rect.x + 245, f_y))
+        replan_c = getattr(monitor, "consecutive_replans", 0) if monitor else 0
+        screen.blit(self.font_xs.render(f"Replan: {replan_c}/3", True, (71, 85, 105)), (c1_rect.x + 260, f_y))
 
         # ----------------------------------------------------------------------
         # Card 2: AKSI AKTIF (STRIPS) (108px)
@@ -764,7 +768,7 @@ class UnifiedPlannerPanel:
 
         act = monitor.current_action if monitor else None
         act_status = "[BERJALAN]" if act is not None else "[SIAP]"
-        siap_r = pygame.Rect(c2_rect.right - 66, c2_rect.y + 5, 56, 18)
+        siap_r = pygame.Rect(c2_rect.right - 80, c2_rect.y + 5, 72, 18)
         self._draw_badge(screen, siap_r, act_status, (22, 101, 52), (220, 252, 231), (134, 239, 172), dot_col=(16, 185, 129))
 
         in_box = pygame.Rect(c2_rect.x + 10, c2_rect.y + 27, c2_rect.width - 20, 26)
@@ -780,12 +784,30 @@ class UnifiedPlannerPanel:
         # Key-Values
         kv_y = c2_rect.y + 59
         screen.blit(self.font_mono.render("Precondition", True, (13, 148, 136)), (c2_rect.x + 10, kv_y))
-        pre_val = "Semua precondition STRIPS terpenuhi." if not act else "[OK] at [OK] connected"
+        if not act:
+            pre_val = "Semua precondition STRIPS terpenuhi."
+        elif act.name == "goto":
+            pre_val = f"[OK] at({act.params[0]}) & connected"
+        elif "buy" in act.name:
+            pre_val = "[OK] at(shop) & coins mencukupi"
+        else:
+            pre_val = "[OK] Precondition tervalidasi"
         screen.blit(self.font_body.render(pre_val, True, (15, 23, 42)), (c2_rect.x + 104, kv_y))
 
         kv_y += 16
         screen.blit(self.font_mono.render("Effect (Eff)", True, (13, 148, 136)), (c2_rect.x + 10, kv_y))
-        eff_val = "Siap eksekusi tahap berikutnya." if not act else "+has_key, +holding | -wood"
+        if not act:
+            eff_val = "Siap eksekusi tahap berikutnya."
+        elif act.name == "goto":
+            eff_val = f"+at({act.params[1]}), -at({act.params[0]})"
+        elif "buy_seed" in act.name:
+            eff_val = "+seeds_radish, -coins"
+        elif "buy_bottle" in act.name:
+            eff_val = "+bottle_empty, -coins"
+        elif "craft" in act.name:
+            eff_val = "+item_crafted, -materials"
+        else:
+            eff_val = "+holding, +state_applied"
         screen.blit(self.font_body.render(eff_val, True, (15, 23, 42)), (c2_rect.x + 104, kv_y))
 
         kv_y += 16
@@ -795,9 +817,9 @@ class UnifiedPlannerPanel:
         screen.blit(self.font_mono.render(diff_display, True, (100, 116, 139)), (c2_rect.x + 104, kv_y))
 
         # ----------------------------------------------------------------------
-        # Card 3: MESIN PENCARI WA* & ANTREAN (182px)
+        # Card 3: MESIN PENCARI WA* & ANTREAN (178px)
         # ----------------------------------------------------------------------
-        c3_rect = pygame.Rect(rx + 10, ry + 342, rw - 20, 182)
+        c3_rect = pygame.Rect(rx + 10, ry + 342, rw - 20, 178)
         pygame.draw.rect(screen, (255, 255, 255), c3_rect, border_radius=10)
         pygame.draw.rect(screen, (226, 232, 240), c3_rect, 1, border_radius=10)
 
@@ -845,8 +867,12 @@ class UnifiedPlannerPanel:
                 self._draw_badge(screen, b_item_r, badge_txt, (100, 116, 139), (241, 245, 249), (203, 213, 225))
 
     def _draw_uncertainty_tab(self, screen: pygame.Surface, weather_mgr: Optional[Any] = None,
-                               autopilot: Optional[AutopilotController] = None):
-        """Tab 3: [F8] DECISIONS UNDER UNCERTAINTY (UCC) - Compact Studio."""
+                               autopilot: Optional[AutopilotController] = None,
+                               hero: Optional[Any] = None,
+                               combat_model: Optional[Any] = None,
+                               goblins: Optional[List[Any]] = None,
+                               world_state: Optional[Any] = None):
+        """Tab 3: [F8] DECISIONS UNDER UNCERTAINTY (UCC) - Live Combat & Bayesian Studio."""
         rx, ry, rw, rh = self.rect.x, self.rect.y, self.rect.width, self.rect.height
 
         # Title Header & Badge
@@ -857,14 +883,72 @@ class UnifiedPlannerPanel:
         badge_rect = pygame.Rect(rx + 10 + t_surf.get_width() + 8, cur_y + 1, 88, 18)
         self._draw_badge(screen, badge_rect, "UCC ENGINE", (79, 70, 229), (238, 242, 255), (199, 210, 254))
 
-        cur_y += 20
+        cur_y += 18
         dom_surf = self.font_mono.render("[DIR] src/decision/combat_policy.py & probability.py", True, (100, 116, 139))
         screen.blit(dom_surf, (rx + 10, cur_y))
 
         # ----------------------------------------------------------------------
-        # Card 1: STATUS ANCAMAN MINION & INFERENSI BAYES (98px)
+        # DETEKSI REAL-TIME: Pindai Ancaman Goblin di Sekitar Player
         # ----------------------------------------------------------------------
-        c1_rect = pygame.Rect(rx + 10, ry + 124, rw - 20, 98)
+        from decision.combat_policy import CombatRiskModel, CombatDecision
+
+        if combat_model is None:
+            if hasattr(hero, "combat_model") and hero.combat_model:
+                combat_model = hero.combat_model
+            else:
+                combat_model = CombatRiskModel()
+
+        target_gob = None
+        min_dist = float("inf")
+        goblin_threat_count = 0
+
+        if hero and goblins:
+            for gob in goblins:
+                if getattr(gob, "alive", False) and getattr(gob, "state", "") != "DEAD":
+                    d = math.hypot(gob.x - hero.px, gob.y - hero.py)
+                    # Deteksi ancaman: goblin mengejar/menyerang, atau berada dalam radius waspada (<= 280px)
+                    if getattr(gob, "state", "") in ("CHASE", "ATTACK") or d <= 280.0:
+                        goblin_threat_count += 1
+                        if d < min_dist:
+                            min_dist = d
+                            target_gob = gob
+
+        # Evaluasi kondisi hero & musuh untuk MEU
+        hero_hp_raw = getattr(hero, "hp", 100) if hero else 100
+        hero_max_hp = getattr(hero, "max_hp", 100) if hero else 100
+        hp_hero_ratio = max(0.0, min(1.0, hero_hp_raw / max(1, hero_max_hp)))
+
+        target_hp_raw = getattr(target_gob, "hp", 3) if target_gob else 3
+        target_max_hp = getattr(target_gob, "max_hp", 3) if target_gob else 3
+        hp_goblin_ratio = max(0.0, min(1.0, target_hp_raw / max(1, target_max_hp)))
+
+        has_potion = False
+        if world_state and hasattr(world_state, "inventory"):
+            has_potion = (world_state.inventory.has_item("potion_red", 1) or
+                          world_state.inventory.has_item("potion", 1))
+
+        currently_engaged = (target_gob is not None and
+                              (getattr(target_gob, "state", "") in ("CHASE", "ATTACK") or min_dist <= 90.0))
+        gob_count_eff = goblin_threat_count if target_gob else 0
+
+        decision, metrics = combat_model.decide(
+            hp_hero=hp_hero_ratio,
+            hp_goblin=hp_goblin_ratio,
+            goblin_count=gob_count_eff,
+            has_potion=has_potion,
+            currently_engaged=currently_engaged
+        )
+
+        belief = combat_model.belief
+        prior = belief.prior_elite
+        posterior = belief.posterior_elite
+        obs_count = belief.observations_count
+        last_obs = getattr(combat_model, "last_observation_desc", "Menunggu kontak")
+
+        # ----------------------------------------------------------------------
+        # Card 1: STATUS ANCAMAN MINION & INFERENSI BAYES (102px)
+        # ----------------------------------------------------------------------
+        c1_rect = pygame.Rect(rx + 10, ry + 122, rw - 20, 104)
         pygame.draw.rect(screen, (255, 255, 255), c1_rect, border_radius=10)
         pygame.draw.rect(screen, (226, 232, 240), c1_rect, 1, border_radius=10)
 
@@ -872,61 +956,127 @@ class UnifiedPlannerPanel:
         c1_title = self.font_bold.render("MINION GOBLIN: INFERENSI BAYES", True, (15, 23, 42))
         screen.blit(c1_title, (c1_rect.x + 22, c1_rect.y + 6))
 
-        mab_badge_r = pygame.Rect(c1_rect.right - 90, c1_rect.y + 5, 82, 18)
-        self._draw_badge(screen, mab_badge_r, "[LIVE COMBAT]", (79, 70, 229), (238, 242, 255), (199, 210, 254), dot_col=(59, 130, 246))
+        # Status badge interaktif
+        mab_badge_r = pygame.Rect(c1_rect.right - 104, c1_rect.y + 5, 96, 18)
+        if target_gob and getattr(target_gob, "state", "") == "ATTACK":
+            self._draw_badge(screen, mab_badge_r, "[SERANG!]", (185, 28, 28), (254, 242, 242), (252, 165, 165), dot_col=(239, 68, 68))
+        elif target_gob and getattr(target_gob, "state", "") == "CHASE":
+            self._draw_badge(screen, mab_badge_r, "[MENGEJAR]", (194, 65, 12), (255, 247, 237), (253, 186, 116), dot_col=(249, 115, 22))
+        elif target_gob and min_dist <= 280:
+            self._draw_badge(screen, mab_badge_r, "[TERDETEKSI]", (146, 64, 14), (254, 243, 199), (252, 211, 77), dot_col=(245, 158, 11))
+        else:
+            self._draw_badge(screen, mab_badge_r, "[PATROL/AMAN]", (22, 101, 52), (220, 252, 231), (134, 239, 172), dot_col=(34, 197, 94))
 
+        # Subtitle live target
+        if target_gob:
+            t_name = getattr(target_gob, "name", "goblin")
+            t_elite = "ELIT" if getattr(target_gob, "is_elite", False) else "Biasa"
+            target_str = f"Target: {t_name} ({t_elite}) | Dist: {min_dist:.0f}px | State: {target_gob.state}"
+        else:
+            target_str = "Status: Wilayah aman, goblin berada di luar radius deteksi"
+        screen.blit(self.font_xs.render(target_str, True, (71, 85, 105)), (c1_rect.x + 10, c1_rect.y + 25))
+
+        # 3 Metric boxes
         m_w = (c1_rect.width - 20 - 12) // 3
-        m1_r = pygame.Rect(c1_rect.x + 10, c1_rect.y + 27, m_w, 42)
-        m2_r = pygame.Rect(c1_rect.x + 10 + m_w + 6, c1_rect.y + 27, m_w, 42)
-        m3_r = pygame.Rect(c1_rect.x + 10 + (m_w + 6) * 2, c1_rect.y + 27, m_w, 42)
+        m1_r = pygame.Rect(c1_rect.x + 10, c1_rect.y + 38, m_w, 40)
+        m2_r = pygame.Rect(c1_rect.x + 10 + m_w + 6, c1_rect.y + 38, m_w, 40)
+        m3_r = pygame.Rect(c1_rect.x + 10 + (m_w + 6) * 2, c1_rect.y + 38, m_w, 40)
 
-        self._draw_metric_box(screen, m1_r, "Prior P(Elit)", "0.20")
-        self._draw_metric_box(screen, m2_r, "Bukti Observasi", "Hit Signature")
-        self._draw_metric_box(screen, m3_r, "P(Elit|Bukti)", "Posterior Bayes")
+        self._draw_metric_box(screen, m1_r, "Prior P(Elit)", f"{prior:.2f}")
+        self._draw_metric_box(screen, m2_r, "Bukti Observasi", last_obs)
+        self._draw_metric_box(screen, m3_r, "P(Elit | Bukti)", f"{posterior*100:.1f}%")
 
-        hint_y = c1_rect.y + 74
-        screen.blit(self.font_body.render("P(Elit|E) = P(E|Elit)*P(Elit) / P(E) [Biasa vs Elit]", True, (71, 85, 105)), (c1_rect.x + 10, hint_y))
+        # Footer formula & pill klasifikasi
+        hint_y = c1_rect.y + 82
+        formula_txt = f"Bayes P(Elit|E) = {posterior*100:.1f}%"
+        screen.blit(self.font_body.render(formula_txt, True, (71, 85, 105)), (c1_rect.x + 10, hint_y))
+
         b_hint_r = pygame.Rect(c1_rect.right - 108, hint_y - 2, 98, 18)
-        self._draw_badge(screen, b_hint_r, "Bayes Network", (15, 23, 42), (241, 245, 249), (203, 213, 225))
+        if posterior >= 0.50:
+            self._draw_badge(screen, b_hint_r, "[TIPE: ELIT]", (185, 28, 28), (254, 242, 242), (252, 165, 165))
+        elif obs_count > 0 and posterior < 0.20:
+            self._draw_badge(screen, b_hint_r, "[TIPE: BIASA]", (22, 101, 52), (220, 252, 231), (134, 239, 172))
+        else:
+            self._draw_badge(screen, b_hint_r, "Bayes Network", (15, 23, 42), (241, 245, 249), (203, 213, 225))
 
         # ----------------------------------------------------------------------
-        # Card 2: KEBIJAKAN RISIKO PERTEMPURAN MEU (108px)
+        # Card 2: KEBIJAKAN RISIKO PERTEMPURAN MEU (140px)
         # ----------------------------------------------------------------------
-        c2_rect = pygame.Rect(rx + 10, ry + 228, rw - 20, 108)
+        c2_rect = pygame.Rect(rx + 10, ry + 232, rw - 20, 140)
         pygame.draw.rect(screen, (255, 251, 235), c2_rect, border_radius=10)
         pygame.draw.rect(screen, (253, 230, 138), c2_rect, 1, border_radius=10)
 
-        c2_title = self.font_bold.render("KEBIJAKAN RISIKO: MAXIMUM EXPECTED UTILITY", True, (146, 64, 14))
-        screen.blit(c2_title, (c2_rect.x + 10, c2_rect.y + 6))
+        pygame.draw.circle(screen, (245, 158, 11), (c2_rect.x + 14, c2_rect.y + 14), 3.5)
+        c2_title = self.font_bold.render("KEBIJAKAN RISIKO: MEU POLICY", True, (146, 64, 14))
+        screen.blit(c2_title, (c2_rect.x + 22, c2_rect.y + 6))
 
-        comb_badge_r = pygame.Rect(c2_rect.right - 96, c2_rect.y + 5, 86, 18)
-        self._draw_badge(screen, comb_badge_r, "[MEU POLICY]", (146, 64, 14), (254, 243, 199), (252, 211, 77), dot_col=(245, 158, 11))
+        # Badge Rekomendasi Keputusan Real-Time
+        comb_badge_r = pygame.Rect(c2_rect.right - 152, c2_rect.y + 5, 144, 18)
+        if decision == CombatDecision.ENGAGE:
+            self._draw_badge(screen, comb_badge_r, "[REKOMENDASI: ENGAGE]", (22, 101, 52), (220, 252, 231), (134, 239, 172), dot_col=(34, 197, 94))
+        elif decision == CombatDecision.EVADE:
+            self._draw_badge(screen, comb_badge_r, "[REKOMENDASI: EVADE]", (185, 28, 28), (254, 242, 242), (252, 165, 165), dot_col=(239, 68, 68))
+        elif decision == CombatDecision.HEAL:
+            self._draw_badge(screen, comb_badge_r, "[REKOMENDASI: HEAL]", (30, 64, 175), (219, 234, 254), (147, 197, 253), dot_col=(59, 130, 246))
+        else:
+            self._draw_badge(screen, comb_badge_r, "[STATUS: NO THREAT]", (71, 85, 105), (241, 245, 249), (203, 213, 225), dot_col=(148, 163, 184))
 
-        in_box = pygame.Rect(c2_rect.x + 10, c2_rect.y + 27, c2_rect.width - 20, 26)
+        # Action Space Capsule dengan Highlighting Real-Time Aksi Terpilih
+        in_box = pygame.Rect(c2_rect.x + 10, c2_rect.y + 26, c2_rect.width - 20, 26)
         pygame.draw.rect(screen, (255, 255, 255), in_box, border_radius=6)
         pygame.draw.rect(screen, (253, 230, 138), in_box, 1, border_radius=6)
 
-        screen.blit(self.font_bold.render("Ruang Aksi: A = {ENGAGE, EVADE, HEAL}", True, (15, 23, 42)), (in_box.x + 8, in_box.y + 5))
+        pill_w = (in_box.width - 8) // 3
+        # Pill 1: ENGAGE
+        p1_r = pygame.Rect(in_box.x + 2, in_box.y + 3, pill_w, 20)
+        p1_act = (decision == CombatDecision.ENGAGE)
+        p1_bg = (220, 252, 231) if p1_act else (248, 250, 252)
+        p1_border = (22, 101, 52) if p1_act else (226, 232, 240)
+        p1_txt = (22, 101, 52) if p1_act else (100, 116, 139)
+        self._draw_badge(screen, p1_r, f"ENGAGE {metrics['eu_engage']:+.1f}", p1_txt, p1_bg, p1_border, font=self.font_xs, center=True)
 
-        act_pill = pygame.Rect(in_box.right - 54, in_box.y + 4, 46, 18)
-        self._draw_badge(screen, act_pill, "[AKTIF]", (22, 101, 52), (220, 252, 231), (134, 239, 172))
+        # Pill 2: EVADE
+        p2_r = pygame.Rect(in_box.x + 4 + pill_w, in_box.y + 3, pill_w, 20)
+        p2_act = (decision == CombatDecision.EVADE)
+        p2_bg = (254, 226, 226) if p2_act else (248, 250, 252)
+        p2_border = (185, 28, 28) if p2_act else (226, 232, 240)
+        p2_txt = (185, 28, 28) if p2_act else (100, 116, 139)
+        self._draw_badge(screen, p2_r, f"EVADE {metrics['eu_evade']:+.1f}", p2_txt, p2_bg, p2_border, font=self.font_xs, center=True)
 
-        kv_y = c2_rect.y + 59
-        screen.blit(self.font_mono.render("Analisis MEU", True, (180, 83, 9)), (c2_rect.x + 10, kv_y))
-        screen.blit(self.font_body.render("U(loot)=+5.5, U(death)=-20.0, U(evade)=-1.5, U(heal)=-3.0", True, (15, 23, 42)), (c2_rect.x + 104, kv_y))
+        # Pill 3: HEAL
+        p3_r = pygame.Rect(in_box.x + 6 + pill_w * 2, in_box.y + 3, pill_w, 20)
+        p3_act = (decision == CombatDecision.HEAL)
+        p3_bg = (219, 234, 254) if p3_act else (248, 250, 252)
+        p3_border = (30, 64, 175) if p3_act else (226, 232, 240)
+        p3_txt = (30, 64, 175) if p3_act else (100, 116, 139)
+        heal_val_txt = f"HEAL {metrics['eu_heal']:+.1f}" if (has_potion and metrics['eu_heal'] > -100) else "HEAL N/A"
+        self._draw_badge(screen, p3_r, heal_val_txt, p3_txt, p3_bg, p3_border, font=self.font_xs, center=True)
 
-        kv_y += 16
-        screen.blit(self.font_mono.render("Kebijakan HP", True, (180, 83, 9)), (c2_rect.x + 10, kv_y))
-        screen.blit(self.font_bold.render("HP >= 35% -> Engage | HP < 35% -> Evade (Histeresis 10%)", True, (15, 23, 42)), (c2_rect.x + 104, kv_y))
+        # Rincian Analisis Utilitas (Tersusun rapi tanpa teks terpotong / meluap)
+        kv_y = c2_rect.y + 56
+        screen.blit(self.font_mono.render("Kondisi HP", True, (180, 83, 9)), (c2_rect.x + 10, kv_y))
+        cond_str = f"Hero: {hero_hp_raw}/{hero_max_hp} ({hp_hero_ratio*100:.0f}%) | Goblin: {hp_goblin_ratio*100:.0f}% (n={gob_count_eff})"
+        screen.blit(self.font_body.render(cond_str, True, (15, 23, 42)), (c2_rect.x + 82, kv_y))
 
-        kv_y += 16
-        screen.blit(self.font_mono.render("Titik Impas", True, (100, 116, 139)), (c2_rect.x + 10, kv_y))
-        screen.blit(self.font_body.render("P*(win) = 18.5 / 25.5 = 72.55% <=> HP* = 35.0%", True, (100, 116, 139)), (c2_rect.x + 104, kv_y))
+        kv_y += 18
+        screen.blit(self.font_mono.render("P(Menang)", True, (180, 83, 9)), (c2_rect.x + 10, kv_y))
+        p_str = f"P(win): {metrics['p_win']*100:.1f}% | Titik Impas P*: 72.55%"
+        screen.blit(self.font_body.render(p_str, True, (15, 23, 42)), (c2_rect.x + 82, kv_y))
+
+        kv_y += 18
+        screen.blit(self.font_mono.render("Ambang HP*", True, (180, 83, 9)), (c2_rect.x + 10, kv_y))
+        hp_star_str = "HP* = 35.0% | Histeresis < 25%"
+        screen.blit(self.font_bold.render(hp_star_str, True, (15, 23, 42)), (c2_rect.x + 82, kv_y))
+
+        kv_y += 18
+        screen.blit(self.font_mono.render("Bobot MEU", True, (100, 116, 139)), (c2_rect.x + 10, kv_y))
+        u_str = "Loot:+5.5, Death:-20.0, Evade:-1.5, Heal:-3.0"
+        screen.blit(self.font_xs.render(u_str, True, (100, 116, 139)), (c2_rect.x + 82, kv_y + 1))
 
         # ----------------------------------------------------------------------
-        # Card 3: FORMULASI KEPUTUSAN STOKASTIK (182px)
+        # Card 3: FORMULASI KEPUTUSAN STOKASTIK (144px)
         # ----------------------------------------------------------------------
-        c3_rect = pygame.Rect(rx + 10, ry + 342, rw - 20, 182)
+        c3_rect = pygame.Rect(rx + 10, ry + 378, rw - 20, 144)
         pygame.draw.rect(screen, (255, 255, 255), c3_rect, border_radius=10)
         pygame.draw.rect(screen, (226, 232, 240), c3_rect, 1, border_radius=10)
 
@@ -934,31 +1084,30 @@ class UnifiedPlannerPanel:
         c3_title = self.font_bold.render("FORMULASI FORMAL DUU MINION", True, (15, 23, 42))
         screen.blit(c3_title, (c3_rect.x + 22, c3_rect.y + 6))
 
-        teori_badge = pygame.Rect(c3_rect.right - 78, c3_rect.y + 5, 70, 18)
+        teori_badge = pygame.Rect(c3_rect.right - 84, c3_rect.y + 5, 76, 18)
         self._draw_badge(screen, teori_badge, "[TEORI DUU]", (107, 33, 168), (243, 232, 255), (216, 180, 254))
 
         m_w = (c3_rect.width - 20 - 12) // 3
-        m1_r = pygame.Rect(c3_rect.x + 10, c3_rect.y + 27, m_w, 42)
-        m2_r = pygame.Rect(c3_rect.x + 10 + m_w + 6, c3_rect.y + 27, m_w, 42)
-        m3_r = pygame.Rect(c3_rect.x + 10 + (m_w + 6) * 2, c3_rect.y + 27, m_w, 42)
+        m1_r = pygame.Rect(c3_rect.x + 10, c3_rect.y + 25, m_w, 36)
+        m2_r = pygame.Rect(c3_rect.x + 10 + m_w + 6, c3_rect.y + 25, m_w, 36)
+        m3_r = pygame.Rect(c3_rect.x + 10 + (m_w + 6) * 2, c3_rect.y + 25, m_w, 36)
 
         self._draw_metric_box(screen, m1_r, "Kaidah Keputusan", "argmax EU(a)")
         self._draw_metric_box(screen, m2_r, "Derivasi Impas", "P* = 72.55%")
         self._draw_metric_box(screen, m3_r, "Ambang Kritis", "HP* = 35.0%")
 
-        t_box = pygame.Rect(c3_rect.x + 10, c3_rect.y + 75, c3_rect.width - 20, 98)
+        t_box = pygame.Rect(c3_rect.x + 10, c3_rect.y + 66, c3_rect.width - 20, 70)
         pygame.draw.rect(screen, (248, 250, 252), t_box, border_radius=6)
         pygame.draw.rect(screen, (226, 232, 240), t_box, 1, border_radius=6)
 
         ucc_rows = [
             ("Derivasi Impas: EU(Engage) = EU(Evade)", "[OK]", True),
             ("Inversi Sigmoid HP* = 35% (Normal Goblin)", "[OK]", True),
-            ("Pembaruan Keyakinan Bayesian Tipe Musuh", "[OK]", True),
-            ("Aksi Heal & Histeresis Pelepasan < 25%", "[OK]", True),
+            ("Pembaruan Bayesian & Histeresis < 25%", "[OK]", True),
         ]
 
         for i, (r_txt, badge_txt, is_ok) in enumerate(ucc_rows):
-            ry_item = t_box.y + 6 + i * 23
+            ry_item = t_box.y + 5 + i * 21
             screen.blit(self.font_mono.render(r_txt, True, (51, 65, 85)), (t_box.x + 8, ry_item))
 
             b_item_r = pygame.Rect(t_box.right - 48, ry_item - 1, 40, 16)
@@ -1005,10 +1154,10 @@ class UnifiedPlannerPanel:
         screen.blit(c2_title, (c2_rect.x + 12, c2_rect.y + 10))
 
         opts = [
-            ("Planning Graph", "h_level admissible (h=4.0 pada Ojek, mutex terpenuhi)"),
-            ("Optimasi Helpful Actions", "Memotong percabangan hingga 8x lipat tanpa kehilangan solusi"),
-            ("Incremental Budgeting", "Waktu per-frame step() terukur < 20ms (rata-rata 1.1ms)"),
-            ("Batas Geodesik Map", "Jarak rute riil 40 lkg >= 38 Manhattan terbukti invarian"),
+            ("Planning Graph", "h_level admissible (h=4.0 pada Objek, mutex OK)"),
+            ("Optimasi Helpful Actions", "Memotong percabangan 8x lipat tanpa hilang solusi"),
+            ("Incremental Budgeting", "Waktu per-frame terukur < 20ms (rata-rata 1.1ms)"),
+            ("Batas Geodesik Map", "Rute riil 40 lkg >= 38 Manhattan invarian"),
         ]
         row_y = c2_rect.y + 32
         for header, detail in opts:
@@ -1034,11 +1183,23 @@ class UnifiedPlannerPanel:
 
         c1_title = self.font_bold.render("STATUS SHOP-STYLE HTN ENGINE", True, (15, 23, 42))
         screen.blit(c1_title, (c1_rect.x + 12, c1_rect.y + 10))
-        screen.blit(self.font_body.render("Status: Modul opsional (di luar materi silabus 35 slide inti)", True, (30, 41, 59)), (c1_rect.x + 12, c1_rect.y + 32))
-        screen.blit(self.font_body.render("Engine mandiri tersedia di berkas src/planning/htn.py", True, (71, 85, 105)), (c1_rect.x + 12, c1_rect.y + 52))
-        screen.blit(self.font_body.render("Dukungan dekomposisi task NPC desa Sunnyside berjalan independen.", True, (100, 116, 139)), (c1_rect.x + 12, c1_rect.y + 72))
 
-        c2_rect = pygame.Rect(rx + 10, ry + 236, rw - 20, 288)
+        if farmer or miller:
+            f_loc = getattr(farmer, "current_location", "farm") if farmer else "-"
+            f_op = farmer.active_operator_queue[0].name if (farmer and farmer.active_operator_queue) else "idle"
+            screen.blit(self.font_body.render(f"Pak Tani (Farmer)   : Loc: {f_loc} | Op: {f_op}", True, (30, 41, 59)), (c1_rect.x + 12, c1_rect.y + 32))
+
+            m_loc = getattr(miller, "current_location", "windmill") if miller else "-"
+            m_op = miller.active_operator_queue[0].name if (miller and miller.active_operator_queue) else "idle"
+            screen.blit(self.font_body.render(f"Penggiling (Miller) : Loc: {m_loc} | Op: {m_op}", True, (71, 85, 105)), (c1_rect.x + 12, c1_rect.y + 52))
+
+            screen.blit(self.font_body.render("Dekomposisi hierarkis NPC desa berjalan mandiri.", True, (100, 116, 139)), (c1_rect.x + 12, c1_rect.y + 72))
+        else:
+            screen.blit(self.font_body.render("Status: Modul opsional di luar materi 35 slide inti", True, (30, 41, 59)), (c1_rect.x + 12, c1_rect.y + 32))
+            screen.blit(self.font_body.render("Engine mandiri tersedia di src/planning/htn.py", True, (71, 85, 105)), (c1_rect.x + 12, c1_rect.y + 52))
+            screen.blit(self.font_body.render("Dekomposisi hierarkis NPC desa berjalan mandiri.", True, (100, 116, 139)), (c1_rect.x + 12, c1_rect.y + 72))
+
+        c2_rect = pygame.Rect(rx + 10, ry + 236, rw - 20, 276)
         pygame.draw.rect(screen, (255, 255, 255), c2_rect, border_radius=10)
         pygame.draw.rect(screen, (226, 232, 240), c2_rect, 1, border_radius=10)
 
@@ -1046,23 +1207,24 @@ class UnifiedPlannerPanel:
         screen.blit(c2_title, (c2_rect.x + 12, c2_rect.y + 10))
 
         syllabus = [
-            "* PDDL & Action Schema (STRIPS preconditions & effects)",
-            "* Forward State-Space Search (BFS, UCS, A*)",
-            "* Backward Goal Regression (Analisis Slide 27)",
-            "* Ignore-Delete-List Heuristics (h_add, h_max, h_FF Relaxed)",
-            "* Planning Graph & Mutex Relations (GraphPlan / h_level)",
-            "* Decoupled Real-Time Re-planning Engine (< 20ms budget)",
-            "* Cross-Module Integration with Bayesian Uncertainty & MAB",
+            "* Formal STRIPS / PDDL Action Models (4 Masalah)",
+            "* Heuristik Admissible (h_max, h_sum, h_level)",
+            "* STRIPS Planning Graph & Mutex Validations",
+            "* Enforced Hill-Climbing & WA* Search Engine",
+            "* Real-Time Re-planning Engine (< 20ms budget)",
+            "* Integrasi Modul Bayesian & DUU Minion",
         ]
-        s_y = c2_rect.y + 36
+        s_y = c2_rect.y + 34
         for item in syllabus:
             screen.blit(self.font_body.render(item, True, (51, 65, 85)), (c2_rect.x + 12, s_y))
-            s_y += 34
+            s_y += 33
 
     def draw(self, screen: pygame.Surface, autopilot: Optional[AutopilotController] = None,
              farmer: Optional[HTNNPCAgent] = None, miller: Optional[HTNNPCAgent] = None,
              clock: Optional[WorldClock] = None, weather_mgr: Optional[Any] = None,
-             camera: Optional[Tuple[int, int]] = None, hero: Optional[Any] = None):
+             camera: Optional[Tuple[int, int]] = None, hero: Optional[Any] = None,
+             combat_model: Optional[Any] = None, goblins: Optional[List[Any]] = None,
+             world_state: Optional[Any] = None):
         """Menggambar panel terpadu satu jendela dengan styling modern compact studio."""
         if not self.visible:
             return
@@ -1098,5 +1260,7 @@ class UnifiedPlannerPanel:
         elif self.active_tab == 2:
             self._draw_htn_tab(screen, farmer, miller, clock)
         elif self.active_tab == 3:
-            self._draw_uncertainty_tab(screen, weather_mgr, autopilot)
+            self._draw_uncertainty_tab(screen, weather_mgr, autopilot, hero=hero,
+                                       combat_model=combat_model, goblins=goblins,
+                                       world_state=world_state)
 

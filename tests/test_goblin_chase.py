@@ -86,11 +86,34 @@ class TestGoblinChaseRange(unittest.TestCase):
     def test_05_deleash_when_player_escapes_far(self):
         """Goblin melepaskan pengejaran dan kembali ke IDLE saat player kabur (> GOB_DELEASH_RADIUS)."""
         self.gob.state = Goblin.STATE_CHASE
-        # Player kabur jauh: jarak 500 px (> 360 px)
+        # Player kabur jauh: jarak 500 px (> GOB_DELEASH_RADIUS)
         player = DummyPlayer(1000.0, 500.0)
         
         self.gob.update(0.1, player, self.game_map)
         self.assertEqual(self.gob.state, Goblin.STATE_IDLE)
+
+    def test_06_deleash_when_exceeding_spawn_territory(self):
+        """Goblin melepaskan pengejaran jika terpancing keluar terlalu jauh dari titik spawn-nya."""
+        self.gob.state = Goblin.STATE_CHASE
+        # Pindahkan posisi goblin 300 px dari titik spawn (500, 500)
+        self.gob.x = 800.0
+        self.gob.y = 500.0
+        # Player ada di dekat goblin (jarak 50 px, masih dalam DELEASH_RADIUS)
+        player = DummyPlayer(850.0, 500.0)
+
+        self.gob.update(0.1, player, self.game_map)
+        self.assertEqual(self.gob.state, Goblin.STATE_IDLE, "Goblin harus kembali IDLE jika melebihi GOB_MAX_LEASH_DIST dari spawn")
+        self.assertEqual(self.gob.patrol_target, (self.gob.spawn_x, self.gob.spawn_y), "Patrol target harus diarahkan pulang ke spawn")
+
+    def test_07_deleash_cooldown_prevents_instant_reaggro(self):
+        """Setelah de-leash, goblin memiliki jeda cooldown dan tidak langsung mengejar kembali seketika."""
+        self.gob.state = Goblin.STATE_IDLE
+        self.gob.deleash_cooldown = 2.0
+        # Player berada dalam range kejar normal (150 px < GOB_CHASE_RADIUS)
+        player = DummyPlayer(650.0, 500.0)
+
+        self.gob.update(0.1, player, self.game_map)
+        self.assertEqual(self.gob.state, Goblin.STATE_IDLE, "Goblin tidak boleh langsung re-aggro selama deleash_cooldown aktif")
 
 
 if __name__ == "__main__":

@@ -57,11 +57,23 @@ class DistanceMatrix:
         if loc_a not in self.locations or loc_b not in self.locations:
             return float("inf"), 0, []
 
+        # Wilayah Boss tersegel gerbang: tidak dapat diakses bila gerbang tertutup
+        if not gate_open and (loc_a == "boss" or loc_b == "boss"):
+            result = (float("inf"), 0, [])
+            self._cache[cache_key] = result
+            return result
+
         pos_a = self.locations[loc_a]
         pos_b = self.locations[loc_b]
 
         cell_a = (int(pos_a[0] // 32), int(pos_a[1] // 32))
         cell_b = (int(pos_b[0] // 32), int(pos_b[1] // 32))
+
+        # Bila titik berada di sel tile yang sama
+        if cell_a == cell_b:
+            result = (0.0, 0, [cell_a])
+            self._cache[cache_key] = result
+            return result
 
         # Fungsi is_blocked berdasarkan game_map dan status gerbang
         def is_blocked(cx: int, cy: int) -> bool:

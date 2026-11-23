@@ -313,7 +313,7 @@ class HTNNPCAgent:
         self.planner = SHOPPlanner(domain, distance_matrix=self.distance_matrix)
 
         locs = getattr(config, "NPC_LOCATIONS", getattr(config, "LOCATIONS", {}))
-        pos = locs.get(starting_loc, (1000, 750))
+        pos = locs.get(starting_loc, (1440, 960))
         self.px = float(pos[0])
         self.py = float(pos[1])
         self.sort_y = self.py
@@ -474,6 +474,25 @@ class HTNNPCAgent:
         # Clamp dt untuk mencegah tunneling atau lonjakan pasca lag spike
         dt = min(dt, 0.1)
 
+        # Collision & Water Safety Guard: pastikan NPC tidak pernah berdiri di atas air / rintangan
+        if game_map is not None:
+            cur_foot = self.feet_hitbox()
+            if not game_map.can_stand(cur_foot):
+                last_hb = pygame.Rect(
+                    int(self.last_valid_pos[0] + (config.TILE_SIZE - 14) / 2),
+                    int(self.last_valid_pos[1] + config.TILE_SIZE - 8 - 1),
+                    14, 8
+                )
+                if game_map.can_stand(last_hb):
+                    self.px, self.py = self.last_valid_pos
+                else:
+                    # Fallback darurat ke daratan aman desa
+                    self.px, self.py = 1440.0, 960.0
+                    self.last_valid_pos = (self.px, self.py)
+                self._reset_navigation()
+            else:
+                self.last_valid_pos = (self.px, self.py)
+
         if self.replan_cooldown > 0:
             self.replan_cooldown = max(0.0, self.replan_cooldown - dt)
 
@@ -549,10 +568,16 @@ class HTNNPCAgent:
                 speed = 80.0  # piksel per detik
 
                 if dist <= speed * dt or dist < 2.0:
-                    self.px, self.py = next_wp
+                    cand_hb = pygame.Rect(
+                        int(next_wp[0] + (config.TILE_SIZE - 14) / 2),
+                        int(next_wp[1] + config.TILE_SIZE - 8 - 1),
+                        14, 8
+                    )
+                    if game_map is None or game_map.can_stand(cand_hb):
+                        self.px, self.py = next_wp
+                        self.last_valid_pos = (self.px, self.py)
                     self.current_path.pop(0)
                     self.stuck_timer = 0.0
-                    self.last_valid_pos = (self.px, self.py)
                 else:
                     step = speed * dt
                     step_dx = (dx / dist) * step
@@ -586,13 +611,19 @@ class HTNNPCAgent:
             # Jika path selesai dan dekat tujuan akhir
             dist_to_final = math.hypot(tx_pixel - self.px, ty_pixel - self.py)
             if not self.current_path and dist_to_final <= 4.0:
-                self.px, self.py = tx_pixel, ty_pixel
+                final_hb = pygame.Rect(
+                    int(tx_pixel + (config.TILE_SIZE - 14) / 2),
+                    int(ty_pixel + config.TILE_SIZE - 8 - 1),
+                    14, 8
+                )
+                if game_map is None or game_map.can_stand(final_hb):
+                    self.px, self.py = tx_pixel, ty_pixel
+                    self.last_valid_pos = (self.px, self.py)
                 self.sort_y = self.py + config.TILE_SIZE
                 self.current_location = dest_loc
                 self.active_operator_queue.pop(0)
                 self.current_op_elapsed = 0.0
                 self._reset_navigation()
-                self.last_valid_pos = (self.px, self.py)
 
         elif current_op.name in ("!harvest_crop", "!water_crop", "!plant_crop", "!mill_wheat", "!feed_animals"):
             self.expression = ExpressionIcon.WORKING

@@ -10,7 +10,7 @@ Modul **Decisions Under Uncertainty (DUU)** pada game *AI Labyrinth: Sunnyside I
 Seluruh konsep teoretis keputusan probabilistik diwujudkan ke dalam interaksi gameplay nyata:
 1. **Jaringan Keputusan (*Decision Network*)**: Memodelkan simpul peluang (*chance node*) tipe goblin $T \in \{\text{NORMAL}, \text{ELITE}\}$ dan utilitas hasil pertempuran.
 2. **Pembaruan Keyakinan Bayesian (*Bayesian Belief Updating*)**: Memperbarui keyakinan secara real-time dari prior $P(\text{ELITE}) = 0,20$ menjadi posterior berbasis bukti pertukaran damage serangan awal musuh.
-3. **Model Probabilitas Kemenangan Kontinu ($P(\text{win})$)**: Fungsi sigmoid kontinu berbasis sisa HP hero, sisa HP goblin, dan jumlah goblin musuh, memungkinkan aksi penuntasan (*finishing blow*) pada goblin sekarat.
+3. **Model Probabilitas Kemenangan Kontinu ($P(\text{win})$)**: Fungsi sigmoid kontinu berbasis sisa HP hero, sisa HP goblin, dan jumlah goblin musuh, memungkinkan aksi penuntasan (*finishing blow*) pada musuh dengan kondisi HP kritis.
 4. **Evaluasi Maximum Expected Utility (MEU)**: Memilih tindakan optimal $\arg\max_{a} EU(a)$ dari tiga alternatif: $\text{ENGAGE}$, $\text{EVADE}$, dan $\text{HEAL}$.
 5. **Derivasi Titik Impas Analitik**: Penurunan formal $P^*(\text{win}) = 72,55\% \iff \text{HP}^* = 35,0\%$ untuk goblin normal.
 6. **Mekanisme Histeresis 10%**: Mencegah *flickering* perilaku bolak-balik saat HP berfluktuasi di sekitar 35% (decommit ke Evade hanya jika $\text{HP} < 25\%$).
@@ -48,7 +48,7 @@ src/planning/planner_ui.py # Dock Inspector F8: Visualisasi metrik DUU, inferens
 $$P(\text{win}) = (1 - P(\text{ELITE} \mid E)) \cdot P(\text{win} \mid \text{NORMAL}) + P(\text{ELITE} \mid E) \cdot P(\text{win} \mid \text{ELITE})$$
 dengan fungsi sigmoid:
 $$P(\text{win} \mid \text{HP}_{\text{hero}}, \text{HP}_{\text{goblin}}, n, T) = \frac{1}{1 + \exp\left(-\frac{\text{HP}_{\text{hero}} - \text{center}(\text{HP}_{\text{goblin}}, n, T)}{\text{scale}}\right)}$$
-Jika goblin sekarat ($\text{HP}_{\text{goblin}} \le 0,33$), titik tengah bergeser drastis sehingga $P(\text{win}) \ge 0,75$ meskipun HP hero di bawah 35%.
+Jika sisa HP musuh berada pada ambang kritis ($\text{HP}_{\text{goblin}} \le 0,33$), titik tengah bergeser drastis sehingga $P(\text{win}) \ge 0,75$ meskipun HP hero di bawah 35%.
 
 #### 3.3 Evaluasi Utilitas Harapan (MEU)
 - Ruang Aksi: $A = \{\text{ENGAGE}, \text{EVADE}, \text{HEAL}\}$

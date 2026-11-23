@@ -126,6 +126,10 @@ class CombatRiskModel:
 
         # Inisialisasi belief Bayesian
         self.belief = BayesianMinionBelief(prior_elite=prior_elite)
+        self.last_observation_dmg: Optional[int] = None
+        self.last_observation_is_high: Optional[bool] = None
+        self.last_observation_goblin: Optional[Any] = None
+        self.last_observation_desc: str = "Belum ada hit"
 
         # Skala dan kalibrasi sigmoid analitik:
         # P*(win) untuk goblin normal:
@@ -137,6 +141,15 @@ class CombatRiskModel:
         self.z_star = math.log(self.p_star_normal / (1.0 - self.p_star_normal))
         # Center normal dikalibrasi tepat agar pada HP=0.35, P(win) = p_star_normal:
         self.center_normal = 0.35 - (self.z_star * self.scale)  # ~= 0.25281
+
+    def record_hit_observation(self, damage: int, is_high: bool, goblin: Optional[Any] = None) -> float:
+        """Mencatat observasi serangan musuh dan memperbarui posterior keyakinan Bayesian."""
+        post = self.belief.update(is_high)
+        self.last_observation_dmg = damage
+        self.last_observation_is_high = is_high
+        self.last_observation_goblin = goblin
+        self.last_observation_desc = f"Hit: {damage} DMG ({'Elit' if is_high else 'Biasa'})"
+        return post
 
     def calculate_win_probability(self,
                                   hp_hero: float,
